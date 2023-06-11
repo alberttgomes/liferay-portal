@@ -55,7 +55,9 @@ public class DDMTemplateBrowserSnifferUpgradeProcess extends UpgradeProcess {
 
 						Matcher browserSnifferMather = patternRegex.matcher(data);
 
-						if (browserSnifferMather.find()) {
+						int index = data.indexOf(_BrowserSnifferValue.length);
+
+						if (index > 0) {
 							continue;
 						}
 
