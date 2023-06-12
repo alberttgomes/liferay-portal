@@ -52,16 +52,13 @@ public class DDMTemplateBrowserSnifferUpgradeProcess extends UpgradeProcess {
 						String data = resultSet.getString(1);
 
 						Pattern patternRegex = Pattern.compile(_BrowserSnifferRegex);
+						Matcher browserSnifferMatcher = patternRegex.matcher(data);
 
-						Matcher browserSnifferMather = patternRegex.matcher(data);
-
-						int index = data.indexOf(_BrowserSnifferValue.length);
-
-						if (index > 0) {
+						if (browserSnifferMatcher.find()) {
 							continue;
 						}
 
-						String dataResult = browserSnifferMather.replaceAll(
+						String dataResult = browserSnifferMatcher.replaceAll(
 							""
 						);
 
