@@ -530,7 +530,7 @@ public class DDMServiceUpgradeStepRegistrator
 					_language));
 
 		registry.register(
-			"5.3.2", "5.3.2",
+			"5.3.1", "5.3.2",
 			new com.liferay.dynamic.data.mapping.internal.upgrade.v5_3_2.
 				DDMTemplateBrowserSnifferUpgradeProcess());
 	}

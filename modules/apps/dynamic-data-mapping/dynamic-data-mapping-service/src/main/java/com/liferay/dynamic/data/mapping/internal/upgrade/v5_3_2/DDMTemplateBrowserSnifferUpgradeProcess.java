@@ -40,7 +40,7 @@ public class DDMTemplateBrowserSnifferUpgradeProcess extends UpgradeProcess {
 				connection.prepareStatement(
 					StringBundler.concat(
 						"select DDMTemplate.script from ",
-						"DDMTemplate where templateKey ? = ?"));
+						"DDMTemplate where templateId ? = ?"));
 			PreparedStatement updatePreparedStatement =
 				AutoBatchPreparedStatementUtil.concurrentAutoBatch(
 					connection,
@@ -51,8 +51,7 @@ public class DDMTemplateBrowserSnifferUpgradeProcess extends UpgradeProcess {
 					while (resultSet.next()) {
 						String data = resultSet.getString(1);
 
-						Pattern patternRegex = Pattern.compile(_BrowserSnifferRegex);
-						Matcher browserSnifferMatcher = patternRegex.matcher(data);
+						Matcher browserSnifferMatcher = _BrowserSnifferPattern.matcher(data);
 
 						if (browserSnifferMatcher.find()) {
 							continue;
@@ -73,10 +72,7 @@ public class DDMTemplateBrowserSnifferUpgradeProcess extends UpgradeProcess {
 		}
 	}
 
-	private static final String _BrowserSnifferRegex =
-		".*com\\.liferay\\.portal\\.kernel\\.servlet\\.BrowserSnifferUtil.*\\n?";
+	private static final Pattern _BrowserSnifferPattern = Pattern.compile(
+		".*com\\.liferay\\.portal\\.kernel\\.servlet\\.BrowserSnifferUtil.*\\n?");
 
-	private static final String [] _BrowserSnifferValue = {
-		"com.liferay.portal.kernel.servlet.BrowserSnifferUtil",
-	};
 }
