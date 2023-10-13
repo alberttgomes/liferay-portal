@@ -1,0 +1,21 @@
+/**
+ * SPDX-FileCopyrightText: (c) 2023 Liferay, Inc. https://liferay.com
+ * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
+ */
+
+package com.liferay.source.formatter.dependencies.upgrade;
+
+public class UpgradeJavaFetchCommerceAccountGroupByExternalReferenceCodeCheck {
+
+	public void method(long companyId, String externalReferenceCode) {
+		_accountGroupLocalService.fetchAccountGroupByExternalReferenceCode(externalReferenceCode, companyId);
+
+		AccountGroupLocalServiceUtil.fetchAccountGroupByExternalReferenceCode(externalReferenceCode, companyId);
+
+		_accountGroupLocalService.fetchCommerceAccountGroupByExternalReferenceCode(1, "c5b837d1-87c5-0d42-de52-e4ee1fd50831");
+	}
+
+	@Reference
+    private AccountGroupLocalService _accountGroupLocalService;
+
+}

@@ -248,6 +248,20 @@ public class UpgradeSourceProcessorTest extends BaseSourceProcessorTestCase {
 	}
 
 	@Test
+	public void testUpgradeJavaFetchCommerceAccountGroupByExternalReferenceCodeCheck()
+		throws Exception {
+
+		test(
+			"upgrade/UpgradeJavaFetchCommerceAccountGroupByExternal" +
+				"ReferenceCodeCheck.testjava",
+			StringBundler.concat(
+				"Unable to format method ",
+				"fetchCommerceAccountGroupByExternalReferenceCode from ",
+				"CommerceAccountGroupLocalService, Fill the new changes ",
+				"manually, see LPS-198746."));
+	}
+
+	@Test
 	public void testUpgradeJavaFetchCPDefinitionByCProductExternalReferenceCodeCheck()
 		throws Exception {
 
