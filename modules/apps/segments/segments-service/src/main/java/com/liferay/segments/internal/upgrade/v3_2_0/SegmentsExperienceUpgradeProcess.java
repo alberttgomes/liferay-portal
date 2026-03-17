@@ -54,26 +54,25 @@ public class SegmentsExperienceUpgradeProcess extends UpgradeProcess {
 						"active_, typeSettings, lastPublishDate) values (?, ",
 						"?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ",
 						"?)"));
-			 PreparedStatement preparedStatement3 =
-				 AutoBatchPreparedStatementUtil.concurrentAutoBatch(
-					 connection,
-					 StringBundler.concat(
-						 "update FragmentEntryLink set segmentsExperienceId = ",
-						 "? where ctCollectionId = ? and segmentsExperienceId ",
-						 "= ? and ", fragmentEntryLinkColumnName, " = ?"));
-			 PreparedStatement preparedStatement4 =
-				 AutoBatchPreparedStatementUtil.concurrentAutoBatch(
-					 connection,
-					 StringBundler.concat(
-						 "update LayoutPageTemplateStructureRel set ",
-						 "segmentsExperienceId = ? where ctCollectionId = ? ",
-						 "and segmentsExperienceId = ? and ",
-						 "LayoutPageTemplateStructureId in (select ",
-						 "LayoutPageTemplateStructureId from ",
-						 "LayoutPageTemplateStructure where ",
-						 layoutPageTemplateStructureColumnName, " = ?)"));
-
-		 	ResultSet resultSet = preparedStatement1.executeQuery()) {
+			PreparedStatement preparedStatement3 =
+				AutoBatchPreparedStatementUtil.concurrentAutoBatch(
+					connection,
+					StringBundler.concat(
+						"update FragmentEntryLink set segmentsExperienceId = ",
+						"? where ctCollectionId = ? and segmentsExperienceId ",
+						"= ? and ", fragmentEntryLinkColumnName, " = ?"));
+			PreparedStatement preparedStatement4 =
+				AutoBatchPreparedStatementUtil.concurrentAutoBatch(
+					connection,
+					StringBundler.concat(
+						"update LayoutPageTemplateStructureRel set ",
+						"segmentsExperienceId = ? where ctCollectionId = ? ",
+						"and segmentsExperienceId = ? and ",
+						"LayoutPageTemplateStructureId in (select ",
+						"LayoutPageTemplateStructureId from ",
+						"LayoutPageTemplateStructure where ",
+						layoutPageTemplateStructureColumnName, " = ?)"));
+			ResultSet resultSet = preparedStatement1.executeQuery()) {
 
 			while (resultSet.next()) {
 				Layout layout = _layoutLocalService.fetchLayout(
@@ -165,10 +164,10 @@ public class SegmentsExperienceUpgradeProcess extends UpgradeProcess {
 		throws Exception {
 
 		try (PreparedStatement preparedStatement = connection.prepareStatement(
-			StringBundler.concat(
-				"select count(*) as count from SegmentsExperience where ",
-				"ctCollectionId = ? and groupId = ? and ",
-				"segmentsExperienceKey = ? and plid = ?"))) {
+				StringBundler.concat(
+					"select count(*) as count from SegmentsExperience where ",
+					"ctCollectionId = ? and groupId = ? and ",
+					"segmentsExperienceKey = ? and plid = ?"))) {
 
 			preparedStatement.setLong(1, ctCollectionId);
 			preparedStatement.setLong(2, groupId);
