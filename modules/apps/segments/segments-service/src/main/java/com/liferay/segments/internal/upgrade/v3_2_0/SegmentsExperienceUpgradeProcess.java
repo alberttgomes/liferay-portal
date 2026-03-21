@@ -34,18 +34,18 @@ public class SegmentsExperienceUpgradeProcess extends UpgradeProcess {
 			fragmentEntryLinkColumnName = "classPK";
 		}
 
-		String layoutPageTemplateStructureColumnName = "plid";
-
-		if (!hasColumn("LayoutPageTemplateStructure", "plid")) {
-			layoutPageTemplateStructureColumnName = "classPK";
-		}
-
 		boolean hasFragmentEntryLinkCTCollectionId = hasColumn(
 			"FragmentEntryLink", "ctCollectionId");
 		boolean hasFragmentEntryLinkSegmentsExperienceId = hasColumn(
 			"FragmentEntryLink", "segmentsExperienceId");
 		boolean hasLayoutPageTemplateStructureRelCTCollectionId = hasColumn(
 			"LayoutPageTemplateStructureRel", "ctCollectionId");
+
+		String layoutPageTemplateStructureColumnName = "plid";
+
+		if (!hasColumn("LayoutPageTemplateStructure", "plid")) {
+			layoutPageTemplateStructureColumnName = "classPK";
+		}
 
 		try (PreparedStatement preparedStatement1 = connection.prepareStatement(
 				"select * from SegmentsExperience");
