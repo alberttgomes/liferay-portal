@@ -69,8 +69,8 @@ public class SegmentsExperienceUpgradeProcess extends UpgradeProcess {
 						 "update LayoutPageTemplateStructureRel set ",
 						 "segmentsExperienceId = ? where ctCollectionId = ? ",
 						 "and segmentsExperienceId = ? and ",
-						 "LayoutPageTemplateStructureId in (select ",
-						 "LayoutPageTemplateStructureId from ",
+						 "layoutPageTemplateStructureId in (select ",
+						 "layoutPageTemplateStructureId from ",
 						 "LayoutPageTemplateStructure where ",
 						 layoutPageTemplateStructureColumnName, " = ?)"));
 

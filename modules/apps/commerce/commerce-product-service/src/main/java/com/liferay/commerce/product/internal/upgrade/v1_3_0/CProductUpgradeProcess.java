@@ -44,7 +44,7 @@ public class CProductUpgradeProcess extends UpgradeProcess {
 			Statement s = connection.createStatement(
 				ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
 			ResultSet resultSet = s.executeQuery(
-				"select cpDefinitionId, groupId, companyId, userId, userName " +
+				"select CPDefinitionId, groupId, companyId, userId, userName " +
 					"from CPDefinition")) {
 
 			while (resultSet.next()) {

@@ -88,7 +88,7 @@ public class CPSpecificationOptionUpgradeProcessTest {
 		try (Connection connection = DataAccess.getConnection();
 			PreparedStatement preparedStatement = connection.prepareStatement(
 				"select count(*) as count from CPSOListTypeDefinitionRel " +
-					"where cpSpecificationOptionId = ?")) {
+					"where CPSpecificationOptionId = ?")) {
 
 			preparedStatement.setLong(1, cpSpecificationOptionId);
 
