@@ -864,6 +864,12 @@ public class CommerceServiceUpgradeStepRegistrator
 					_companyLocalService, _resourceActionLocalService,
 					_resourcePermissionLocalService, _roleLocalService));
 
+		registry.register(
+			"15.0.1", "15.0.2",
+			UpgradeProcessFactory.alterColumnName(
+				"CommerceSubscriptionEntry", "CPInstanceUUID",
+				"CPInstanceUuid VARCHAR(75)"));
+
 		if (_log.isInfoEnabled()) {
 			_log.info("Commerce upgrade step registrator finished");
 		}
