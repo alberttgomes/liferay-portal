@@ -11,7 +11,7 @@ import React, {useCallback, useEffect, useState} from 'react';
 
 import ErrorsTab from './ErrorsTab';
 import MigrationForm from './MigrationForm';
-import SchemaComparisonTab from './SchemaComparisonTab';
+import SchemaValidationTab from './SchemaValidationTab';
 import StatusTab from './StatusTab';
 import {
 	PHASE_COMPLETED,
@@ -25,7 +25,7 @@ const POLL_INTERVAL = 2000;
 
 const DatabaseMigration: React.FC<Props> = ({
 	namespace,
-	schemaComparisonURL,
+	schemaValidationURL,
 	startMigrationURL,
 	statusURL,
 	testConnectionURL,
@@ -176,7 +176,7 @@ const DatabaseMigration: React.FC<Props> = ({
 							innerProps={{'aria-controls': 'tab-schema'}}
 							onClick={() => setActiveIndex(2)}
 						>
-							{Liferay.Language.get('schema-comparison')}
+							{Liferay.Language.get('schema-validation')}
 						</ClayTabs.Item>
 					</ClayTabs>
 
@@ -190,9 +190,9 @@ const DatabaseMigration: React.FC<Props> = ({
 						</ClayTabs.TabPane>
 
 						<ClayTabs.TabPane aria-labelledby="tab-schema">
-							<SchemaComparisonTab
+							<SchemaValidationTab
 								phase={status.phase}
-								schemaComparisonURL={schemaComparisonURL}
+								schemaValidationURL={schemaValidationURL}
 							/>
 						</ClayTabs.TabPane>
 					</ClayTabs.Content>

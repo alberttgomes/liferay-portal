@@ -41,29 +41,29 @@ export interface Status {
 	tableRowCounts: TableRowCount[];
 }
 
-export interface ColumnComparison {
+export interface ColumnValidation {
 	columnName: string;
 	sourceType: string | null;
+	status: string;
 	targetType: string | null;
 }
 
-export interface TableComparison {
-	columnComparisons: ColumnComparison[];
-	onSource: boolean;
-	onTarget: boolean;
+export interface TableValidation {
+	columnValidations: ColumnValidation[];
 	sourceRowCount: number;
+	status: string;
 	tableName: string;
 	targetRowCount: number;
 }
 
-export interface SchemaComparison {
+export interface SchemaValidation {
 	available: boolean;
-	tableComparisons: TableComparison[];
+	tableValidations: TableValidation[];
 }
 
 export interface Props {
 	namespace: string;
-	schemaComparisonURL: string;
+	schemaValidationURL: string;
 	startMigrationURL: string;
 	statusURL: string;
 	testConnectionURL: string;

@@ -5,10 +5,10 @@
 
 package com.liferay.database.migration.service.internal;
 
-import com.liferay.database.migration.service.ColumnComparison;
+import com.liferay.database.migration.service.ColumnValidation;
 import com.liferay.database.migration.service.MigrationError;
 import com.liferay.database.migration.service.MigrationStatus;
-import com.liferay.database.migration.service.TableComparison;
+import com.liferay.database.migration.service.TableValidation;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
@@ -98,9 +98,9 @@ public class DatabaseMigrator {
 				sourceDataSource, targetDataSource, tableNames,
 				migrationStatusImpl);
 
-			_buildSchemaComparison(
+			_buildSchemaValidation(
 				sourceDataSource, targetDataSource, tableNames,
-				migrationStatusImpl);
+				portableSchemaProvider, migrationStatusImpl);
 
 			migrationStatusImpl.setPhase(MigrationStatus.PHASE_COMPLETED);
 
@@ -138,11 +138,12 @@ public class DatabaseMigrator {
 		}
 	}
 
-	private void _buildSchemaComparison(
+	private void _buildSchemaValidation(
 		DataSource sourceDataSource, DataSource targetDataSource,
-		List<String> tableNames, MigrationStatusImpl migrationStatusImpl) {
+		List<String> tableNames, PortableSchemaProvider portableSchemaProvider,
+		MigrationStatusImpl migrationStatusImpl) {
 
-		migrationStatusImpl.setMessage("Comparing source and target schemas");
+		migrationStatusImpl.setMessage("Validating the migrated schema");
 
 		try (Connection sourceConnection = sourceDataSource.getConnection();
 			Connection targetConnection = targetDataSource.getConnection()) {
@@ -174,7 +175,7 @@ public class DatabaseMigrator {
 			allTableNames.addAll(sourceTableNames);
 			allTableNames.addAll(targetTableNames);
 
-			List<TableComparison> tableComparisons = new ArrayList<>();
+			List<TableValidation> tableValidations = new ArrayList<>();
 
 			for (String tableName : allTableNames) {
 				boolean onSource = sourceTableNames.contains(tableName);
@@ -202,13 +203,58 @@ public class DatabaseMigrator {
 				columnNames.addAll(sourceColumnTypeNames.keySet());
 				columnNames.addAll(targetColumnTypeNames.keySet());
 
-				List<ColumnComparison> columnComparisons = new ArrayList<>();
+				boolean standardTable = portableSchemaProvider.hasTable(
+					tableName);
+
+				ObjectSchemaProvider objectSchemaProvider =
+					new ObjectSchemaProvider(sourceConnection);
+
+				boolean objectTable = objectSchemaProvider.isObjectTable(
+					tableName);
+
+				Set<String> knownColumnNames = Collections.emptySet();
+
+				if (standardTable) {
+					knownColumnNames = portableSchemaProvider.getColumnNames(
+						tableName);
+				}
+				else if (objectTable) {
+					knownColumnNames = objectSchemaProvider.getColumnNames(
+						tableName);
+				}
+
+				boolean baselineKnown = false;
+
+				if (standardTable || objectTable) {
+					baselineKnown = true;
+				}
+
+				List<ColumnValidation> columnValidations = new ArrayList<>();
 
 				for (String columnName : columnNames) {
-					columnComparisons.add(
-						new ColumnComparisonImpl(
+					boolean onSourceColumn = sourceColumnTypeNames.containsKey(
+						columnName);
+					boolean onTargetColumn = targetColumnTypeNames.containsKey(
+						columnName);
+
+					String status = ColumnValidationImpl.STATUS_VALID;
+
+					if (!onTargetColumn) {
+						status = ColumnValidationImpl.STATUS_NOT_MIGRATED;
+					}
+					else if (!onSourceColumn) {
+						status = ColumnValidationImpl.STATUS_ADDED;
+					}
+					else if (baselineKnown &&
+							 !knownColumnNames.contains(columnName)) {
+
+						status = ColumnValidationImpl.STATUS_CUSTOM;
+					}
+
+					columnValidations.add(
+						new ColumnValidationImpl(
 							columnName, sourceColumnTypeNames.get(columnName),
-							targetColumnTypeNames.get(columnName)));
+							targetColumnTypeNames.get(columnName), status));
 				}
 
 				long targetRowCount = GetterUtil.getLong(
@@ -222,16 +268,19 @@ public class DatabaseMigrator {
 							GetterUtil.getLong(skippedRowCounts.get(tableName));
 				}
 
-				tableComparisons.add(
-					new TableComparisonImpl(
-						tableName, onSource, onTarget, sourceRowCount,
-						targetRowCount, columnComparisons));
+				tableValidations.add(
+					new TableValidationImpl(
+						tableName,
+						_getTableStatus(
+							onSource, onTarget, sourceRowCount, targetRowCount,
+							columnValidations, standardTable, objectTable),
+						sourceRowCount, targetRowCount, columnValidations));
 			}
 
-			migrationStatusImpl.setTableComparisons(tableComparisons);
+			migrationStatusImpl.setTableValidations(tableValidations);
 		}
 		catch (Exception exception) {
-			_log.error("Unable to build schema comparison", exception);
+			_log.error("Unable to build schema validation", exception);
 		}
 	}
 
@@ -334,6 +383,52 @@ public class DatabaseMigrator {
 
 			return new ArrayList<>(tableNames);
 		}
+	}
+
+	private String _getTableStatus(
+		boolean onSource, boolean onTarget, long sourceRowCount,
+		long targetRowCount, List<ColumnValidation> columnValidations,
+		boolean standardTable, boolean objectTable) {
+
+		if (!onTarget) {
+			return TableValidationImpl.STATUS_NOT_MIGRATED;
+		}
+
+		for (ColumnValidation columnValidation : columnValidations) {
+			if (ColumnValidationImpl.STATUS_NOT_MIGRATED.equals(
+					columnValidation.getStatus())) {
+
+				return TableValidationImpl.STATUS_INCOMPLETE;
+			}
+		}
+
+		if (onSource && (sourceRowCount != targetRowCount)) {
+			return TableValidationImpl.STATUS_ROW_COUNT_MISMATCH;
+		}
+
+		if (standardTable) {
+			for (ColumnValidation columnValidation : columnValidations) {
+				if (ColumnValidationImpl.STATUS_CUSTOM.equals(
+						columnValidation.getStatus())) {
+
+					return TableValidationImpl.STATUS_HAS_CUSTOM_COLUMNS;
+				}
+			}
+		}
+
+		if (!onSource) {
+			return TableValidationImpl.STATUS_TARGET_ONLY;
+		}
+
+		if (!standardTable) {
+			if (objectTable) {
+				return TableValidationImpl.STATUS_OBJECT;
+			}
+
+			return TableValidationImpl.STATUS_CUSTOM_TABLE;
+		}
+
+		return TableValidationImpl.STATUS_VALID;
 	}
 
 	private static final Log _log = LogFactoryUtil.getLog(

@@ -7,7 +7,7 @@ package com.liferay.database.migration.service.internal;
 
 import com.liferay.database.migration.service.MigrationError;
 import com.liferay.database.migration.service.MigrationStatus;
-import com.liferay.database.migration.service.TableComparison;
+import com.liferay.database.migration.service.TableValidation;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -98,13 +98,13 @@ public class MigrationStatusImpl implements MigrationStatus, Serializable {
 	}
 
 	@Override
-	public List<TableComparison> getTableComparisons() {
-		return _tableComparisons;
+	public Map<String, Long> getTableRowCounts() {
+		return _tableRowCounts;
 	}
 
 	@Override
-	public Map<String, Long> getTableRowCounts() {
-		return _tableRowCounts;
+	public List<TableValidation> getTableValidations() {
+		return _tableValidations;
 	}
 
 	public void setMessage(String message) {
@@ -119,8 +119,8 @@ public class MigrationStatusImpl implements MigrationStatus, Serializable {
 		_progress = Math.min(100, Math.max(0, progress));
 	}
 
-	public void setTableComparisons(List<TableComparison> tableComparisons) {
-		_tableComparisons = tableComparisons;
+	public void setTableValidations(List<TableValidation> tableValidations) {
+		_tableValidations = tableValidations;
 	}
 
 	@Serial
@@ -132,8 +132,8 @@ public class MigrationStatusImpl implements MigrationStatus, Serializable {
 	private volatile int _phase;
 	private volatile int _progress;
 	private final long _startTime;
-	private volatile List<TableComparison> _tableComparisons =
-		Collections.emptyList();
 	private final Map<String, Long> _tableRowCounts = new ConcurrentHashMap<>();
+	private volatile List<TableValidation> _tableValidations =
+		Collections.emptyList();
 
 }

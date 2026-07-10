@@ -8,11 +8,13 @@ package com.liferay.database.migration.service;
 /**
  * @author Albert Gomes Cabral
  */
-public interface ColumnComparison {
+public interface ColumnValidation {
 
 	public String getColumnName();
 
 	public String getSourceType();
+
+	public String getStatus();
 
 	public String getTargetType();
 

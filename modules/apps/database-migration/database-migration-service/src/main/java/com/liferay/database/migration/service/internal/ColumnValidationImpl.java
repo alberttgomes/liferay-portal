@@ -5,7 +5,7 @@
 
 package com.liferay.database.migration.service.internal;
 
-import com.liferay.database.migration.service.ColumnComparison;
+import com.liferay.database.migration.service.ColumnValidation;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -13,14 +13,24 @@ import java.io.Serializable;
 /**
  * @author Albert Gomes Cabral
  */
-public class ColumnComparisonImpl implements ColumnComparison, Serializable {
+public class ColumnValidationImpl implements ColumnValidation, Serializable {
 
-	public ColumnComparisonImpl(
-		String columnName, String sourceType, String targetType) {
+	public static final String STATUS_ADDED = "ADDED";
+
+	public static final String STATUS_CUSTOM = "CUSTOM";
+
+	public static final String STATUS_NOT_MIGRATED = "NOT_MIGRATED";
+
+	public static final String STATUS_VALID = "VALID";
+
+	public ColumnValidationImpl(
+		String columnName, String sourceType, String targetType,
+		String status) {
 
 		_columnName = columnName;
 		_sourceType = sourceType;
 		_targetType = targetType;
+		_status = status;
 	}
 
 	@Override
@@ -34,6 +44,11 @@ public class ColumnComparisonImpl implements ColumnComparison, Serializable {
 	}
 
 	@Override
+	public String getStatus() {
+		return _status;
+	}
+
+	@Override
 	public String getTargetType() {
 		return _targetType;
 	}
@@ -43,6 +58,7 @@ public class ColumnComparisonImpl implements ColumnComparison, Serializable {
 
 	private final String _columnName;
 	private final String _sourceType;
+	private final String _status;
 	private final String _targetType;
 
 }

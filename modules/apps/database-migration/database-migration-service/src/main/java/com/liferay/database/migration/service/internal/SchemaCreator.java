@@ -70,7 +70,7 @@ public class SchemaCreator {
 						createTableSQL, createdTableNames);
 				}
 				else {
-					_createCustomTable(
+					_createTableFromMetadata(
 						sourceConnection, targetConnection, tableName,
 						createdTableNames);
 				}
@@ -150,73 +150,6 @@ public class SchemaCreator {
 							tableName, ": ", exception.getMessage()));
 				}
 			}
-		}
-	}
-
-	private void _createCustomTable(
-			Connection sourceConnection, Connection targetConnection,
-			String tableName, List<String> createdTableNames)
-		throws Exception {
-
-		Map<String, Integer> columnTypes = MigrationUtil.getColumnTypes(
-			sourceConnection, tableName);
-
-		if (columnTypes.isEmpty()) {
-			return;
-		}
-
-		Map<String, Integer> columnSizes = _getColumnSizes(
-			sourceConnection, tableName);
-
-		StringBundler sb = new StringBundler();
-
-		sb.append("create table ");
-		sb.append(MigrationUtil.normalizeName(targetConnection, tableName));
-		sb.append(" (");
-
-		boolean first = true;
-
-		for (Map.Entry<String, Integer> entry : columnTypes.entrySet()) {
-			if (!first) {
-				sb.append(", ");
-			}
-
-			first = false;
-
-			sb.append(
-				MigrationUtil.normalizeName(targetConnection, entry.getKey()));
-			sb.append(" ");
-			sb.append(
-				MigrationUtil.toPostgreSQLColumnType(
-					entry.getValue(),
-					columnSizes.getOrDefault(entry.getKey(), 0)));
-		}
-
-		List<String> primaryKeyColumnNames =
-			MigrationUtil.getPrimaryKeyColumnNames(sourceConnection, tableName);
-
-		if (!primaryKeyColumnNames.isEmpty()) {
-			List<String> normalizedPrimaryKeyColumnNames = new ArrayList<>();
-
-			for (String primaryKeyColumnName : primaryKeyColumnNames) {
-				normalizedPrimaryKeyColumnNames.add(
-					MigrationUtil.normalizeName(
-						targetConnection, primaryKeyColumnName));
-			}
-
-			sb.append(", primary key (");
-			sb.append(String.join(", ", normalizedPrimaryKeyColumnNames));
-			sb.append(")");
-		}
-
-		sb.append(")");
-
-		_runSQL(targetConnection, sb.toString());
-
-		createdTableNames.add(tableName);
-
-		if (_log.isInfoEnabled()) {
-			_log.info("Created table " + tableName);
 		}
 	}
 
@@ -323,6 +256,70 @@ public class SchemaCreator {
 
 		if (_log.isInfoEnabled()) {
 			_log.info("Created Liferay table " + tableName);
+		}
+	}
+
+	private void _createTableFromMetadata(
+			Connection sourceConnection, Connection targetConnection,
+			String tableName, List<String> createdTableNames)
+		throws Exception {
+
+		Map<String, Integer> columnTypes = MigrationUtil.getColumnTypes(
+			sourceConnection, tableName);
+
+		if (columnTypes.isEmpty()) {
+			return;
+		}
+
+		Map<String, Integer> columnSizes = _getColumnSizes(
+			sourceConnection, tableName);
+
+		StringBundler sb = new StringBundler(8);
+
+		sb.append("create table ");
+		sb.append(MigrationUtil.normalizeName(targetConnection, tableName));
+		sb.append(" (");
+
+		List<String> columnDefinitions = new ArrayList<>();
+
+		for (Map.Entry<String, Integer> entry : columnTypes.entrySet()) {
+			columnDefinitions.add(
+				StringBundler.concat(
+					MigrationUtil.normalizeName(
+						targetConnection, entry.getKey()),
+					" ",
+					MigrationUtil.toPostgreSQLColumnType(
+						entry.getValue(),
+						columnSizes.getOrDefault(entry.getKey(), 0))));
+		}
+
+		sb.append(String.join(", ", columnDefinitions));
+
+		List<String> primaryKeyColumnNames =
+			MigrationUtil.getPrimaryKeyColumnNames(sourceConnection, tableName);
+
+		if (!primaryKeyColumnNames.isEmpty()) {
+			List<String> normalizedPrimaryKeyColumnNames = new ArrayList<>();
+
+			for (String primaryKeyColumnName : primaryKeyColumnNames) {
+				normalizedPrimaryKeyColumnNames.add(
+					MigrationUtil.normalizeName(
+						targetConnection, primaryKeyColumnName));
+			}
+
+			sb.append(", primary key (");
+			sb.append(String.join(", ", normalizedPrimaryKeyColumnNames));
+			sb.append(")");
+		}
+
+		sb.append(")");
+
+		_runSQL(targetConnection, sb.toString());
+
+		createdTableNames.add(tableName);
+
+		if (_log.isInfoEnabled()) {
+			_log.info("Created table " + tableName);
 		}
 	}
 

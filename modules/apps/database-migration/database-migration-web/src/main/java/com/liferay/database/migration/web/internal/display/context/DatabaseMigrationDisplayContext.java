@@ -25,8 +25,8 @@ public class DatabaseMigrationDisplayContext {
 		return HashMapBuilder.<String, Object>put(
 			"namespace", _renderResponse.getNamespace()
 		).put(
-			"schemaComparisonURL",
-			_createResourceURL("/database_migration/get_schema_comparison")
+			"schemaValidationURL",
+			_createResourceURL("/database_migration/get_schema_validation")
 		).put(
 			"startMigrationURL",
 			_createResourceURL("/database_migration/start_migration")

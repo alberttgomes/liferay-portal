@@ -5,10 +5,10 @@
 
 package com.liferay.database.migration.web.internal.portlet.action;
 
-import com.liferay.database.migration.service.ColumnComparison;
+import com.liferay.database.migration.service.ColumnValidation;
 import com.liferay.database.migration.service.DatabaseMigrationManager;
 import com.liferay.database.migration.service.MigrationStatus;
-import com.liferay.database.migration.service.TableComparison;
+import com.liferay.database.migration.service.TableValidation;
 import com.liferay.database.migration.web.internal.constants.DatabaseMigrationPortletKeys;
 import com.liferay.portal.kernel.json.JSONArray;
 import com.liferay.portal.kernel.json.JSONFactory;
@@ -31,11 +31,11 @@ import org.osgi.service.component.annotations.Reference;
 @Component(
 	property = {
 		"jakarta.portlet.name=" + DatabaseMigrationPortletKeys.DATABASE_MIGRATION,
-		"mvc.command.name=/database_migration/get_schema_comparison"
+		"mvc.command.name=/database_migration/get_schema_validation"
 	},
 	service = MVCResourceCommand.class
 )
-public class GetSchemaComparisonMVCResourceCommand
+public class GetSchemaValidationMVCResourceCommand
 	extends BaseMVCResourceCommand {
 
 	@Override
@@ -46,50 +46,50 @@ public class GetSchemaComparisonMVCResourceCommand
 		MigrationStatus migrationStatus =
 			_databaseMigrationManager.getMigrationStatus();
 
-		List<TableComparison> tableComparisons =
-			migrationStatus.getTableComparisons();
+		List<TableValidation> tableValidations =
+			migrationStatus.getTableValidations();
 
-		JSONArray tableComparisonsJSONArray = _jsonFactory.createJSONArray();
+		JSONArray tableValidationsJSONArray = _jsonFactory.createJSONArray();
 
-		for (TableComparison tableComparison : tableComparisons) {
-			JSONArray columnComparisonsJSONArray =
+		for (TableValidation tableValidation : tableValidations) {
+			JSONArray columnValidationsJSONArray =
 				_jsonFactory.createJSONArray();
 
-			for (ColumnComparison columnComparison :
-					tableComparison.getColumnComparisons()) {
+			for (ColumnValidation columnValidation :
+					tableValidation.getColumnValidations()) {
 
-				columnComparisonsJSONArray.put(
+				columnValidationsJSONArray.put(
 					JSONUtil.put(
-						"columnName", columnComparison.getColumnName()
+						"columnName", columnValidation.getColumnName()
 					).put(
-						"sourceType", columnComparison.getSourceType()
+						"sourceType", columnValidation.getSourceType()
 					).put(
-						"targetType", columnComparison.getTargetType()
+						"status", columnValidation.getStatus()
+					).put(
+						"targetType", columnValidation.getTargetType()
 					));
 			}
 
-			tableComparisonsJSONArray.put(
+			tableValidationsJSONArray.put(
 				JSONUtil.put(
-					"columnComparisons", columnComparisonsJSONArray
+					"columnValidations", columnValidationsJSONArray
 				).put(
-					"onSource", tableComparison.isOnSource()
+					"sourceRowCount", tableValidation.getSourceRowCount()
 				).put(
-					"onTarget", tableComparison.isOnTarget()
+					"status", tableValidation.getStatus()
 				).put(
-					"sourceRowCount", tableComparison.getSourceRowCount()
+					"tableName", tableValidation.getTableName()
 				).put(
-					"tableName", tableComparison.getTableName()
-				).put(
-					"targetRowCount", tableComparison.getTargetRowCount()
+					"targetRowCount", tableValidation.getTargetRowCount()
 				));
 		}
 
 		JSONPortletResponseUtil.writeJSON(
 			resourceRequest, resourceResponse,
 			JSONUtil.put(
-				"available", !tableComparisons.isEmpty()
+				"available", !tableValidations.isEmpty()
 			).put(
-				"tableComparisons", tableComparisonsJSONArray
+				"tableValidations", tableValidationsJSONArray
 			));
 	}
 

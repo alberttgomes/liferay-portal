@@ -10,18 +10,16 @@ import java.util.List;
 /**
  * @author Albert Gomes Cabral
  */
-public interface TableComparison {
+public interface TableValidation {
 
-	public List<ColumnComparison> getColumnComparisons();
+	public List<ColumnValidation> getColumnValidations();
 
 	public long getSourceRowCount();
+
+	public String getStatus();
 
 	public String getTableName();
 
 	public long getTargetRowCount();
-
-	public boolean isOnSource();
-
-	public boolean isOnTarget();
 
 }
