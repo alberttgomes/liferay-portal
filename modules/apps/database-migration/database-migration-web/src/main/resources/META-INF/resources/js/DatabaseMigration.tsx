@@ -101,8 +101,6 @@ const DatabaseMigration: React.FC<Props> = ({
 	return (
 		<div className="container-fluid container-fluid-max-xl">
 			<div className="mb-4">
-				<h2>{Liferay.Language.get('database-migration-tool')}</h2>
-
 				<p className="text-secondary">
 					{Liferay.Language.get('database-migration-discovery-help')}
 				</p>
