@@ -6,6 +6,7 @@
 import ClayAlert from '@clayui/alert';
 import ClayButton from '@clayui/button';
 import ClayForm, {ClayInput} from '@clayui/form';
+import {openToast} from 'frontend-js-components-web';
 import {fetch} from 'frontend-js-web';
 import React, {useState} from 'react';
 
@@ -17,11 +18,6 @@ interface MigrationFormProps {
 }
 
 type Side = 'source' | 'target';
-
-interface TestState {
-	message?: string;
-	status: 'error' | 'success' | 'testing';
-}
 
 function getErrorMessage(errorCode: string): string {
 	if (errorCode === 'connectionInformationRequired') {
@@ -60,10 +56,7 @@ const MigrationForm: React.FC<MigrationFormProps> = ({
 	});
 	const [errorCode, setErrorCode] = useState<string | null>(null);
 	const [submitting, setSubmitting] = useState(false);
-	const [testStates, setTestStates] = useState<{
-		source?: TestState;
-		target?: TestState;
-	}>({});
+	const [testingSide, setTestingSide] = useState<Side | null>(null);
 
 	const setValue = (name: string, value: string) =>
 		setValues((previous) => ({...previous, [name]: value}));
@@ -98,11 +91,31 @@ const MigrationForm: React.FC<MigrationFormProps> = ({
 			});
 	};
 
+	const notifyTestResult = (valid: boolean, message?: string) => {
+		setTestingSide(null);
+
+		if (valid) {
+			openToast({
+				message: Liferay.Language.get('the-connection-was-successful'),
+				type: 'success',
+			});
+
+			return;
+		}
+
+		let toastMessage = Liferay.Language.get(
+			'the-connection-could-not-be-established'
+		);
+
+		if (message) {
+			toastMessage += ' ' + message;
+		}
+
+		openToast({message: toastMessage, type: 'danger'});
+	};
+
 	const handleTest = (side: Side) => {
-		setTestStates((previous) => ({
-			...previous,
-			[side]: {status: 'testing'},
-		}));
+		setTestingSide(side);
 
 		const body = new URLSearchParams();
 
@@ -112,20 +125,8 @@ const MigrationForm: React.FC<MigrationFormProps> = ({
 
 		fetch(testConnectionURL, {body, method: 'POST'})
 			.then((response) => response.json())
-			.then((json) =>
-				setTestStates((previous) => ({
-					...previous,
-					[side]: json.valid
-						? {status: 'success'}
-						: {message: json.message, status: 'error'},
-				}))
-			)
-			.catch(() =>
-				setTestStates((previous) => ({
-					...previous,
-					[side]: {status: 'error'},
-				}))
-			);
+			.then((json) => notifyTestResult(json.valid, json.message))
+			.catch(() => notifyTestResult(false));
 	};
 
 	const renderField = (
@@ -147,42 +148,21 @@ const MigrationForm: React.FC<MigrationFormProps> = ({
 		</ClayForm.Group>
 	);
 
-	const renderTest = (side: Side) => {
-		const testState = testStates[side];
-
-		return (
-			<>
-				<ClayButton
-					disabled={
-						testState?.status === 'testing' ||
-						!values[`${side}JDBCURL`] ||
-						!values[`${side}UserName`]
-					}
-					displayType="secondary"
-					onClick={() => handleTest(side)}
-					type="button"
-				>
-					{Liferay.Language.get('test-database-connection')}
-				</ClayButton>
-
-				{testState?.status === 'success' && (
-					<ClayAlert className="mt-3" displayType="success">
-						{Liferay.Language.get('the-connection-was-successful')}
-					</ClayAlert>
-				)}
-
-				{testState?.status === 'error' && (
-					<ClayAlert className="mt-3" displayType="danger">
-						{Liferay.Language.get(
-							'the-connection-could-not-be-established'
-						)}
-
-						{testState.message ? ` ${testState.message}` : ''}
-					</ClayAlert>
-				)}
-			</>
-		);
-	};
+	const renderTest = (side: Side) => (
+		<ClayButton
+			className="mt-3"
+			disabled={
+				testingSide === side ||
+				!values[`${side}JDBCURL`] ||
+				!values[`${side}UserName`]
+			}
+			displayType="secondary"
+			onClick={() => handleTest(side)}
+			type="button"
+		>
+			{Liferay.Language.get('test-database-connection')}
+		</ClayButton>
+	);
 
 	return (
 		<ClayForm className="sheet" onSubmit={handleSubmit}>

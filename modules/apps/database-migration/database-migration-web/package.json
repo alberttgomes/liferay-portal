@@ -6,6 +6,7 @@
 		"@clayui/label": "^3.165.0",
 		"@clayui/pagination-bar": "^3.165.0",
 		"@clayui/tabs": "^3.165.0",
+		"frontend-js-components-web": "*",
 		"frontend-js-web": "*",
 		"react": "18.2.0"
 	},
