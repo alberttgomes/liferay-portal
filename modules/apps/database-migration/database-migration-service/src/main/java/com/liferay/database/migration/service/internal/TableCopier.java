@@ -37,7 +37,6 @@ import java.sql.Types;
 import java.text.DateFormat;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -65,6 +64,7 @@ public class TableCopier {
 
 		Map<String, Integer> sourceColumnTypes;
 		Map<String, Integer> targetColumnTypes;
+		Map<String, String> targetColumnTypeNames;
 		List<String> primaryKeyColumnNames;
 
 		try (Connection sourceConnection = _sourceDataSource.getConnection();
@@ -73,6 +73,8 @@ public class TableCopier {
 			sourceColumnTypes = MigrationUtil.getColumnTypes(
 				sourceConnection, tableName);
 			targetColumnTypes = MigrationUtil.getColumnTypes(
+				targetConnection, tableName);
+			targetColumnTypeNames = MigrationUtil.getColumnTypeNames(
 				targetConnection, tableName);
 			primaryKeyColumnNames = MigrationUtil.getPrimaryKeyColumnNames(
 				targetConnection, tableName);
@@ -95,12 +97,22 @@ public class TableCopier {
 			return 0;
 		}
 
+		List<String> valuePlaceholders = new ArrayList<>();
+
+		for (String columnName : columnNames) {
+			if (_isOIDColumn(targetColumnTypeNames.get(columnName))) {
+				valuePlaceholders.add("lo_from_bytea(0, ?)");
+			}
+			else {
+				valuePlaceholders.add("?");
+			}
+		}
+
 		String selectSQL = StringBundler.concat(
 			"select ", StringUtil.merge(columnNames), " from ", tableName);
 		String insertSQL = StringBundler.concat(
 			"insert into ", tableName, " (", StringUtil.merge(columnNames),
-			") values (", StringUtil.merge(_questionMarks(columnNames.size())),
-			")");
+			") values (", StringUtil.merge(valuePlaceholders), ")");
 
 		long rowCount = 0;
 
@@ -130,7 +142,9 @@ public class TableCopier {
 							_getAndSetColumn(
 								columnName, i + 1, insertPreparedStatement,
 								resultSet, sourceColumnTypes.get(columnName),
-								targetColumnTypes.get(columnName));
+								targetColumnTypes.get(columnName),
+								_isOIDColumn(
+									targetColumnTypeNames.get(columnName)));
 						}
 
 						insertPreparedStatement.addBatch();
@@ -201,12 +215,52 @@ public class TableCopier {
 
 	private void _getAndSetColumn(
 			String columnName, int index, PreparedStatement preparedStatement,
-			ResultSet resultSet, int sourceType, int targetType)
+			ResultSet resultSet, int sourceType, int targetType,
+			boolean oidTarget)
 		throws Exception {
+
+		if (oidTarget) {
+			byte[] value = null;
+
+			if (sourceType == Types.BLOB) {
+				Blob blob = resultSet.getBlob(columnName);
+
+				if (blob != null) {
+					value = blob.getBytes(1, (int)blob.length());
+				}
+			}
+			else {
+				value = resultSet.getBytes(columnName);
+			}
+
+			if (value == null) {
+				preparedStatement.setNull(index, Types.BINARY);
+			}
+			else {
+				preparedStatement.setBytes(index, value);
+			}
+
+			return;
+		}
 
 		String valueString = null;
 
 		if ((sourceType == Types.BIGINT) || (sourceType == Types.NUMERIC)) {
+			if ((targetType == Types.DECIMAL) ||
+				(targetType == Types.NUMERIC)) {
+
+				BigDecimal value = resultSet.getBigDecimal(columnName);
+
+				if (value == null) {
+					preparedStatement.setNull(index, targetType);
+				}
+				else {
+					preparedStatement.setBigDecimal(index, value);
+				}
+
+				return;
+			}
+
 			long value = resultSet.getLong(columnName);
 
 			if ((value == 0L) && resultSet.wasNull()) {
@@ -409,6 +463,12 @@ public class TableCopier {
 				return;
 			}
 
+			if ((targetType == Types.BIT) || (targetType == Types.BOOLEAN)) {
+				preparedStatement.setBoolean(index, value != 0);
+
+				return;
+			}
+
 			valueString = String.valueOf(value);
 		}
 		else {
@@ -501,12 +561,8 @@ public class TableCopier {
 		return false;
 	}
 
-	private String[] _questionMarks(int count) {
-		String[] questionMarks = new String[count];
-
-		Arrays.fill(questionMarks, StringPool.QUESTION);
-
-		return questionMarks;
+	private boolean _isOIDColumn(String columnTypeName) {
+		return "oid".equalsIgnoreCase(columnTypeName);
 	}
 
 	private void _setColumn(
