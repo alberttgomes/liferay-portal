@@ -8,6 +8,7 @@ package com.liferay.database.migration.service.internal;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.dao.db.DB;
 import com.liferay.portal.kernel.dao.db.DBManagerUtil;
+import com.liferay.portal.kernel.dao.db.DBType;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 
@@ -32,10 +33,12 @@ import javax.sql.DataSource;
 public class SchemaCreator {
 
 	public SchemaCreator(
-		DataSource sourceDataSource, DataSource targetDataSource) {
+		DataSource sourceDataSource, DataSource targetDataSource,
+		PortableSchemaProvider portableSchemaProvider) {
 
 		_sourceDataSource = sourceDataSource;
 		_targetDataSource = targetDataSource;
+		_portableSchemaProvider = portableSchemaProvider;
 	}
 
 	public List<String> create() throws Exception {
@@ -44,12 +47,33 @@ public class SchemaCreator {
 		try (Connection sourceConnection = _sourceDataSource.getConnection();
 			Connection targetConnection = _targetDataSource.getConnection()) {
 
+			DB targetDB = null;
+
+			if (_portableSchemaProvider != null) {
+				targetDB = DBManagerUtil.getDB(
+					DBType.POSTGRESQL, _targetDataSource);
+			}
+
 			for (String tableName :
 					MigrationUtil.getTableNames(sourceConnection)) {
 
-				_createTable(
-					sourceConnection, targetConnection, tableName,
-					createdTableNames);
+				String createTableSQL = null;
+
+				if (_portableSchemaProvider != null) {
+					createTableSQL = _portableSchemaProvider.getCreateTableSQL(
+						tableName);
+				}
+
+				if (createTableSQL != null) {
+					_createLiferayTable(
+						targetDB, sourceConnection, targetConnection, tableName,
+						createTableSQL, createdTableNames);
+				}
+				else {
+					_createCustomTable(
+						sourceConnection, targetConnection, tableName,
+						createdTableNames);
+				}
 			}
 		}
 
@@ -75,6 +99,125 @@ public class SchemaCreator {
 		}
 
 		return createdIndexNames;
+	}
+
+	private void _addCustomColumns(
+			Connection sourceConnection, Connection targetConnection,
+			String tableName)
+		throws Exception {
+
+		Map<String, Integer> sourceColumnTypes = MigrationUtil.getColumnTypes(
+			sourceConnection, tableName);
+		Map<String, Integer> targetColumnTypes = MigrationUtil.getColumnTypes(
+			targetConnection, tableName);
+		Map<String, Integer> columnSizes = _getColumnSizes(
+			sourceConnection, tableName);
+
+		for (Map.Entry<String, Integer> entry : sourceColumnTypes.entrySet()) {
+			String columnName = entry.getKey();
+
+			if (targetColumnTypes.containsKey(columnName)) {
+				continue;
+			}
+
+			String columnType = MigrationUtil.toPostgreSQLColumnType(
+				entry.getValue(), columnSizes.getOrDefault(columnName, 0));
+
+			try {
+				_runSQL(
+					targetConnection,
+					StringBundler.concat(
+						"alter table ",
+						MigrationUtil.normalizeName(
+							targetConnection, tableName),
+						" add column ",
+						MigrationUtil.normalizeName(
+							targetConnection, columnName),
+						" ", columnType));
+
+				if (_log.isInfoEnabled()) {
+					_log.info(
+						StringBundler.concat(
+							"Added custom column ", columnName, " to ",
+							tableName));
+				}
+			}
+			catch (Exception exception) {
+				if (_log.isWarnEnabled()) {
+					_log.warn(
+						StringBundler.concat(
+							"Unable to add custom column ", columnName, " to ",
+							tableName, ": ", exception.getMessage()));
+				}
+			}
+		}
+	}
+
+	private void _createCustomTable(
+			Connection sourceConnection, Connection targetConnection,
+			String tableName, List<String> createdTableNames)
+		throws Exception {
+
+		Map<String, Integer> columnTypes = MigrationUtil.getColumnTypes(
+			sourceConnection, tableName);
+
+		if (columnTypes.isEmpty()) {
+			return;
+		}
+
+		Map<String, Integer> columnSizes = _getColumnSizes(
+			sourceConnection, tableName);
+
+		StringBundler sb = new StringBundler();
+
+		sb.append("create table ");
+		sb.append(MigrationUtil.normalizeName(targetConnection, tableName));
+		sb.append(" (");
+
+		boolean first = true;
+
+		for (Map.Entry<String, Integer> entry : columnTypes.entrySet()) {
+			if (!first) {
+				sb.append(", ");
+			}
+
+			first = false;
+
+			sb.append(
+				MigrationUtil.normalizeName(targetConnection, entry.getKey()));
+			sb.append(" ");
+			sb.append(
+				MigrationUtil.toPostgreSQLColumnType(
+					entry.getValue(),
+					columnSizes.getOrDefault(entry.getKey(), 0)));
+		}
+
+		List<String> primaryKeyColumnNames =
+			MigrationUtil.getPrimaryKeyColumnNames(sourceConnection, tableName);
+
+		if (!primaryKeyColumnNames.isEmpty()) {
+			List<String> normalizedPrimaryKeyColumnNames = new ArrayList<>();
+
+			for (String primaryKeyColumnName : primaryKeyColumnNames) {
+				normalizedPrimaryKeyColumnNames.add(
+					MigrationUtil.normalizeName(
+						targetConnection, primaryKeyColumnName));
+			}
+
+			sb.append(", primary key (");
+			sb.append(String.join(", ", normalizedPrimaryKeyColumnNames));
+			sb.append(")");
+		}
+
+		sb.append(")");
+
+		_runSQL(targetConnection, sb.toString());
+
+		createdTableNames.add(tableName);
+
+		if (_log.isInfoEnabled()) {
+			_log.info("Created table " + tableName);
+		}
 	}
 
 	private void _createIndexes(
@@ -166,61 +309,20 @@ public class SchemaCreator {
 		}
 	}
 
-	private void _createTable(
-			Connection sourceConnection, Connection targetConnection,
-			String tableName, List<String> createdTableNames)
+	private void _createLiferayTable(
+			DB targetDB, Connection sourceConnection,
+			Connection targetConnection, String tableName,
+			String createTableSQL, List<String> createdTableNames)
 		throws Exception {
 
-		Map<String, Integer> columnTypes = MigrationUtil.getColumnTypes(
-			sourceConnection, tableName);
+		targetDB.runSQL(targetConnection, new String[] {createTableSQL});
 
-		if (columnTypes.isEmpty()) {
-			return;
-		}
-
-		Map<String, Integer> columnSizes = _getColumnSizes(
-			sourceConnection, tableName);
-
-		StringBundler sb = new StringBundler();
-
-		sb.append("create table ");
-		sb.append(tableName);
-		sb.append(" (");
-
-		boolean first = true;
-
-		for (Map.Entry<String, Integer> entry : columnTypes.entrySet()) {
-			if (!first) {
-				sb.append(", ");
-			}
-
-			first = false;
-
-			sb.append(entry.getKey());
-			sb.append(" ");
-			sb.append(
-				MigrationUtil.toPostgreSQLColumnType(
-					entry.getValue(),
-					columnSizes.getOrDefault(entry.getKey(), 0)));
-		}
-
-		List<String> primaryKeyColumnNames =
-			MigrationUtil.getPrimaryKeyColumnNames(sourceConnection, tableName);
-
-		if (!primaryKeyColumnNames.isEmpty()) {
-			sb.append(", primary key (");
-			sb.append(String.join(", ", primaryKeyColumnNames));
-			sb.append(")");
-		}
-
-		sb.append(")");
-
-		_runSQL(targetConnection, sb.toString());
+		_addCustomColumns(sourceConnection, targetConnection, tableName);
 
 		createdTableNames.add(tableName);
 
 		if (_log.isInfoEnabled()) {
-			_log.info("Created table " + tableName);
+			_log.info("Created Liferay table " + tableName);
 		}
 	}
 
@@ -272,6 +374,7 @@ public class SchemaCreator {
 
 	private static final Log _log = LogFactoryUtil.getLog(SchemaCreator.class);
 
+	private final PortableSchemaProvider _portableSchemaProvider;
 	private final DataSource _sourceDataSource;
 	private final DataSource _targetDataSource;
 

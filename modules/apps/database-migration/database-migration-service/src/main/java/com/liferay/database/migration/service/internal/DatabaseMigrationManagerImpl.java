@@ -19,6 +19,7 @@ import java.util.concurrent.ThreadFactory;
 
 import javax.sql.DataSource;
 
+import org.osgi.framework.BundleContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
@@ -56,7 +57,8 @@ public class DatabaseMigrationManagerImpl implements DatabaseMigrationManager {
 					_databaseMigrator.migrate(
 						sourceJDBCURL, sourceUserName, sourcePassword,
 						targetJDBCURL, targetUserName, targetPassword,
-						companyId, userId, migrationName);
+						companyId, userId, migrationName,
+						new PortableSchemaProvider(_bundleContext));
 				}
 				catch (Exception exception) {
 					_log.error("Database migration failed", exception);
@@ -86,7 +88,9 @@ public class DatabaseMigrationManagerImpl implements DatabaseMigrationManager {
 	}
 
 	@Activate
-	protected void activate() {
+	protected void activate(BundleContext bundleContext) {
+		_bundleContext = bundleContext;
+
 		ThreadFactory threadFactory = runnable -> {
 			Thread thread = new Thread(runnable, "Liferay Database Migration");
 
@@ -110,6 +114,7 @@ public class DatabaseMigrationManagerImpl implements DatabaseMigrationManager {
 	private static final Log _log = LogFactoryUtil.getLog(
 		DatabaseMigrationManagerImpl.class);
 
+	private BundleContext _bundleContext;
 	private final DatabaseMigrator _databaseMigrator = new DatabaseMigrator();
 	private ExecutorService _executorService;
 

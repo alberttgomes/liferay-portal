@@ -65,7 +65,8 @@ public class DatabaseMigrator {
 	public void migrate(
 			String sourceJDBCURL, String sourceUserName, String sourcePassword,
 			String targetJDBCURL, String targetUserName, String targetPassword,
-			long companyId, long userId, String migrationName)
+			long companyId, long userId, String migrationName,
+			PortableSchemaProvider portableSchemaProvider)
 		throws Exception {
 
 		MigrationStatusImpl migrationStatusImpl = new MigrationStatusImpl(
@@ -86,7 +87,8 @@ public class DatabaseMigrator {
 				sourceDataSource, migrationStatusImpl);
 
 			_createSchema(
-				sourceDataSource, targetDataSource, migrationStatusImpl);
+				sourceDataSource, targetDataSource, portableSchemaProvider,
+				migrationStatusImpl);
 
 			_copyTables(
 				sourceDataSource, targetDataSource, tableNames,
@@ -268,7 +270,7 @@ public class DatabaseMigrator {
 		migrationStatusImpl.setProgress(0);
 
 		SchemaCreator schemaCreator = new SchemaCreator(
-			sourceDataSource, targetDataSource);
+			sourceDataSource, targetDataSource, null);
 
 		AtomicInteger completed = new AtomicInteger();
 
@@ -294,6 +296,7 @@ public class DatabaseMigrator {
 
 	private void _createSchema(
 			DataSource sourceDataSource, DataSource targetDataSource,
+			PortableSchemaProvider portableSchemaProvider,
 			MigrationStatusImpl migrationStatusImpl)
 		throws Exception {
 
@@ -301,7 +304,7 @@ public class DatabaseMigrator {
 		migrationStatusImpl.setMessage("Creating target schema");
 
 		SchemaCreator schemaCreator = new SchemaCreator(
-			sourceDataSource, targetDataSource);
+			sourceDataSource, targetDataSource, portableSchemaProvider);
 
 		List<String> createdTableNames = schemaCreator.create();
 
