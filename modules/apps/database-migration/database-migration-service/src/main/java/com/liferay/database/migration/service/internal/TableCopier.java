@@ -269,7 +269,7 @@ public class TableCopier {
 				return;
 			}
 
-			if ((targetType == Types.BIGINT) || (targetType == Types.NUMERIC)) {
+			if (targetType == Types.BIGINT) {
 				preparedStatement.setLong(index, value);
 
 				return;
