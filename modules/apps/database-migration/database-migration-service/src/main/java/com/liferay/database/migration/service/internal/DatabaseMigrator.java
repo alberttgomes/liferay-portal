@@ -77,6 +77,10 @@ public class DatabaseMigrator {
 		DataSource sourceDataSource = null;
 		DataSource targetDataSource = null;
 
+		long migrationRunObjectEntryId = _migrationRunRecorder.record(
+			companyId, userId, migrationName, sourceJDBCURL, targetJDBCURL,
+			migrationStatusImpl);
+
 		try {
 			sourceDataSource = MigrationDataSourceFactory.initDataSource(
 				sourceJDBCURL, sourceUserName, sourcePassword);
@@ -116,16 +120,18 @@ public class DatabaseMigrator {
 			migrationStatusImpl.setMessage(message);
 			migrationStatusImpl.setProgress(100);
 
-			_migrationRunRecorder.record(
+			_migrationRunRecorder.updateRecord(
 				companyId, userId, migrationName, sourceJDBCURL, targetJDBCURL,
+				targetDataSource, migrationRunObjectEntryId,
 				migrationStatusImpl);
 		}
 		catch (Exception exception) {
 			migrationStatusImpl.setPhase(MigrationStatus.PHASE_ERROR);
 			migrationStatusImpl.setMessage(exception.getMessage());
 
-			_migrationRunRecorder.record(
+			_migrationRunRecorder.updateRecord(
 				companyId, userId, migrationName, sourceJDBCURL, targetJDBCURL,
+				targetDataSource, migrationRunObjectEntryId,
 				migrationStatusImpl);
 
 			_log.error("Database migration failed", exception);

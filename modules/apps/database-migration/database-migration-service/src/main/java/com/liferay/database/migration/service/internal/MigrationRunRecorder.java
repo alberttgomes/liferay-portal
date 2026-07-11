@@ -11,9 +11,16 @@ import com.liferay.object.constants.ObjectEntryFolderConstants;
 import com.liferay.object.constants.ObjectFieldConstants;
 import com.liferay.object.field.util.ObjectFieldUtil;
 import com.liferay.object.model.ObjectDefinition;
+import com.liferay.object.model.ObjectEntry;
+import com.liferay.object.model.ObjectField;
 import com.liferay.object.service.ObjectDefinitionLocalServiceUtil;
 import com.liferay.object.service.ObjectEntryLocalServiceUtil;
+import com.liferay.object.service.ObjectFieldLocalServiceUtil;
+import com.liferay.petra.function.UnsafeRunnable;
+import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.lang.SafeCloseable;
+import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
@@ -24,51 +31,79 @@ import com.liferay.portal.kernel.util.LocaleUtil;
 
 import java.io.Serializable;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Locale;
 import java.util.Map;
 
+import javax.sql.DataSource;
+
 /**
  * @author Albert Gomes Cabral
  */
 public class MigrationRunRecorder {
 
-	public void record(
+	public long record(
 		long companyId, long userId, String migrationName, String sourceJDBCURL,
 		String targetJDBCURL, MigrationStatus migrationStatus) {
 
-		String principalName = PrincipalThreadLocal.getName();
+		return _supplyAs(
+			companyId, userId, "Unable to record the migration run", 0L,
+			() -> {
+				ObjectDefinition objectDefinition = _getObjectDefinition(
+					companyId, userId);
 
-		try (SafeCloseable safeCloseable =
-				CompanyThreadLocal.setCompanyIdWithSafeCloseable(companyId)) {
+				ObjectEntry objectEntry =
+					ObjectEntryLocalServiceUtil.addObjectEntry(
+						0, userId, objectDefinition.getObjectDefinitionId(),
+						ObjectEntryFolderConstants.
+							PARENT_OBJECT_ENTRY_FOLDER_ID_DEFAULT,
+						null,
+						HashMapBuilder.<String, Serializable>put(
+							"durationSeconds", 0
+						).put(
+							"errorCount", 0
+						).put(
+							"migrationName", migrationName
+						).put(
+							"migrationStatus", _STATUS_PENDING
+						).put(
+							"rowsCopied", 0L
+						).put(
+							"sourceURL", sourceJDBCURL
+						).put(
+							"startedAt",
+							new Date(migrationStatus.getStartTime())
+						).put(
+							"tableCount", 0
+						).put(
+							"targetURL", targetJDBCURL
+						).build(),
+						_createServiceContext(companyId, userId));
 
-			PrincipalThreadLocal.setName(userId);
+				return objectEntry.getObjectEntryId();
+			});
+	}
 
-			ObjectDefinition objectDefinition = _getObjectDefinition(
-				companyId, userId);
+	public void updateRecord(
+		long companyId, long userId, String migrationName, String sourceJDBCURL,
+		String targetJDBCURL, DataSource targetDataSource, long objectEntryId,
+		MigrationStatus migrationStatus) {
 
-			long rowsCopied = 0;
+		if (objectEntryId <= 0) {
+			return;
+		}
 
-			for (long rowCount :
-					migrationStatus.getTableRowCounts(
-					).values()) {
-
-				rowsCopied += rowCount;
-			}
-
-			String status = "COMPLETED";
-
-			if (migrationStatus.getPhase() == MigrationStatus.PHASE_ERROR) {
-				status = "ERROR";
-			}
-
-			ObjectEntryLocalServiceUtil.addObjectEntry(
-				0, userId, objectDefinition.getObjectDefinitionId(),
+		_runAs(
+			companyId, userId, "Unable to update the migration run",
+			() -> ObjectEntryLocalServiceUtil.updateObjectEntry(
+				userId, objectEntryId,
 				ObjectEntryFolderConstants.
 					PARENT_OBJECT_ENTRY_FOLDER_ID_DEFAULT,
-				null,
 				HashMapBuilder.<String, Serializable>put(
 					"durationSeconds",
 					(int)(migrationStatus.getElapsedTime() / 1000)
@@ -79,9 +114,9 @@ public class MigrationRunRecorder {
 				).put(
 					"migrationName", migrationName
 				).put(
-					"migrationStatus", status
+					"migrationStatus", _getStatus(migrationStatus)
 				).put(
-					"rowsCopied", rowsCopied
+					"rowsCopied", _getRowsCopied(migrationStatus)
 				).put(
 					"sourceURL", sourceJDBCURL
 				).put(
@@ -93,14 +128,11 @@ public class MigrationRunRecorder {
 				).put(
 					"targetURL", targetJDBCURL
 				).build(),
-				_createServiceContext(companyId, userId));
-		}
-		catch (Exception exception) {
-			_log.error("Unable to record the migration run", exception);
-		}
-		finally {
-			PrincipalThreadLocal.setName(principalName);
-		}
+				_createServiceContext(companyId, userId)));
+
+		_postRecord(
+			companyId, userId, targetDataSource, objectEntryId,
+			migrationStatus);
 	}
 
 	private Map<Locale, String> _createLabelMap(String value) {
@@ -114,6 +146,15 @@ public class MigrationRunRecorder {
 		serviceContext.setUserId(userId);
 
 		return serviceContext;
+	}
+
+	private String _getDBColumnName(
+			ObjectDefinition objectDefinition, String name)
+		throws PortalException {
+
+		ObjectField objectField = _getObjectField(objectDefinition, name);
+
+		return objectField.getDBColumnName();
 	}
 
 	private ObjectDefinition _getObjectDefinition(long companyId, long userId)
@@ -178,6 +219,131 @@ public class MigrationRunRecorder {
 		return ObjectDefinitionLocalServiceUtil.publishCustomObjectDefinition(
 			userId, objectDefinition.getObjectDefinitionId());
 	}
+
+	private ObjectField _getObjectField(
+			ObjectDefinition objectDefinition, String name)
+		throws PortalException {
+
+		return ObjectFieldLocalServiceUtil.getObjectField(
+			objectDefinition.getObjectDefinitionId(), name);
+	}
+
+	private long _getRowsCopied(MigrationStatus migrationStatus) {
+		long rowsCopied = 0;
+
+		for (long rowCount :
+				migrationStatus.getTableRowCounts(
+				).values()) {
+
+			rowsCopied += rowCount;
+		}
+
+		return rowsCopied;
+	}
+
+	private String _getStatus(MigrationStatus migrationStatus) {
+		if (migrationStatus.getPhase() == MigrationStatus.PHASE_ERROR) {
+			return _STATUS_ERROR;
+		}
+
+		return _STATUS_COMPLETED;
+	}
+
+	private void _postRecord(
+		long companyId, long userId, DataSource targetDataSource,
+		long objectEntryId, MigrationStatus migrationStatus) {
+
+		if ((targetDataSource == null) || (objectEntryId <= 0)) {
+			return;
+		}
+
+		_runAs(
+			companyId, userId,
+			"Unable to post the migration run to the target database",
+			() -> {
+				ObjectDefinition objectDefinition = _getObjectDefinition(
+					companyId, userId);
+
+				ObjectField migrationStatusObjectField = _getObjectField(
+					objectDefinition, "migrationStatus");
+
+				String sql = StringBundler.concat(
+					"update ", migrationStatusObjectField.getDBTableName(),
+					" set ", migrationStatusObjectField.getDBColumnName(),
+					" = ?, ", _getDBColumnName(objectDefinition, "rowsCopied"),
+					" = ?, ", _getDBColumnName(objectDefinition, "errorCount"),
+					" = ?, ", _getDBColumnName(objectDefinition, "tableCount"),
+					" = ?, ",
+					_getDBColumnName(objectDefinition, "durationSeconds"),
+					" = ? where ",
+					objectDefinition.getPKObjectFieldDBColumnName(), " = ?");
+
+				try (Connection connection = targetDataSource.getConnection();
+
+					PreparedStatement preparedStatement =
+						connection.prepareStatement(sql)) {
+
+					preparedStatement.setString(1, _getStatus(migrationStatus));
+					preparedStatement.setLong(
+						2, _getRowsCopied(migrationStatus));
+					preparedStatement.setInt(
+						3,
+						migrationStatus.getMigrationErrors(
+						).size());
+					preparedStatement.setInt(
+						4,
+						migrationStatus.getTableRowCounts(
+						).size());
+					preparedStatement.setInt(
+						5, (int)(migrationStatus.getElapsedTime() / 1000));
+					preparedStatement.setLong(6, objectEntryId);
+
+					preparedStatement.executeUpdate();
+				}
+			});
+	}
+
+	private void _runAs(
+		long companyId, long userId, String errorMessage,
+		UnsafeRunnable<Exception> unsafeRunnable) {
+
+		_supplyAs(
+			companyId, userId, errorMessage, null,
+			() -> {
+				unsafeRunnable.run();
+
+				return null;
+			});
+	}
+
+	private <T> T _supplyAs(
+		long companyId, long userId, String errorMessage, T defaultValue,
+		UnsafeSupplier<T, Exception> unsafeSupplier) {
+
+		String principalName = PrincipalThreadLocal.getName();
+
+		try (SafeCloseable safeCloseable =
+				CompanyThreadLocal.setCompanyIdWithSafeCloseable(companyId)) {
+
+			PrincipalThreadLocal.setName(userId);
+
+			return unsafeSupplier.get();
+		}
+		catch (Exception exception) {
+			_log.error(errorMessage, exception);
+
+			return defaultValue;
+		}
+		finally {
+			PrincipalThreadLocal.setName(principalName);
+		}
+	}
+
+	private static final String _STATUS_COMPLETED = "COMPLETED";
+
+	private static final String _STATUS_ERROR = "ERROR";
+
+	private static final String _STATUS_PENDING = "PENDING";
 
 	private static final Log _log = LogFactoryUtil.getLog(
 		MigrationRunRecorder.class);
