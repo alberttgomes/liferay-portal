@@ -62,6 +62,9 @@ export interface SchemaValidation {
 }
 
 export interface Props {
+	currentConnectionAvailable: boolean;
+	currentJDBCURL: string;
+	currentUserName: string;
 	namespace: string;
 	schemaValidationURL: string;
 	startMigrationURL: string;

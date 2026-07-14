@@ -7,6 +7,7 @@ package com.liferay.database.migration.web.internal.portlet.action;
 
 import com.liferay.database.migration.service.DatabaseMigrationManager;
 import com.liferay.database.migration.web.internal.constants.DatabaseMigrationPortletKeys;
+import com.liferay.database.migration.web.internal.util.PortalDatabaseConnection;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
@@ -42,10 +43,24 @@ public class StartMigrationMVCResourceCommand extends BaseMVCResourceCommand {
 			ResourceRequest resourceRequest, ResourceResponse resourceResponse)
 		throws Exception {
 
+		boolean useCurrentSourceConnection = ParamUtil.getBoolean(
+			resourceRequest, "useCurrentSourceConnection");
+
 		String sourceJDBCURL = ParamUtil.getString(
 			resourceRequest, "sourceJDBCURL");
 		String sourceUserName = ParamUtil.getString(
 			resourceRequest, "sourceUserName");
+		String sourcePassword = ParamUtil.getString(
+			resourceRequest, "sourcePassword");
+
+		if (useCurrentSourceConnection &&
+			PortalDatabaseConnection.isAvailable()) {
+
+			sourceJDBCURL = PortalDatabaseConnection.getJDBCURL();
+			sourceUserName = PortalDatabaseConnection.getUserName();
+			sourcePassword = PortalDatabaseConnection.getPassword();
+		}
+
 		String targetJDBCURL = ParamUtil.getString(
 			resourceRequest, "targetJDBCURL");
 		String targetUserName = ParamUtil.getString(
@@ -75,8 +90,7 @@ public class StartMigrationMVCResourceCommand extends BaseMVCResourceCommand {
 
 			try {
 				_databaseMigrationManager.startMigration(
-					sourceJDBCURL, sourceUserName,
-					ParamUtil.getString(resourceRequest, "sourcePassword"),
+					sourceJDBCURL, sourceUserName, sourcePassword,
 					targetJDBCURL, targetUserName,
 					ParamUtil.getString(resourceRequest, "targetPassword"),
 					themeDisplay.getCompanyId(), themeDisplay.getUserId(),

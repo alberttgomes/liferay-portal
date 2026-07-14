@@ -7,6 +7,7 @@ package com.liferay.database.migration.web.internal.portlet.action;
 
 import com.liferay.database.migration.service.DatabaseMigrationManager;
 import com.liferay.database.migration.web.internal.constants.DatabaseMigrationPortletKeys;
+import com.liferay.database.migration.web.internal.util.PortalDatabaseConnection;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.portlet.JSONPortletResponseUtil;
 import com.liferay.portal.kernel.portlet.bridges.mvc.BaseMVCResourceCommand;
@@ -39,11 +40,21 @@ public class TestConnectionMVCResourceCommand extends BaseMVCResourceCommand {
 		boolean valid = true;
 		String message = null;
 
+		String jdbcURL = ParamUtil.getString(resourceRequest, "jdbcURL");
+		String userName = ParamUtil.getString(resourceRequest, "userName");
+		String password = ParamUtil.getString(resourceRequest, "password");
+
+		if (ParamUtil.getBoolean(resourceRequest, "useCurrentConnection") &&
+			PortalDatabaseConnection.isAvailable()) {
+
+			jdbcURL = PortalDatabaseConnection.getJDBCURL();
+			userName = PortalDatabaseConnection.getUserName();
+			password = PortalDatabaseConnection.getPassword();
+		}
+
 		try {
 			_databaseMigrationManager.testConnection(
-				ParamUtil.getString(resourceRequest, "jdbcURL"),
-				ParamUtil.getString(resourceRequest, "userName"),
-				ParamUtil.getString(resourceRequest, "password"));
+				jdbcURL, userName, password);
 		}
 		catch (Exception exception) {
 			valid = false;

@@ -5,6 +5,8 @@
 
 package com.liferay.database.migration.web.internal.display.context;
 
+import com.liferay.database.migration.web.internal.util.PortalDatabaseConnection;
+import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 
 import jakarta.portlet.RenderResponse;
@@ -23,6 +25,16 @@ public class DatabaseMigrationDisplayContext {
 
 	public Map<String, Object> getReactData() {
 		return HashMapBuilder.<String, Object>put(
+			"currentConnectionAvailable", PortalDatabaseConnection.isAvailable()
+		).put(
+			"currentJDBCURL",
+			PortalDatabaseConnection.isAvailable() ?
+				PortalDatabaseConnection.getJDBCURL() : StringPool.BLANK
+		).put(
+			"currentUserName",
+			PortalDatabaseConnection.isAvailable() ?
+				PortalDatabaseConnection.getUserName() : StringPool.BLANK
+		).put(
 			"namespace", _renderResponse.getNamespace()
 		).put(
 			"schemaValidationURL",

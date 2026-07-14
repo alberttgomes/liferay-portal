@@ -5,12 +5,15 @@
 
 import ClayAlert from '@clayui/alert';
 import ClayButton from '@clayui/button';
-import ClayForm, {ClayInput} from '@clayui/form';
+import ClayForm, {ClayCheckbox, ClayInput} from '@clayui/form';
 import {openToast} from 'frontend-js-components-web';
 import {fetch} from 'frontend-js-web';
 import React, {useState} from 'react';
 
 interface MigrationFormProps {
+	currentConnectionAvailable: boolean;
+	currentJDBCURL: string;
+	currentUserName: string;
 	namespace: string;
 	onStarted: () => void;
 	startMigrationURL: string;
@@ -40,6 +43,9 @@ function getErrorMessage(errorCode: string): string {
 }
 
 const MigrationForm: React.FC<MigrationFormProps> = ({
+	currentConnectionAvailable,
+	currentJDBCURL,
+	currentUserName,
 	namespace,
 	onStarted,
 	startMigrationURL,
@@ -57,6 +63,11 @@ const MigrationForm: React.FC<MigrationFormProps> = ({
 	const [errorCode, setErrorCode] = useState<string | null>(null);
 	const [submitting, setSubmitting] = useState(false);
 	const [testingSide, setTestingSide] = useState<Side | null>(null);
+	const [useCurrentSourceConnection, setUseCurrentSourceConnection] =
+		useState(false);
+
+	const usingCurrentSource =
+		currentConnectionAvailable && useCurrentSourceConnection;
 
 	const setValue = (name: string, value: string) =>
 		setValues((previous) => ({...previous, [name]: value}));
@@ -72,6 +83,10 @@ const MigrationForm: React.FC<MigrationFormProps> = ({
 		Object.entries(values).forEach(([name, value]) =>
 			body.append(namespace + name, value)
 		);
+
+		if (usingCurrentSource) {
+			body.append(namespace + 'useCurrentSourceConnection', 'true');
+		}
 
 		fetch(startMigrationURL, {body, method: 'POST'})
 			.then((response) => response.json())
@@ -119,9 +134,14 @@ const MigrationForm: React.FC<MigrationFormProps> = ({
 
 		const body = new URLSearchParams();
 
-		body.append(namespace + 'jdbcURL', values[`${side}JDBCURL`]);
-		body.append(namespace + 'userName', values[`${side}UserName`]);
-		body.append(namespace + 'password', values[`${side}Password`]);
+		if (side === 'source' && usingCurrentSource) {
+			body.append(namespace + 'useCurrentConnection', 'true');
+		}
+		else {
+			body.append(namespace + 'jdbcURL', values[`${side}JDBCURL`]);
+			body.append(namespace + 'userName', values[`${side}UserName`]);
+			body.append(namespace + 'password', values[`${side}Password`]);
+		}
 
 		fetch(testConnectionURL, {body, method: 'POST'})
 			.then((response) => response.json())
@@ -133,17 +153,22 @@ const MigrationForm: React.FC<MigrationFormProps> = ({
 		name: keyof typeof values,
 		label: string,
 		type: string,
-		placeholder?: string
+		{
+			disabled = false,
+			placeholder,
+			value,
+		}: {disabled?: boolean; placeholder?: string; value?: string} = {}
 	) => (
 		<ClayForm.Group>
 			<label htmlFor={name}>{label}</label>
 
 			<ClayInput
+				disabled={disabled}
 				id={name}
 				onChange={(event) => setValue(name, event.target.value)}
 				placeholder={placeholder}
 				type={type}
-				value={values[name]}
+				value={value ?? values[name]}
 			/>
 		</ClayForm.Group>
 	);
@@ -153,8 +178,8 @@ const MigrationForm: React.FC<MigrationFormProps> = ({
 			className="mt-3"
 			disabled={
 				testingSide === side ||
-				!values[`${side}JDBCURL`] ||
-				!values[`${side}UserName`]
+				(!(side === 'source' && usingCurrentSource) &&
+					(!values[`${side}JDBCURL`] || !values[`${side}UserName`]))
 			}
 			displayType="secondary"
 			onClick={() => handleTest(side)}
@@ -179,9 +204,24 @@ const MigrationForm: React.FC<MigrationFormProps> = ({
 				'migrationName',
 				Liferay.Language.get('migration-name'),
 				'text',
-				Liferay.Language.get(
-					'optional-a-name-is-generated-if-left-blank'
-				)
+				{
+					placeholder: Liferay.Language.get(
+						'optional-a-name-is-generated-if-left-blank'
+					),
+				}
+			)}
+
+			{currentConnectionAvailable && (
+				<ClayCheckbox
+					checked={useCurrentSourceConnection}
+					className="mb-3"
+					label={Liferay.Language.get(
+						'migrate-from-this-liferays-database'
+					)}
+					onChange={() =>
+						setUseCurrentSourceConnection((previous) => !previous)
+					}
+				/>
 			)}
 
 			<div className="row">
@@ -194,19 +234,40 @@ const MigrationForm: React.FC<MigrationFormProps> = ({
 						'sourceJDBCURL',
 						Liferay.Language.get('jdbc-url'),
 						'text',
-						'jdbc:mysql://host:3306/lportal'
+						{
+							disabled: usingCurrentSource,
+							placeholder: 'jdbc:mysql://host:3306/lportal',
+							value: usingCurrentSource
+								? currentJDBCURL
+								: undefined,
+						}
 					)}
 
 					{renderField(
 						'sourceUserName',
 						Liferay.Language.get('user-name'),
-						'text'
+						'text',
+						{
+							disabled: usingCurrentSource,
+							value: usingCurrentSource
+								? currentUserName
+								: undefined,
+						}
 					)}
 
 					{renderField(
 						'sourcePassword',
 						Liferay.Language.get('password'),
-						'password'
+						'password',
+						{
+							disabled: usingCurrentSource,
+							placeholder: usingCurrentSource
+								? Liferay.Language.get(
+										'this-liferays-stored-password-is-used'
+									)
+								: undefined,
+							value: usingCurrentSource ? '' : undefined,
+						}
 					)}
 
 					{renderTest('source')}
@@ -221,7 +282,7 @@ const MigrationForm: React.FC<MigrationFormProps> = ({
 						'targetJDBCURL',
 						Liferay.Language.get('jdbc-url'),
 						'text',
-						'jdbc:postgresql://host:5432/lportal'
+						{placeholder: 'jdbc:postgresql://host:5432/lportal'}
 					)}
 
 					{renderField(

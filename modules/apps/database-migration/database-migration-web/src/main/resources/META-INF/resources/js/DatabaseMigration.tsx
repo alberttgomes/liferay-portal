@@ -24,6 +24,9 @@ import {
 const POLL_INTERVAL = 2000;
 
 const DatabaseMigration: React.FC<Props> = ({
+	currentConnectionAvailable,
+	currentJDBCURL,
+	currentUserName,
 	namespace,
 	schemaValidationURL,
 	startMigrationURL,
@@ -122,6 +125,9 @@ const DatabaseMigration: React.FC<Props> = ({
 					)}
 
 					<MigrationForm
+						currentConnectionAvailable={currentConnectionAvailable}
+						currentJDBCURL={currentJDBCURL}
+						currentUserName={currentUserName}
 						namespace={namespace}
 						onStarted={handleStarted}
 						startMigrationURL={startMigrationURL}
