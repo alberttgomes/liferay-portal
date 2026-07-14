@@ -117,6 +117,65 @@ public class DatabaseMigrationManagerTest {
 		_assertStatusCompleted();
 	}
 
+	@Test
+	public void testMigrateEmptySourceTable() throws Exception {
+		_execute(
+			_sourceDataSource,
+			StringBundler.concat(
+				"create table ", _TABLE_PARTIAL,
+				" (entry_id bigint not null primary key, title varchar(75), ",
+				"extra_count bigint)"));
+
+		_databaseMigrationManager.startMigration(
+			_sourceURL, _sourceUserName, _sourcePassword, _targetURL,
+			_targetUserName, _targetPassword, TestPropsValues.getCompanyId(),
+			TestPropsValues.getUserId(), "Test Empty Source Table Migration");
+
+		_waitForMigrationToComplete();
+
+		MigrationStatus migrationStatus =
+			_databaseMigrationManager.getMigrationStatus();
+
+		Assert.assertEquals(
+			migrationStatus.getMessage(), MigrationStatus.PHASE_COMPLETED,
+			migrationStatus.getPhase());
+
+		try (Connection connection = _targetDataSource.getConnection();
+
+			PreparedStatement preparedStatement = connection.prepareStatement(
+				"select count(*) as row_count from " + _TABLE_PARTIAL);
+
+			ResultSet resultSet = preparedStatement.executeQuery()) {
+
+			Assert.assertTrue(resultSet.next());
+			Assert.assertEquals(0, resultSet.getLong("row_count"));
+		}
+	}
+
+	@Test
+	public void testTestConnectionInvalid() throws Exception {
+		boolean failed = false;
+
+		try {
+			_databaseMigrationManager.testConnection(
+				"jdbc:postgresql://127.0.0.1:1/nonexistent", _sourceUserName,
+				_sourcePassword);
+		}
+		catch (Exception exception) {
+			failed = true;
+		}
+
+		Assert.assertTrue(failed);
+	}
+
+	@Test
+	public void testTestConnectionValid() throws Exception {
+		_databaseMigrationManager.testConnection(
+			_sourceURL, _sourceUserName, _sourcePassword);
+		_databaseMigrationManager.testConnection(
+			_targetURL, _targetUserName, _targetPassword);
+	}
+
 	private void _assertCustomColumnMigrated() throws Exception {
 		try (Connection connection = _targetDataSource.getConnection();
 
