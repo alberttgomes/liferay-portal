@@ -8,8 +8,10 @@ package com.liferay.site.navigation.menu.web.internal.exportimport.test;
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
 import com.liferay.exportimport.kernel.configuration.ExportImportConfigurationParameterMapFactoryUtil;
 import com.liferay.exportimport.kernel.lar.ExportImportDateUtil;
+import com.liferay.exportimport.kernel.lar.ExportImportThreadLocal;
 import com.liferay.exportimport.kernel.lar.PortletDataHandlerKeys;
 import com.liferay.exportimport.kernel.staging.StagingUtil;
+import com.liferay.layout.exporter.PortletPreferencesPortletConfigurationExporter;
 import com.liferay.layout.test.util.LayoutTestUtil;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.string.StringBundler;
@@ -467,6 +469,51 @@ public class SiteNavigationMenuExportImportTest
 	}
 
 	@Test
+	@TestInfo("LPD-98716")
+	public void testExportImportWithSiteNavigationMenuFromStagedGroup()
+		throws Exception {
+
+		_setUpLocalStaging();
+
+		_layout = LayoutTestUtil.addTypePortletLayout(_stagingGroup);
+
+		_setUpSiteNavigationMenu(_stagingGroup);
+
+		String portletId = LayoutTestUtil.addPortletToLayout(
+			_layout, SiteNavigationMenuPortletKeys.SITE_NAVIGATION_MENU,
+			HashMapBuilder.put(
+				"rootMenuItemExternalReferenceCode",
+				new String[] {
+					_siteNavigationMenuItem.getExternalReferenceCode()
+				}
+			).put(
+				"siteNavigationMenuExternalReferenceCode",
+				new String[] {_siteNavigationMenu.getExternalReferenceCode()}
+			).put(
+				"siteNavigationMenuGroupExternalReferenceCode",
+				new String[] {_stagingGroup.getExternalReferenceCode()}
+			).build());
+
+		_publishAllLayouts();
+
+		Layout layout = _layoutLocalService.getLayoutByUuidAndGroupId(
+			_layout.getUuid(), _liveGroup.getGroupId(),
+			_layout.isPrivateLayout());
+
+		PortletPreferences portletPreferences =
+			_portletPreferencesLocalService.getPreferences(
+				_liveGroup.getCompanyId(), PortletKeys.PREFS_OWNER_ID_DEFAULT,
+				PortletKeys.PREFS_OWNER_TYPE_LAYOUT, layout.getPlid(),
+				portletId);
+
+		Assert.assertEquals(
+			_liveGroup.getExternalReferenceCode(),
+			portletPreferences.getValue(
+				"siteNavigationMenuGroupExternalReferenceCode",
+				StringPool.BLANK));
+	}
+
+	@Test
 	@TestInfo("LPD-107487")
 	public void testExportImportWithUpdatedSiteNavigationMenuItems()
 		throws Exception {
@@ -567,6 +614,37 @@ public class SiteNavigationMenuExportImportTest
 
 		_assertLiveSiteNavigationMenuItemExternalReferenceCodes(
 			null, siteNavigationMenuItem2, siteNavigationMenuItem4);
+	}
+
+	@Test
+	@TestInfo("LPD-98716")
+	public void testGetPortletConfigurationWithLocalStaging() throws Exception {
+		_setUpLocalStaging();
+
+		_layout = LayoutTestUtil.addTypePortletLayout(_stagingGroup);
+
+		String portletId = LayoutTestUtil.addPortletToLayout(
+			_layout, SiteNavigationMenuPortletKeys.SITE_NAVIGATION_MENU,
+			HashMapBuilder.put(
+				"siteNavigationMenuGroupExternalReferenceCode",
+				new String[] {_stagingGroup.getExternalReferenceCode()}
+			).build());
+
+		ExportImportThreadLocal.setPortletStagingInProcess(true);
+
+		try {
+			Map<String, Object> portletConfiguration =
+				_portletPreferencesPortletConfigurationExporter.
+					getPortletConfiguration(_layout.getPlid(), portletId);
+
+			Assert.assertEquals(
+				_liveGroup.getExternalReferenceCode(),
+				portletConfiguration.get(
+					"siteNavigationMenuGroupExternalReferenceCode"));
+		}
+		finally {
+			ExportImportThreadLocal.setPortletStagingInProcess(false);
+		}
 	}
 
 	private void _addGroupEmbeddedPortlet(
@@ -740,6 +818,10 @@ public class SiteNavigationMenuExportImportTest
 
 	@Inject
 	private PortletPreferencesLocalService _portletPreferencesLocalService;
+
+	@Inject
+	private PortletPreferencesPortletConfigurationExporter
+		_portletPreferencesPortletConfigurationExporter;
 
 	private SiteNavigationMenu _siteNavigationMenu;
 	private SiteNavigationMenuItem _siteNavigationMenuItem;
