@@ -818,6 +818,8 @@ public class PortalUpgradeProcessRegistryImpl
 		upgradeVersionTreeMap.put(
 			new Version(38, 7, 7),
 			new LayoutDuplicateExternalReferenceCodeUpgradeProcess());
+
+		upgradeVersionTreeMap.put(new Version(38, 7, 8), new UpgradeDB2());
 	}
 
 }
