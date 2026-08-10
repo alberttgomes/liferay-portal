@@ -216,6 +216,9 @@ public class ObjectEntryModelListenerTest {
 
 	@Test
 	public void testOnBeforeRemove() throws Exception {
+
+		// Deleting a CMS object entry deletes its links
+
 		ObjectEntry cmsBasicWebContentObjectEntry =
 			_addCMSBasicWebContentObjectEntry();
 
@@ -247,6 +250,8 @@ public class ObjectEntryModelListenerTest {
 		Assert.assertNull(
 			_objectEntryLocalService.fetchObjectEntry(
 				cmpTaskLinkObjectEntry.getObjectEntryId()));
+
+		// Deleting a non-CMS object entry keeps its links
 
 		_testOnBeforeRemoveWhenObjectEntryIsNotCMSObjectEntry();
 	}
