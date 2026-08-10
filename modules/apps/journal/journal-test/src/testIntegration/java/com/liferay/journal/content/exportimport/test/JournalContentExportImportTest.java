@@ -93,6 +93,32 @@ public class JournalContentExportImportTest
 	}
 
 	@Test
+	@TestInfo("LPD-98716")
+	public void testExportImportGroupExternalReferenceCodeWithoutStaging()
+		throws Exception {
+
+		StagingLocalServiceUtil.enableLocalStaging(
+			TestPropsValues.getUserId(), group, false, false,
+			new ServiceContext());
+
+		Group stagingGroup = group.getStagingGroup();
+
+		PortletPreferences portletPreferences = getImportedPortletPreferences(
+			HashMapBuilder.put(
+				"articleExternalReferenceCode",
+				new String[] {RandomTestUtil.randomString()}
+			).put(
+				"groupExternalReferenceCode",
+				new String[] {stagingGroup.getExternalReferenceCode()}
+			).build(),
+			false);
+
+		Assert.assertEquals(
+			stagingGroup.getExternalReferenceCode(),
+			portletPreferences.getValue("groupExternalReferenceCode", null));
+	}
+
+	@Test
 	@TestInfo("LPD-103207")
 	public void testExportImportSelectedArticleWithLayoutStaging()
 		throws Exception {
@@ -158,32 +184,6 @@ public class JournalContentExportImportTest
 
 	@Test
 	@TestInfo("LPD-98716")
-	public void testExportImportGroupExternalReferenceCodeWithoutStaging()
-		throws Exception {
-
-		StagingLocalServiceUtil.enableLocalStaging(
-			TestPropsValues.getUserId(), group, false, false,
-			new ServiceContext());
-
-		Group stagingGroup = group.getStagingGroup();
-
-		PortletPreferences portletPreferences = getImportedPortletPreferences(
-			HashMapBuilder.put(
-				"articleExternalReferenceCode",
-				new String[] {RandomTestUtil.randomString()}
-			).put(
-				"groupExternalReferenceCode",
-				new String[] {stagingGroup.getExternalReferenceCode()}
-			).build(),
-			false);
-
-		Assert.assertEquals(
-			stagingGroup.getExternalReferenceCode(),
-			portletPreferences.getValue("groupExternalReferenceCode", null));
-	}
-
-	@Test
-	@TestInfo("LPD-98716")
 	public void testGetPortletConfigurationWithLocalStaging() throws Exception {
 		StagingLocalServiceUtil.enableLocalStaging(
 			TestPropsValues.getUserId(), group, false, false,
@@ -193,15 +193,12 @@ public class JournalContentExportImportTest
 
 		ExportImportThreadLocal.setPortletStagingInProcess(true);
 
-		try {
-			Assert.assertEquals(
-				group.getExternalReferenceCode(),
-				_getExportedGroupExternalReferenceCode(
-					stagingGroup.getExternalReferenceCode()));
-		}
-		finally {
-			ExportImportThreadLocal.setPortletStagingInProcess(false);
-		}
+		Assert.assertEquals(
+			group.getExternalReferenceCode(),
+			_getExportedGroupExternalReferenceCode(
+				stagingGroup.getExternalReferenceCode()));
+
+		ExportImportThreadLocal.setPortletStagingInProcess(false);
 	}
 
 	@Test
@@ -219,17 +216,14 @@ public class JournalContentExportImportTest
 
 		ExportImportThreadLocal.setPortletStagingInProcess(true);
 
-		try {
-			Assert.assertEquals(
-				contentGroup.getExternalReferenceCode(),
-				_getExportedGroupExternalReferenceCode(
-					stagingGroup.getExternalReferenceCode()));
-		}
-		finally {
-			ExportImportThreadLocal.setPortletStagingInProcess(false);
+		Assert.assertEquals(
+			contentGroup.getExternalReferenceCode(),
+			_getExportedGroupExternalReferenceCode(
+				stagingGroup.getExternalReferenceCode()));
 
-			GroupTestUtil.deleteGroup(contentGroup);
-		}
+		ExportImportThreadLocal.setPortletStagingInProcess(false);
+
+		GroupTestUtil.deleteGroup(contentGroup);
 	}
 
 	@Test
@@ -268,15 +262,12 @@ public class JournalContentExportImportTest
 
 		ExportImportThreadLocal.setPortletStagingInProcess(true);
 
-		try {
-			Assert.assertEquals(
-				remoteGroupExternalReferenceCode,
-				_getExportedGroupExternalReferenceCode(
-					group.getExternalReferenceCode()));
-		}
-		finally {
-			ExportImportThreadLocal.setPortletStagingInProcess(false);
-		}
+		Assert.assertEquals(
+			remoteGroupExternalReferenceCode,
+			_getExportedGroupExternalReferenceCode(
+				group.getExternalReferenceCode()));
+
+		ExportImportThreadLocal.setPortletStagingInProcess(false);
 	}
 
 	private void _exportImportSelectedArticle(
