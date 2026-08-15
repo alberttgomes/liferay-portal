@@ -3068,8 +3068,6 @@ public class SitePageResourceTest extends BaseSitePageResourceTestCase {
 		List<WidgetPageWidgetInstance> widgetPageWidgetInstances =
 			_getWidgetPageWidgetInstances(sitePage);
 
-		Assert.assertFalse(widgetPageWidgetInstances.isEmpty());
-
 		for (WidgetPageWidgetInstance widgetPageWidgetInstance :
 				widgetPageWidgetInstances) {
 
@@ -3086,6 +3084,10 @@ public class SitePageResourceTest extends BaseSitePageResourceTestCase {
 				expectedApplicationDecoratorId,
 				generalConfig.getApplicationDecoratorId());
 		}
+
+		Assert.assertEquals(
+			widgetPageWidgetInstances.toString(), 3,
+			widgetPageWidgetInstances.size());
 	}
 
 	private void _testPostSiteSitePageWithContentPageSpecification()
