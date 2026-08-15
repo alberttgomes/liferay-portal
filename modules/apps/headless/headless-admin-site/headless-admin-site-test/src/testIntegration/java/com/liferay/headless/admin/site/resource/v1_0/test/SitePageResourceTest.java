@@ -2258,10 +2258,6 @@ public class SitePageResourceTest extends BaseSitePageResourceTestCase {
 		List<WidgetPageWidgetInstance> widgetPageWidgetInstances =
 			_getWidgetPageWidgetInstances(sitePage);
 
-		Assert.assertEquals(
-			widgetPageWidgetInstances.toString(), 1,
-			widgetPageWidgetInstances.size());
-
 		WidgetPageWidgetInstance widgetPageWidgetInstance =
 			widgetPageWidgetInstances.get(0);
 
@@ -2274,6 +2270,10 @@ public class SitePageResourceTest extends BaseSitePageResourceTestCase {
 		Assert.assertNull(generalConfig.getApplicationDecorator());
 		Assert.assertEquals(
 			"encadre", generalConfig.getApplicationDecoratorId());
+
+		Assert.assertEquals(
+			widgetPageWidgetInstances.toString(), 1,
+			widgetPageWidgetInstances.size());
 	}
 
 	private void _testGetSiteSitePageWithNestedFields(SitePage sitePage)
