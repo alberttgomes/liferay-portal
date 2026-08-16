@@ -11,6 +11,7 @@ import path from 'path';
 import {PORTLET_URLS} from '../../utils/portletUrls';
 import {getTempDir} from '../../utils/temp';
 import {waitForAlert} from '../../utils/waitForAlert';
+import {waitForSearchToBeReady} from '../../utils/waitForSearchToBeReady';
 
 export class ViewObjectDefinitionsPage {
 	readonly actionsButton: Locator;
@@ -113,6 +114,8 @@ export class ViewObjectDefinitionsPage {
 
 		await input.fill(objectDefinitionLabel);
 
+		await waitForSearchToBeReady(this.page);
+
 		await this.page.keyboard.press('Enter');
 
 		await this.page
@@ -181,6 +184,8 @@ export class ViewObjectDefinitionsPage {
 		await this.goto();
 
 		await this.searchInput.fill(objectDefinitionLabel);
+
+		await waitForSearchToBeReady(this.page);
 
 		await this.page.keyboard.press('Enter');
 
