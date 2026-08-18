@@ -381,6 +381,14 @@ public interface DepotEntryLocalService
 	public DepotEntry updateDepotEntry(
 			long depotEntryId, Map<Locale, String> nameMap,
 			Map<Locale, String> descriptionMap,
+			Map<String, Boolean> depotAppCustomizationMap, String friendlyURL,
+			UnicodeProperties typeSettingsUnicodeProperties,
+			ServiceContext serviceContext)
+		throws PortalException;
+
+	public DepotEntry updateDepotEntry(
+			long depotEntryId, Map<Locale, String> nameMap,
+			Map<Locale, String> descriptionMap,
 			Map<String, Boolean> depotAppCustomizationMap,
 			UnicodeProperties typeSettingsUnicodeProperties,
 			ServiceContext serviceContext)
@@ -402,4 +410,4 @@ public interface DepotEntryLocalService
 		throws E;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-508200659
+// LIFERAY-SERVICE-BUILDER-HASH:-1095630582
