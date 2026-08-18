@@ -1214,6 +1214,8 @@ test.describe('Manage object definitions through View Object Definitions', () =>
 
 		await editObjectDetailsPage.goToDetailsTab();
 
+		await editObjectDetailsPage.waitForDetailsFormLoaded();
+
 		await editObjectDetailsPage.selectLabelLanguage('pt_BR');
 
 		await editObjectDetailsPage.labelInput.fill(label);
@@ -1295,6 +1297,8 @@ test.describe('Manage object definitions through View Object Definitions', () =>
 
 		await editObjectDetailsPage.goToDetailsTab();
 
+		await editObjectDetailsPage.waitForDetailsFormLoaded();
+
 		await expect(editObjectDetailsPage.nameInput).toBeDisabled();
 		await expect(editObjectDetailsPage.scopeCombobox).toBeDisabled();
 
@@ -1352,6 +1356,8 @@ test.describe('Manage object definitions through View Object Definitions', () =>
 		await editObjectDetailsPage.goto(objectDefinition.label['en_US']);
 
 		await editObjectDetailsPage.goToDetailsTab();
+
+		await editObjectDetailsPage.waitForDetailsFormLoaded();
 
 		await editObjectDetailsPage.labelInput.fill(label);
 		await editObjectDetailsPage.pluralLabelInput.fill(pluralLabel);
@@ -1487,6 +1493,8 @@ test.describe('Manage object definitions through View Object Definitions', () =>
 		await editObjectDetailsPage.goto(objectDefinition.label['en_US']);
 
 		await editObjectDetailsPage.goToDetailsTab();
+
+		await editObjectDetailsPage.waitForDetailsFormLoaded();
 
 		const label = 'UpdatedLabel' + getRandomInt();
 
@@ -1993,6 +2001,8 @@ test.describe('Manage object definitions through View Object Definitions', () =>
 			await editObjectDetailsPage.goto(objectDefinition.label['en_US']);
 
 			await editObjectDetailsPage.goToDetailsTab();
+
+			await editObjectDetailsPage.waitForDetailsFormLoaded();
 
 			await editObjectDetailsPage.labelInput.fill(newLabel);
 			await editObjectDetailsPage.pluralLabelInput.fill(newPluralLabel);
