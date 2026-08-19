@@ -39,7 +39,9 @@ import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.model.role.RoleConstants;
 import com.liferay.portal.kernel.search.Indexer;
 import com.liferay.portal.kernel.search.IndexerRegistryUtil;
+import com.liferay.portal.kernel.security.auth.PrincipalException;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
+import com.liferay.portal.kernel.security.permission.PermissionThreadLocal;
 import com.liferay.portal.kernel.security.permission.ResourceActionsUtil;
 import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.service.ResourceActionLocalService;
@@ -48,6 +50,7 @@ import com.liferay.portal.kernel.service.RoleLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.UserGroupRoleService;
 import com.liferay.portal.kernel.service.UserService;
+import com.liferay.portal.kernel.service.permission.UserPermissionUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.CalendarFactoryUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
@@ -124,7 +127,8 @@ public class ObjectEntryModelListener extends BaseModelListener<ObjectEntry> {
 		try {
 			_updateGroup(objectEntry);
 			_updateProjectCompletionRate(objectEntry);
-			_updateProjectManagerProjectSponsorUserGroupRoles(objectEntry);
+			_updateProjectManagerProjectSponsorUserGroupRoles(
+				originalObjectEntry, objectEntry);
 		}
 		catch (Exception exception) {
 			throw new ModelListenerException(exception);
@@ -140,6 +144,27 @@ public class ObjectEntryModelListener extends BaseModelListener<ObjectEntry> {
 		}
 		catch (Exception exception) {
 			throw new ModelListenerException(exception);
+		}
+	}
+
+	private void _deleteGroupMembershipWithoutUserGroupRoles(
+			long groupId, long userId)
+		throws Exception {
+
+		if (ListUtil.isNotEmpty(
+				_roleLocalService.getUserGroupRoles(userId, groupId))) {
+
+			return;
+		}
+
+		User user = _userService.getUserById(userId);
+
+		_updateUser(ArrayUtil.remove(user.getGroupIds(), groupId), userId);
+
+		if (_groupLocalService.hasUserGroup(userId, groupId)) {
+			throw new PrincipalException.MustHavePermission(
+				PermissionThreadLocal.getPermissionChecker(),
+				Group.class.getName(), groupId, ActionKeys.ASSIGN_MEMBERS);
 		}
 	}
 
@@ -163,6 +188,35 @@ public class ObjectEntryModelListener extends BaseModelListener<ObjectEntry> {
 				_objectEntryLocalService.deleteObjectEntry(objectEntryId);
 			}
 		}
+	}
+
+	private void _deleteUserGroupRoles(
+			long companyId, long groupId, List<String> roleNames, long userId)
+		throws Exception {
+
+		UserPermissionUtil.check(
+			PermissionThreadLocal.getPermissionChecker(), userId,
+			ActionKeys.UPDATE);
+
+		long[] roleIds = TransformUtil.transformToLongArray(
+			roleNames,
+			roleName -> {
+				Role role = _roleLocalService.fetchRole(companyId, roleName);
+
+				if (role == null) {
+					return null;
+				}
+
+				return role.getRoleId();
+			});
+
+		if (roleIds.length == 0) {
+			return;
+		}
+
+		_userGroupRoleService.deleteUserGroupRoles(userId, groupId, roleIds);
+
+		_deleteGroupMembershipWithoutUserGroupRoles(groupId, userId);
 	}
 
 	private ObjectEntry _fetchLinkedObjectEntry(
@@ -259,6 +313,16 @@ public class ObjectEntryModelListener extends BaseModelListener<ObjectEntry> {
 		}
 
 		return new String[] {ActionKeys.ADD_DISCUSSION, ActionKeys.VIEW};
+	}
+
+	private long _getRelatedUserId(
+		ObjectEntry objectEntry, String objectFieldName) {
+
+		if (objectEntry == null) {
+			return 0;
+		}
+
+		return MapUtil.getLong(objectEntry.getValues(), objectFieldName, 0);
 	}
 
 	private void _initializeSite(ObjectEntry objectEntry) {
@@ -541,7 +605,7 @@ public class ObjectEntryModelListener extends BaseModelListener<ObjectEntry> {
 	}
 
 	private void _updateProjectManagerProjectSponsorUserGroupRoles(
-			ObjectEntry objectEntry)
+			ObjectEntry originalObjectEntry, ObjectEntry objectEntry)
 		throws Exception {
 
 		ObjectDefinition objectDefinition = objectEntry.getObjectDefinition();
@@ -553,17 +617,17 @@ public class ObjectEntryModelListener extends BaseModelListener<ObjectEntry> {
 		}
 
 		_updateUserGroupRoles(
-			objectEntry.getGroupId(),
+			objectEntry.getCompanyId(), objectEntry.getGroupId(),
+			_getRelatedUserId(
+				originalObjectEntry, "r_userToCMPProjectManager_userId"),
 			Collections.singletonList(DepotRolesConstants.PROJECT_MANAGER),
-			MapUtil.getLong(
-				objectEntry.getValues(), "r_userToCMPProjectManager_userId",
-				0));
+			_getRelatedUserId(objectEntry, "r_userToCMPProjectManager_userId"));
 		_updateUserGroupRoles(
-			objectEntry.getGroupId(),
+			objectEntry.getCompanyId(), objectEntry.getGroupId(),
+			_getRelatedUserId(
+				originalObjectEntry, "r_userToCMPProjectSponsor_userId"),
 			Collections.singletonList(DepotRolesConstants.PROJECT_MEMBER),
-			MapUtil.getLong(
-				objectEntry.getValues(), "r_userToCMPProjectSponsor_userId",
-				0));
+			_getRelatedUserId(objectEntry, "r_userToCMPProjectSponsor_userId"));
 	}
 
 	private User _updateUser(long[] groupIds, Long userId) throws Exception {
@@ -591,8 +655,18 @@ public class ObjectEntryModelListener extends BaseModelListener<ObjectEntry> {
 	}
 
 	private void _updateUserGroupRoles(
-			long groupId, List<String> roleNames, long userId)
+			long companyId, long groupId, long originalUserId,
+			List<String> roleNames, long userId)
 		throws Exception {
+
+		if (originalUserId == userId) {
+			return;
+		}
+
+		if (originalUserId != 0) {
+			_deleteUserGroupRoles(
+				companyId, groupId, roleNames, originalUserId);
+		}
 
 		if (userId == 0) {
 			return;
@@ -602,8 +676,6 @@ public class ObjectEntryModelListener extends BaseModelListener<ObjectEntry> {
 
 		user = _updateUser(
 			ArrayUtil.append(user.getGroupIds(), groupId), userId);
-
-		long companyId = user.getCompanyId();
 
 		_userGroupRoleService.addUserGroupRoles(
 			user.getUserId(), groupId,
