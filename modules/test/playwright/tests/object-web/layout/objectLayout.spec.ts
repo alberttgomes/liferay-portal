@@ -575,7 +575,7 @@ test.describe('Manage custom layouts through object layout tab', () => {
 
 		const objectLayoutRelTabName = getRandomString();
 
-		await objectLayoutsPage.createObjectRelationshipTab(
+		const {reload} = await objectLayoutsPage.createObjectRelationshipTab(
 			objectLayoutName,
 			objectLayoutRelTabName,
 			objectRelationship.label.en_US
@@ -585,6 +585,8 @@ test.describe('Manage custom layouts through object layout tab', () => {
 			page,
 			'Success:The object layout was updated successfully'
 		);
+
+		await reload;
 
 		const objectChildEntry = 'ChildEntry' + getRandomInt();
 
@@ -952,7 +954,7 @@ test.describe('Manage custom layouts through object layout tab', () => {
 			objectLayoutTabName: 'Field Tab',
 		});
 
-		await objectLayoutsPage.createObjectRelationshipTab(
+		const {reload} = await objectLayoutsPage.createObjectRelationshipTab(
 			objectLayoutName,
 			'Relationship Tab',
 			objectRelationship.label['en_US']
@@ -962,6 +964,8 @@ test.describe('Manage custom layouts through object layout tab', () => {
 			page,
 			'Success:The object layout was updated successfully'
 		);
+
+		await reload;
 
 		const applicationName =
 			'c/' + objectDefinition.name.toLowerCase() + 's';
@@ -1411,7 +1415,7 @@ test.describe('Manage custom layouts through object layout tab', () => {
 			objectLayoutTabName: 'Field Tab',
 		});
 
-		await objectLayoutsPage.createObjectRelationshipTab(
+		const {reload} = await objectLayoutsPage.createObjectRelationshipTab(
 			objectLayoutName,
 			'Relationship Tab',
 			objectRelationship.label['en_US']
@@ -1421,6 +1425,8 @@ test.describe('Manage custom layouts through object layout tab', () => {
 			page,
 			'Success:The object layout was updated successfully'
 		);
+
+		await reload;
 
 		const applicationName =
 			'c/' + objectDefinition.name.toLowerCase() + 's';
