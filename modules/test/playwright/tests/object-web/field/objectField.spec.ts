@@ -368,6 +368,10 @@ test.describe('Manage object fields through Model Builder', () => {
 
 		const picklistFieldName = 'picklistField' + getRandomInt();
 
+		await expect(page.getByPlaceholder('Text to translate...')).toHaveValue(
+			objectFields[0].label['en_US']
+		);
+
 		await page
 			.getByPlaceholder('Text to translate...')
 			.fill(picklistFieldName);
@@ -702,6 +706,10 @@ test.describe('Manage object fields through Model Builder', () => {
 					.filter({hasText: objectDefinition.label['en_US']})
 					.getByText(objectFieldLabel, {exact: true})
 					.click();
+
+				await expect(page.getByText('LabelMandatory')).toHaveValue(
+					objectFieldLabel
+				);
 
 				await page.getByText('LabelMandatory').fill(updatedFieldLabel);
 
