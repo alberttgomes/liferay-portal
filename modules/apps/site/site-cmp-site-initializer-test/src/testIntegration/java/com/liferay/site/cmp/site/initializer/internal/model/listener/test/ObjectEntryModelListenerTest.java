@@ -22,6 +22,7 @@ import com.liferay.portal.kernel.model.ResourceConstants;
 import com.liferay.portal.kernel.model.ResourcePermission;
 import com.liferay.portal.kernel.model.Role;
 import com.liferay.portal.kernel.model.User;
+import com.liferay.portal.kernel.model.role.RoleConstants;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
 import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
@@ -220,7 +221,13 @@ public class ObjectEntryModelListenerTest {
 			cmpProjectObjectEntry);
 		_testOnAfterUpdateWhenProjectManagerAndProjectSponsorChange(
 			cmpProjectObjectEntry);
+		_testOnAfterUpdateWhenProjectManagerAssignsAndRevokesAdministratorUser(
+			cmpProjectObjectEntry);
+		_testOnAfterUpdateWhenProjectManagerAssignsAndRevokesUser(
+			cmpProjectObjectEntry);
 		_testOnAfterUpdateWhenProjectManagerAssignsUserWithoutMembership(
+			cmpProjectObjectEntry);
+		_testOnAfterUpdateWhenProjectManagerHandsOverProject(
 			cmpProjectObjectEntry);
 		_testOnAfterUpdateWhenProjectManagerIsClearedWithoutUserUpdatePermission(
 			cmpProjectObjectEntry);
@@ -371,14 +378,14 @@ public class ObjectEntryModelListenerTest {
 		}
 	}
 
-	private void _assertRevokedFromProject(
+	private void _assertRevokedProjectRole(
 		ObjectEntry cmpProjectObjectEntry, User user) {
 
 		_assertUserGroupRoles(
 			0, Collections.emptyList(), cmpProjectObjectEntry.getGroupId(),
 			user.getUserId());
 
-		Assert.assertFalse(
+		Assert.assertTrue(
 			_groupLocalService.hasUserGroup(
 				user.getUserId(), cmpProjectObjectEntry.getGroupId()));
 	}
@@ -482,14 +489,8 @@ public class ObjectEntryModelListenerTest {
 
 		UserTestUtil.setUser(TestPropsValues.getUser());
 
-		_assertUserGroupRoles(
-			0, Collections.emptyList(), cmpProjectObjectEntry.getGroupId(),
-			selfClearingProjectManagerUser.getUserId());
-
-		Assert.assertTrue(
-			_groupLocalService.hasUserGroup(
-				selfClearingProjectManagerUser.getUserId(),
-				cmpProjectObjectEntry.getGroupId()));
+		_assertRevokedProjectRole(
+			cmpProjectObjectEntry, selfClearingProjectManagerUser);
 
 		// Clearing a holder with another project role keeps role and membership
 
@@ -533,9 +534,9 @@ public class ObjectEntryModelListenerTest {
 		cmpProjectObjectEntry = _updateProjectManagerProjectSponsor(
 			cmpProjectObjectEntry, 0, 0, TestPropsValues.getUserId());
 
-		_assertRevokedFromProject(
+		_assertRevokedProjectRole(
 			cmpProjectObjectEntry, clearedProjectManagerUser);
-		_assertRevokedFromProject(
+		_assertRevokedProjectRole(
 			cmpProjectObjectEntry, clearedProjectSponsorUser);
 
 		// Reassigning the manager and sponsor revokes the previous holders
@@ -559,9 +560,9 @@ public class ObjectEntryModelListenerTest {
 			cmpProjectObjectEntry, projectManagerUser.getUserId(),
 			projectSponsorUser.getUserId(), TestPropsValues.getUserId());
 
-		_assertRevokedFromProject(
+		_assertRevokedProjectRole(
 			cmpProjectObjectEntry, originalProjectManagerUser);
-		_assertRevokedFromProject(
+		_assertRevokedProjectRole(
 			cmpProjectObjectEntry, originalProjectSponsorUser);
 
 		_assertUserGroupRoles(
@@ -570,6 +571,117 @@ public class ObjectEntryModelListenerTest {
 		_assertUserGroupRoles(
 			1, Collections.singletonList(DepotRolesConstants.PROJECT_MEMBER),
 			cmpProjectObjectEntry.getGroupId(), projectSponsorUser.getUserId());
+	}
+
+	private void
+			_testOnAfterUpdateWhenProjectManagerAssignsAndRevokesAdministratorUser(
+				ObjectEntry cmpProjectObjectEntry)
+		throws Exception {
+
+		// A manager assigning an administrator is refused
+
+		User projectManagerUser = UserTestUtil.addUser(
+			cmpProjectObjectEntry.getGroupId());
+
+		cmpProjectObjectEntry = _updateProjectManagerProjectSponsor(
+			cmpProjectObjectEntry, projectManagerUser.getUserId(), 0,
+			TestPropsValues.getUserId());
+
+		_assertUserGroupRoles(
+			1, Collections.singletonList(DepotRolesConstants.PROJECT_MANAGER),
+			cmpProjectObjectEntry.getGroupId(), projectManagerUser.getUserId());
+
+		User administratorUser = UserTestUtil.addUser();
+
+		Role role = _roleLocalService.getRole(
+			TestPropsValues.getCompanyId(), RoleConstants.ADMINISTRATOR);
+
+		_roleLocalService.addUserRoles(
+			administratorUser.getUserId(), new long[] {role.getRoleId()});
+
+		UserTestUtil.setUser(projectManagerUser);
+
+		try {
+			_updateProjectManagerProjectSponsor(
+				cmpProjectObjectEntry, projectManagerUser.getUserId(),
+				administratorUser.getUserId(), projectManagerUser.getUserId());
+
+			Assert.fail();
+		}
+		catch (ModelListenerException modelListenerException) {
+			Assert.assertTrue(
+				modelListenerException.getCause() instanceof
+					PrincipalException.MustHavePermission);
+		}
+
+		// An administrator can be assigned by an omniadmin
+
+		UserTestUtil.setUser(TestPropsValues.getUser());
+
+		cmpProjectObjectEntry = _updateProjectManagerProjectSponsor(
+			cmpProjectObjectEntry, projectManagerUser.getUserId(),
+			administratorUser.getUserId(), TestPropsValues.getUserId());
+
+		// Revoking an administrator as a manager is refused
+
+		UserTestUtil.setUser(projectManagerUser);
+
+		try {
+			_updateProjectManagerProjectSponsor(
+				cmpProjectObjectEntry, projectManagerUser.getUserId(), 0,
+				projectManagerUser.getUserId());
+
+			Assert.fail();
+		}
+		catch (ModelListenerException modelListenerException) {
+			Assert.assertTrue(
+				modelListenerException.getCause() instanceof
+					PrincipalException.MustHavePermission);
+		}
+
+		UserTestUtil.setUser(TestPropsValues.getUser());
+
+		_assertUserGroupRoles(
+			1, Collections.singletonList(DepotRolesConstants.PROJECT_MEMBER),
+			cmpProjectObjectEntry.getGroupId(), administratorUser.getUserId());
+
+		_updateProjectManagerProjectSponsor(
+			cmpProjectObjectEntry, 0, 0, TestPropsValues.getUserId());
+	}
+
+	private void _testOnAfterUpdateWhenProjectManagerAssignsAndRevokesUser(
+			ObjectEntry cmpProjectObjectEntry)
+		throws Exception {
+
+		User projectManagerUser = UserTestUtil.addUser(
+			cmpProjectObjectEntry.getGroupId());
+
+		cmpProjectObjectEntry = _updateProjectManagerProjectSponsor(
+			cmpProjectObjectEntry, projectManagerUser.getUserId(), 0,
+			TestPropsValues.getUserId());
+
+		User user = UserTestUtil.addUser();
+
+		UserTestUtil.setUser(projectManagerUser);
+
+		cmpProjectObjectEntry = _updateProjectManagerProjectSponsor(
+			cmpProjectObjectEntry, projectManagerUser.getUserId(),
+			user.getUserId(), projectManagerUser.getUserId());
+
+		_assertUserGroupRoles(
+			1, Collections.singletonList(DepotRolesConstants.PROJECT_MEMBER),
+			cmpProjectObjectEntry.getGroupId(), user.getUserId());
+
+		cmpProjectObjectEntry = _updateProjectManagerProjectSponsor(
+			cmpProjectObjectEntry, projectManagerUser.getUserId(), 0,
+			projectManagerUser.getUserId());
+
+		UserTestUtil.setUser(TestPropsValues.getUser());
+
+		_assertRevokedProjectRole(cmpProjectObjectEntry, user);
+
+		_updateProjectManagerProjectSponsor(
+			cmpProjectObjectEntry, 0, 0, TestPropsValues.getUserId());
 	}
 
 	private void
@@ -601,6 +713,43 @@ public class ObjectEntryModelListenerTest {
 		Assert.assertTrue(
 			_groupLocalService.hasUserGroup(
 				user.getUserId(), cmpProjectObjectEntry.getGroupId()));
+
+		_updateProjectManagerProjectSponsor(
+			cmpProjectObjectEntry, 0, 0, TestPropsValues.getUserId());
+	}
+
+	private void _testOnAfterUpdateWhenProjectManagerHandsOverProject(
+			ObjectEntry cmpProjectObjectEntry)
+		throws Exception {
+
+		User projectManagerUser = UserTestUtil.addUser(
+			cmpProjectObjectEntry.getGroupId());
+		User projectSponsorUser = UserTestUtil.addUser(
+			cmpProjectObjectEntry.getGroupId());
+
+		cmpProjectObjectEntry = _updateProjectManagerProjectSponsor(
+			cmpProjectObjectEntry, projectManagerUser.getUserId(),
+			projectSponsorUser.getUserId(), TestPropsValues.getUserId());
+
+		User user1 = UserTestUtil.addUser();
+		User user2 = UserTestUtil.addUser();
+
+		UserTestUtil.setUser(projectManagerUser);
+
+		cmpProjectObjectEntry = _updateProjectManagerProjectSponsor(
+			cmpProjectObjectEntry, user1.getUserId(), user2.getUserId(),
+			projectManagerUser.getUserId());
+
+		UserTestUtil.setUser(TestPropsValues.getUser());
+
+		_assertUserGroupRoles(
+			1, Collections.singletonList(DepotRolesConstants.PROJECT_MANAGER),
+			cmpProjectObjectEntry.getGroupId(), user1.getUserId());
+		_assertUserGroupRoles(
+			1, Collections.singletonList(DepotRolesConstants.PROJECT_MEMBER),
+			cmpProjectObjectEntry.getGroupId(), user2.getUserId());
+		_assertRevokedProjectRole(cmpProjectObjectEntry, projectManagerUser);
+		_assertRevokedProjectRole(cmpProjectObjectEntry, projectSponsorUser);
 
 		_updateProjectManagerProjectSponsor(
 			cmpProjectObjectEntry, 0, 0, TestPropsValues.getUserId());
