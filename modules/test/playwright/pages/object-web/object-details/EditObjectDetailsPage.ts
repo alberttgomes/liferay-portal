@@ -120,6 +120,17 @@ export class EditObjectDetailsPage {
 		await this.saveButton.click();
 	}
 
+	async saveObjectDefinitionReturningReload() {
+		const reload = this.page.waitForNavigation({
+			timeout: 10000,
+			waitUntil: 'load',
+		});
+
+		await this.saveButton.click();
+
+		return {reload};
+	}
+
 	async selectEntryTitleField(fieldName: string) {
 		await this.entryTitleFieldCombobox.click();
 
