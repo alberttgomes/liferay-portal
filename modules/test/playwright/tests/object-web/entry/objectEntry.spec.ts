@@ -6940,6 +6940,8 @@ test.describe('Manage object entries through Workflow', () => {
 
 			await usersAndOrganizationsPage.saveTimeZoneButton.click();
 
+			await waitForAlert(page);
+
 			// Check if the time has changed
 
 			await viewObjectEntriesPage.goToObjectDefinitionEntry(
