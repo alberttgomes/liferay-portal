@@ -1601,7 +1601,7 @@ test.describe('Manage objectFields through Objects Admin UI', () => {
 			objectFieldLabel,
 		});
 
-		await page.getByRole('link', {name: objectFieldLabel}).click();
+		await objectFieldsPage.openObjectField(objectFieldLabel);
 
 		await objectFieldsPage.iframeLocator
 			.getByLabel('LabelMandatory')
