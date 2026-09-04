@@ -755,6 +755,17 @@ public class ObjectServiceUpgradeStepRegistrator
 			new AttachmentObjectFieldDownloadPermissionUpgradeProcess(
 				_language, _localization, _ploEntryLocalService,
 				_resourceActionLocalService));
+
+		registry.register(
+			"13.2.2", "13.2.3",
+			UpgradeProcessFactory.runSQL(
+				StringBundler.concat(
+					"update ObjectField set readOnly = '",
+					ObjectFieldConstants.READ_ONLY_FALSE,
+					"' where readOnly not in ('",
+					ObjectFieldConstants.READ_ONLY_CONDITIONAL, "', '",
+					ObjectFieldConstants.READ_ONLY_FALSE, "', '",
+					ObjectFieldConstants.READ_ONLY_TRUE, "')")));
 	}
 
 	@Reference
