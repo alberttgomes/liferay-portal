@@ -8,6 +8,7 @@ package com.liferay.headless.dsr.internal.resource.v1_0;
 import com.liferay.account.service.AccountEntryUserRelLocalService;
 import com.liferay.headless.dsr.dto.v1_0.UserAccount;
 import com.liferay.headless.dsr.internal.dto.v1_0.converter.UserAccountDTOConverterContext;
+import com.liferay.headless.dsr.internal.security.permission.DSRRoleAssignmentPermissionUtil;
 import com.liferay.headless.dsr.internal.util.TicketUtil;
 import com.liferay.headless.dsr.resource.v1_0.UserAccountResource;
 import com.liferay.login.web.constants.LoginPortletKeys;
@@ -59,7 +60,6 @@ import com.liferay.portal.vulcan.dto.converter.DTOConverterRegistry;
 import com.liferay.portal.vulcan.pagination.Page;
 import com.liferay.portal.vulcan.pagination.Pagination;
 import com.liferay.site.dsr.site.initializer.constants.DSRPortletKeys;
-import com.liferay.site.dsr.site.initializer.constants.DSRRoleConstants;
 import com.liferay.site.dsr.site.initializer.constants.DSRTicketConstants;
 import com.liferay.site.dsr.site.initializer.util.DSRRoomUtil;
 
@@ -75,7 +75,6 @@ import java.io.Serializable;
 
 import java.util.Date;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import org.osgi.service.component.annotations.Component;
@@ -373,20 +372,8 @@ public class UserAccountResourceImpl extends BaseUserAccountResourceImpl {
 	private void _checkPermission(Group group, String roleKey)
 		throws Exception {
 
-		if (!Objects.equals(
-				roleKey, DSRRoleConstants.NAME_DSR_ROOM_COLLABORATOR)) {
-
-			return;
-		}
-
-		PermissionChecker permissionChecker =
-			PermissionThreadLocal.getPermissionChecker();
-
-		if (!permissionChecker.isGroupAdmin(group.getGroupId()) &&
-			!permissionChecker.isGroupOwner(group.getGroupId())) {
-
-			throw new RoleAssignmentException();
-		}
+		DSRRoleAssignmentPermissionUtil.checkPermission(
+			group, roleKey, contextUser.getUserId());
 	}
 
 	private Group _getGroup(long roomId) throws Exception {
