@@ -151,6 +151,25 @@ export class ViewObjectDefinitionsPage {
 		await modal.getByRole('button', {exact: true, name: 'Delete'}).click();
 	}
 
+	async deleteDraftObjectDefinition(label: string) {
+		await this.clickObjectDefinitionActionButton(label);
+
+		const reloadResponse = this.page.waitForResponse(
+			(response) =>
+				response
+					.url()
+					.includes('/o/object-admin/v1.0/object-definitions?') &&
+				response.request().method() === 'GET' &&
+				response.status() === 200
+		);
+
+		await this.deleteObjectDefinitionOption.click();
+
+		const response = await reloadResponse;
+
+		await response.finished();
+	}
+
 	async deleteObjectFolder(objectFolderName: string) {
 		await this.objectFolderDeleteFolderOption.click();
 		await this.confirmObjectFolderNameInput.click();
