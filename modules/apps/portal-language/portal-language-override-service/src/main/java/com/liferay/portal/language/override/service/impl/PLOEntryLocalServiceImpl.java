@@ -84,7 +84,8 @@ public class PLOEntryLocalServiceImpl extends PLOEntryLocalServiceBaseImpl {
 	public PLOEntry fetchPLOEntry(
 		long companyId, String key, String languageId) {
 
-		return ploEntryPersistence.fetchByC_K_L(companyId, key, languageId);
+		return ploEntryPersistence.fetchByC_K_L(
+			companyId, key, _normalizeLanguageId(languageId));
 	}
 
 	@Override
@@ -94,7 +95,8 @@ public class PLOEntryLocalServiceImpl extends PLOEntryLocalServiceBaseImpl {
 
 	@Override
 	public List<PLOEntry> getPLOEntries(long companyId, String languageId) {
-		return ploEntryPersistence.findByC_L(companyId, languageId);
+		return ploEntryPersistence.findByC_L(
+			companyId, _normalizeLanguageId(languageId));
 	}
 
 	@Override
@@ -224,6 +226,10 @@ public class PLOEntryLocalServiceImpl extends PLOEntryLocalServiceBaseImpl {
 	}
 
 	private String _normalizeLanguageId(String languageId) {
+		if (Validator.isNull(languageId)) {
+			return languageId;
+		}
+
 		languageId = StringUtil.replace(
 			languageId, CharPool.DASH, CharPool.UNDERLINE);
 
