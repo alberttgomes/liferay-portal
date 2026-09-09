@@ -47,6 +47,7 @@ import org.junit.runner.RunWith;
 
 /**
  * @author Drew Brokke
+ * @author Thiago Buarque
  */
 @RunWith(Arquillian.class)
 public class PLOEntryLocalServiceTest {
@@ -57,7 +58,69 @@ public class PLOEntryLocalServiceTest {
 		new LiferayIntegrationTestRule();
 
 	@Test
-	public void testAddOrUpdatePLOEntry() throws Exception {
+	public void testAddOrUpdatePLOEntry() throws Throwable {
+		_testAddOrUpdatePLOEntry();
+		_testAddOrUpdatePLOEntryRollback();
+		_testAddOrUpdatePLOEntryWithNondefaultLocales();
+	}
+
+	@Test
+	public void testDeletePLOEntry() throws Throwable {
+		_testDeletePLOEntry();
+		_testDeletePLOEntryRollback();
+		_testDeletePLOEntryWithLegacyISOLanguageId();
+		_testDeletePLOEntryWithNoncanonicalLanguageId();
+	}
+
+	@Test
+	public void testImportPLOEntries() throws IOException, PortalException {
+		_testImportPLOEntries();
+		_testImportPLOEntriesRollback();
+	}
+
+	private PLOEntry _addOrUpdatePLOEntry(
+			long companyId, String key, String languageId, String value)
+		throws PortalException {
+
+		return _ploEntryLocalService.addOrUpdatePLOEntry(
+			companyId, TestPropsValues.getUserId(), key, languageId, value);
+	}
+
+	private PLOEntry _addOrUpdatePLOEntry(
+			String key, String languageId, String value)
+		throws PortalException {
+
+		return _addOrUpdatePLOEntry(
+			TestPropsValues.getCompanyId(), key, languageId, value);
+	}
+
+	private void _assertException(
+			Class<? extends PortalException> exceptionClass,
+			UnsafeRunnable<? extends PortalException> unsafeRunnable)
+		throws Exception {
+
+		try {
+			unsafeRunnable.run();
+
+			Assert.fail();
+		}
+		catch (PortalException portalException) {
+			Assert.assertTrue(
+				exceptionClass.isAssignableFrom(portalException.getClass()));
+		}
+	}
+
+	private void _assertTranslationValue(String key, String value) {
+		Assert.assertEquals(
+			value, LanguageResources.getMessage(LocaleUtil.getDefault(), key));
+		Assert.assertEquals(
+			value,
+			ResourceBundleUtil.getString(
+				LanguageResources.getResourceBundle(LocaleUtil.getDefault()),
+				key));
+	}
+
+	private void _testAddOrUpdatePLOEntry() throws Exception {
 		String newKey = RandomTestUtil.randomString();
 
 		_assertTranslationValue(newKey, null);
@@ -115,62 +178,7 @@ public class PLOEntryLocalServiceTest {
 		Assert.assertEquals("en_US", ploEntry.getLanguageId());
 	}
 
-	@Test
-	public void testAddOrUpdatePLOEntryForCompanyLocaleAbsentFromLocales()
-		throws Exception {
-
-		long companyId = CompanyThreadLocal.getCompanyId();
-
-		try {
-			Company company = CompanyTestUtil.addCompany();
-
-			CompanyTestUtil.resetCompanyLocales(
-				company.getCompanyId(), "en_US,en_RU", "en_US");
-
-			PLOEntry ploEntry = _addOrUpdatePLOEntry(
-				company.getCompanyId(), RandomTestUtil.randomString(), "en_RU",
-				RandomTestUtil.randomString());
-
-			Assert.assertEquals("en_RU", ploEntry.getLanguageId());
-		}
-		finally {
-			CompanyThreadLocal.setCompanyId(companyId);
-		}
-	}
-
-	@Test
-	public void testAddOrUpdatePLOEntryForLegacyISOLanguageCode()
-		throws Exception {
-
-		long companyId = CompanyThreadLocal.getCompanyId();
-
-		try {
-			Company company = CompanyTestUtil.addCompany();
-
-			CompanyTestUtil.resetCompanyLocales(
-				company.getCompanyId(), "en_US,iw_IL", "en_US");
-
-			String languageId = LocaleUtil.toLanguageId(new Locale("iw", "IL"));
-
-			PLOEntry ploEntry1 = _addOrUpdatePLOEntry(
-				company.getCompanyId(), RandomTestUtil.randomString(),
-				languageId, RandomTestUtil.randomString());
-
-			Assert.assertEquals(languageId, ploEntry1.getLanguageId());
-
-			PLOEntry ploEntry2 = _addOrUpdatePLOEntry(
-				company.getCompanyId(), RandomTestUtil.randomString(), "iw_IL",
-				RandomTestUtil.randomString());
-
-			Assert.assertEquals(languageId, ploEntry2.getLanguageId());
-		}
-		finally {
-			CompanyThreadLocal.setCompanyId(companyId);
-		}
-	}
-
-	@Test
-	public void testAddOrUpdatePLOEntryRollback() throws Throwable {
+	private void _testAddOrUpdatePLOEntryRollback() throws Throwable {
 		String key = RandomTestUtil.randomString();
 
 		Locale locale = LocaleUtil.getDefault();
@@ -199,8 +207,46 @@ public class PLOEntryLocalServiceTest {
 		}
 	}
 
-	@Test
-	public void testDeletePLOEntry() throws PortalException {
+	private void _testAddOrUpdatePLOEntryWithNondefaultLocales()
+		throws Exception {
+
+		long companyId = CompanyThreadLocal.getCompanyId();
+
+		try {
+			Company company = CompanyTestUtil.addCompany();
+
+			CompanyTestUtil.resetCompanyLocales(
+				company.getCompanyId(), "en_US,en_RU", "en_US");
+
+			PLOEntry ploEntry1 = _addOrUpdatePLOEntry(
+				company.getCompanyId(), RandomTestUtil.randomString(), "en_RU",
+				RandomTestUtil.randomString());
+
+			Assert.assertEquals("en_RU", ploEntry1.getLanguageId());
+
+			CompanyTestUtil.resetCompanyLocales(
+				company.getCompanyId(), "en_US,iw_IL", "en_US");
+
+			String languageId = LocaleUtil.toLanguageId(new Locale("iw", "IL"));
+
+			PLOEntry ploEntry2 = _addOrUpdatePLOEntry(
+				company.getCompanyId(), RandomTestUtil.randomString(),
+				languageId, RandomTestUtil.randomString());
+
+			Assert.assertEquals(languageId, ploEntry2.getLanguageId());
+
+			PLOEntry ploEntry3 = _addOrUpdatePLOEntry(
+				company.getCompanyId(), RandomTestUtil.randomString(), "iw_IL",
+				RandomTestUtil.randomString());
+
+			Assert.assertEquals(languageId, ploEntry3.getLanguageId());
+		}
+		finally {
+			CompanyThreadLocal.setCompanyId(companyId);
+		}
+	}
+
+	private void _testDeletePLOEntry() throws PortalException {
 		String key = RandomTestUtil.randomString();
 		Locale locale = LocaleUtil.getDefault();
 		String value = RandomTestUtil.randomString();
@@ -215,8 +261,7 @@ public class PLOEntryLocalServiceTest {
 		Assert.assertEquals(key, _language.get(locale, key));
 	}
 
-	@Test
-	public void testDeletePLOEntryRollback() throws Throwable {
+	private void _testDeletePLOEntryRollback() throws Throwable {
 		String key = RandomTestUtil.randomString();
 		Locale locale = LocaleUtil.getDefault();
 		String value = RandomTestUtil.randomString();
@@ -247,8 +292,7 @@ public class PLOEntryLocalServiceTest {
 		}
 	}
 
-	@Test
-	public void testDeletePLOEntryWithLegacyISOLanguageId() throws Exception {
+	private void _testDeletePLOEntryWithLegacyISOLanguageId() throws Exception {
 		long companyId = CompanyThreadLocal.getCompanyId();
 
 		try {
@@ -276,8 +320,7 @@ public class PLOEntryLocalServiceTest {
 		}
 	}
 
-	@Test
-	public void testDeletePLOEntryWithNoncanonicalLanguageId()
+	private void _testDeletePLOEntryWithNoncanonicalLanguageId()
 		throws Exception {
 
 		String key = RandomTestUtil.randomString();
@@ -299,8 +342,7 @@ public class PLOEntryLocalServiceTest {
 				TestPropsValues.getCompanyId(), key, "pt_BR"));
 	}
 
-	@Test
-	public void testImportPLOEntries() throws IOException, PortalException {
+	private void _testImportPLOEntries() throws PortalException {
 		String key1 = RandomTestUtil.randomString();
 		String key2 = RandomTestUtil.randomString();
 		String value1 = RandomTestUtil.randomString();
@@ -319,10 +361,7 @@ public class PLOEntryLocalServiceTest {
 		Assert.assertEquals(value2, _language.get(LocaleUtil.US, key2));
 	}
 
-	@Test
-	public void testImportPLOEntriesRollback()
-		throws IOException, PortalException {
-
+	private void _testImportPLOEntriesRollback() throws PortalException {
 		String key1 = "good-key";
 		String key2 = "key-with-empty-value";
 
@@ -361,50 +400,6 @@ public class PLOEntryLocalServiceTest {
 
 		Assert.assertEquals(key1, _language.get(LocaleUtil.US, key1));
 		Assert.assertEquals(key2, _language.get(LocaleUtil.US, key2));
-	}
-
-	private PLOEntry _addOrUpdatePLOEntry(
-			long companyId, String key, String languageId, String value)
-		throws PortalException {
-
-		return _ploEntryLocalService.addOrUpdatePLOEntry(
-			null, companyId, TestPropsValues.getUserId(), key, languageId,
-			value);
-	}
-
-	private PLOEntry _addOrUpdatePLOEntry(
-			String key, String languageId, String value)
-		throws PortalException {
-
-		return _ploEntryLocalService.addOrUpdatePLOEntry(
-			TestPropsValues.getCompanyId(), TestPropsValues.getUserId(), key,
-			languageId, value);
-	}
-
-	private void _assertException(
-			Class<? extends PortalException> exceptionClass,
-			UnsafeRunnable<? extends PortalException> unsafeRunnable)
-		throws Exception {
-
-		try {
-			unsafeRunnable.run();
-
-			Assert.fail();
-		}
-		catch (PortalException portalException) {
-			Assert.assertTrue(
-				exceptionClass.isAssignableFrom(portalException.getClass()));
-		}
-	}
-
-	private void _assertTranslationValue(String key, String value) {
-		Assert.assertEquals(
-			value, LanguageResources.getMessage(LocaleUtil.getDefault(), key));
-		Assert.assertEquals(
-			value,
-			ResourceBundleUtil.getString(
-				LanguageResources.getResourceBundle(LocaleUtil.getDefault()),
-				key));
 	}
 
 	@Inject
