@@ -841,7 +841,7 @@ public class SectionDisplayContextUtil {
 			).setIcon(
 				"download"
 			).setLabel(
-				LanguageUtil.get(httpServletRequest, "download")
+				LanguageUtil.get(httpServletRequest, "download-folder")
 			).setMethod(
 				"get"
 			).setTarget(
