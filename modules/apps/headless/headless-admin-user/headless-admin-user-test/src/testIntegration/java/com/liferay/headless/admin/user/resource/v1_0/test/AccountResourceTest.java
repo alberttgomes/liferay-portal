@@ -1258,16 +1258,16 @@ public class AccountResourceTest extends BaseAccountResourceTestCase {
 	private void _testDeleteOrganizationAccountsByExternalReferenceCodeWithPermission()
 		throws Exception {
 
-		User user = _addUser();
-
-		AccountResource accountResource = _getAccountResource(_PASSWORD, user);
-
 		AccountEntry accountEntry = _addAccountEntry(
 			RandomTestUtil.randomString());
 		Organization organization = OrganizationTestUtil.addOrganization();
 
 		_accountEntryOrganizationRelLocalService.addAccountEntryOrganizationRel(
 			accountEntry.getAccountEntryId(), organization.getOrganizationId());
+
+		User user = _addUser();
+
+		AccountResource accountResource = _getAccountResource(_PASSWORD, user);
 
 		_assertProblemException(
 			() ->
@@ -1289,16 +1289,16 @@ public class AccountResourceTest extends BaseAccountResourceTestCase {
 	private void _testDeleteOrganizationAccountsWithPermission()
 		throws Exception {
 
-		User user = _addUser();
-
-		AccountResource accountResource = _getAccountResource(_PASSWORD, user);
-
 		AccountEntry accountEntry = _addAccountEntry(
 			RandomTestUtil.randomString());
 		Organization organization = OrganizationTestUtil.addOrganization();
 
 		_accountEntryOrganizationRelLocalService.addAccountEntryOrganizationRel(
 			accountEntry.getAccountEntryId(), organization.getOrganizationId());
+
+		User user = _addUser();
+
+		AccountResource accountResource = _getAccountResource(_PASSWORD, user);
 
 		_assertProblemException(
 			() -> accountResource.deleteOrganizationAccounts(
@@ -2058,10 +2058,6 @@ public class AccountResourceTest extends BaseAccountResourceTestCase {
 	private void _testPatchOrganizationMoveAccountsWithPermission()
 		throws Exception {
 
-		User user = _addUser();
-
-		AccountResource accountResource = _getAccountResource(_PASSWORD, user);
-
 		AccountEntry accountEntry = _addAccountEntry(
 			RandomTestUtil.randomString());
 		Organization organization1 = OrganizationTestUtil.addOrganization();
@@ -2069,6 +2065,10 @@ public class AccountResourceTest extends BaseAccountResourceTestCase {
 		_accountEntryOrganizationRelLocalService.addAccountEntryOrganizationRel(
 			accountEntry.getAccountEntryId(),
 			organization1.getOrganizationId());
+
+		User user = _addUser();
+
+		AccountResource accountResource = _getAccountResource(_PASSWORD, user);
 
 		Organization organization2 = OrganizationTestUtil.addOrganization();
 
@@ -2772,13 +2772,13 @@ public class AccountResourceTest extends BaseAccountResourceTestCase {
 	private void _testPostOrganizationAccountsWithPermission()
 		throws Exception {
 
-		User user = _addUser();
-
-		AccountResource accountResource = _getAccountResource(_PASSWORD, user);
-
 		AccountEntry accountEntry = _addAccountEntry(
 			RandomTestUtil.randomString());
 		Organization organization = OrganizationTestUtil.addOrganization();
+
+		User user = _addUser();
+
+		AccountResource accountResource = _getAccountResource(_PASSWORD, user);
 
 		_assertProblemException(
 			() -> accountResource.postOrganizationAccounts(
@@ -3066,22 +3066,22 @@ public class AccountResourceTest extends BaseAccountResourceTestCase {
 	}
 
 	private void _testPutAccountWithOrganizationIds() throws Exception {
-		User user = _addUser();
-
-		AccountResource accountResource = _getAccountResource(_PASSWORD, user);
-
 		AccountEntry accountEntry = _addAccountEntry(
 			RandomTestUtil.randomString());
+		User user = _addUser();
 
 		_addRoleUsers(accountEntry, user, ActionKeys.UPDATE, ActionKeys.VIEW);
 
-		Organization organization = OrganizationTestUtil.addOrganization();
+		AccountResource accountResource = _getAccountResource(_PASSWORD, user);
 
 		Account account = new Account();
 
 		account.setExternalReferenceCode(
 			accountEntry.getExternalReferenceCode());
 		account.setName(RandomTestUtil.randomString());
+
+		Organization organization = OrganizationTestUtil.addOrganization();
+
 		account.setOrganizationIds(
 			new Long[] {organization.getOrganizationId()});
 
