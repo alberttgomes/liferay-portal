@@ -737,6 +737,11 @@ public class ObjectServiceUpgradeStepRegistrator
 				}
 
 			});
+
+		registry.register(
+			"13.2.0", "13.2.1",
+			new com.liferay.object.internal.upgrade.v13_2_1.
+				SchemaUpgradeProcess());
 	}
 
 	@Reference
