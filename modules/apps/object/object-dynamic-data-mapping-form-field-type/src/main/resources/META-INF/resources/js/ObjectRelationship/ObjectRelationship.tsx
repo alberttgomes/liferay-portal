@@ -146,14 +146,17 @@ export default function ObjectRelationship({
 	placeholder = Liferay.Language.get('search'),
 	readOnly,
 	required,
+	selectedOptionLabel,
 	value,
 	valueKey = 'value',
 	...otherProps
 }: IProps) {
 	const autocompleteRef = useRef<HTMLInputElement>(null);
 	const dropdownRef = useRef<HTMLDivElement>(null);
-	const [{active, list, loading, searchTerm, selected, url}, setState] =
-		useState<State>({url: null});
+	const [
+		{active, list, loading, searchTerm, selected, selectedLabel, url},
+		setState,
+	] = useState<State>({url: null});
 
 	const dispatch = useForm();
 
@@ -220,26 +223,17 @@ export default function ObjectRelationship({
 				};
 
 				if (value) {
-					const matchesValue = (item?: Item) =>
-						Number(getItemValue(item, valueKey)) === Number(value);
-
-					let selected: Item | void = items.find((item) =>
-						matchesValue(item)
+					const selected = items.find(
+						(item) =>
+							Number(getItemValue(item, valueKey)) ===
+							Number(value)
 					);
-
-					if (!selected && !parameterObjectFieldName) {
-						const [baseAPIURL, apiURLQueryString] =
-							apiURL.split('?');
-
-						const item = await fetchOptions<Item>(
-							`${baseAPIURL}/${value}${apiURLQueryString ? `?${apiURLQueryString}` : ''}`
-						);
-
-						selected = matchesValue(item) ? item : undefined;
-					}
 
 					if (selected) {
 						state.selected = selected;
+					}
+					else if (selectedOptionLabel) {
+						state.selectedLabel = selectedOptionLabel;
 					}
 					else {
 						onChangeRef.current({target: {value: null}});
@@ -269,6 +263,7 @@ export default function ObjectRelationship({
 		parameterObjectFieldId,
 		parameterObjectFieldName,
 		searchTerm,
+		selectedOptionLabel,
 		value,
 		url,
 		valueKey,
@@ -306,6 +301,7 @@ export default function ObjectRelationship({
 				objectDefinitionDefaultLanguageId,
 				objectFieldBusinessType
 			)) ??
+		selectedLabel ??
 		searchTerm;
 
 	return (
@@ -346,6 +342,8 @@ export default function ObjectRelationship({
 							else {
 								delete state.selected;
 							}
+
+							delete state.selectedLabel;
 
 							state.searchTerm = value;
 
@@ -413,6 +411,7 @@ export default function ObjectRelationship({
 										...prevState,
 										active: false,
 										selected,
+										selectedLabel: undefined,
 									}));
 								}}
 								searchTerm={label}
@@ -427,7 +426,7 @@ export default function ObjectRelationship({
 			<input
 				name={name}
 				type="hidden"
-				value={getItemValue(selected, valueKey)}
+				value={selectedLabel ? value : getItemValue(selected, valueKey)}
 			/>
 		</FieldBase>
 	);
@@ -449,6 +448,7 @@ interface IProps {
 	placeholder?: string;
 	readOnly?: boolean;
 	required?: boolean;
+	selectedOptionLabel?: string;
 	value?: string;
 	valueKey?: string;
 }
@@ -471,5 +471,6 @@ interface State {
 	loading?: boolean;
 	searchTerm?: string;
 	selected?: Item;
+	selectedLabel?: string;
 	url: string | null;
 }
