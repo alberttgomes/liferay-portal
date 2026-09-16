@@ -265,6 +265,24 @@ public class WebServerServlet extends HttpServlet {
 	/**
 	 * @see com.liferay.portal.servlet.filters.virtualhost.VirtualHostFilter
 	 */
+	public static boolean isFileEntryPath(String[] pathArray) {
+		if (pathArray.length == 0) {
+			return false;
+		}
+
+		if (Validator.isNumber(pathArray[0]) ||
+			_PATH_SEPARATOR_FILE_ENTRY.equals(pathArray[0]) ||
+			PATH_PORTLET_FILE_ENTRY.equals(pathArray[0])) {
+
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * @see com.liferay.portal.servlet.filters.virtualhost.VirtualHostFilter
+	 */
 	public static void sendMessageObjectEntryAttachmentDownload(
 		HttpServletRequest httpServletRequest, User user) {
 
@@ -413,6 +431,13 @@ public class WebServerServlet extends HttpServlet {
 	protected static FileEntry getPortletFileEntry(
 			HttpServletRequest httpServletRequest, String[] pathArray)
 		throws Exception {
+
+		// LPD-105342
+
+		if (pathArray.length < 4) {
+			throw new NoSuchFileEntryException(
+				"Invalid path " + Arrays.toString(pathArray));
+		}
 
 		long groupId = GetterUtil.getLong(pathArray[1]);
 		String uuid = pathArray[3];
