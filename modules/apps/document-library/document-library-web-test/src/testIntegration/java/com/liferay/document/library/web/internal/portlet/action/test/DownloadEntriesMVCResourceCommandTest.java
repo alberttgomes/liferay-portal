@@ -46,7 +46,13 @@ import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 
 import jakarta.portlet.PortletException;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -56,6 +62,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 /**
+ * @author Saurasish Basak
  * @author Jürgen Kappler
  */
 @RunWith(Arquillian.class)
@@ -77,7 +84,20 @@ public class DownloadEntriesMVCResourceCommandTest {
 
 	@Test
 	public void testServeResource() throws Exception {
+		_testServeResourceDownloadEntries();
 		_testServeResourceDownloadEntry();
+		_testServeResourceDownloadFolder();
+	}
+
+	private FileEntry _addFileEntry(
+			String content, String fileName, long folderId)
+		throws Exception {
+
+		return _dlAppLocalService.addFileEntry(
+			null, TestPropsValues.getUserId(), _group.getGroupId(), folderId,
+			fileName, ContentTypes.TEXT_PLAIN, content.getBytes(), null, null,
+			null,
+			ServiceContextTestUtil.getServiceContext(_group.getGroupId()));
 	}
 
 	private Folder _addFolder(String name, long parentFolderId)
@@ -155,6 +175,26 @@ public class DownloadEntriesMVCResourceCommandTest {
 		return mockLiferayResourceRequest;
 	}
 
+	private Map<String, String> _getZipEntries(byte[] bytes) throws Exception {
+		Map<String, String> zipEntries = new LinkedHashMap<>();
+
+		try (ZipInputStream zipInputStream = new ZipInputStream(
+				new ByteArrayInputStream(bytes))) {
+
+			ZipEntry zipEntry = zipInputStream.getNextEntry();
+
+			while (zipEntry != null) {
+				zipEntries.put(
+					zipEntry.getName(),
+					new String(zipInputStream.readAllBytes()));
+
+				zipEntry = zipInputStream.getNextEntry();
+			}
+		}
+
+		return zipEntries;
+	}
+
 	private byte[] _serveResource(
 			MockLiferayResourceRequest mockLiferayResourceRequest)
 		throws Exception {
@@ -182,6 +222,33 @@ public class DownloadEntriesMVCResourceCommandTest {
 		_resourcePermissionLocalService.setResourcePermissions(
 			_group.getCompanyId(), name, ResourceConstants.SCOPE_INDIVIDUAL,
 			String.valueOf(primKey), role.getRoleId(), actionIds);
+	}
+
+	private void _testServeResourceDownloadEntries() throws Exception {
+		FileEntry fileEntry = _addFileEntry(
+			"notes", "notes.txt", DLFolderConstants.DEFAULT_PARENT_FOLDER_ID);
+
+		Folder folder = _addFolder(
+			"Archive", DLFolderConstants.DEFAULT_PARENT_FOLDER_ID);
+
+		_addFileEntry("old", "old.txt", folder.getFolderId());
+
+		MockLiferayResourceRequest mockLiferayResourceRequest =
+			_getMockLiferayResourceRequest(
+				DLFolderConstants.DEFAULT_PARENT_FOLDER_ID,
+				"/document_library/download_entry");
+
+		mockLiferayResourceRequest.setParameter(
+			"rowIdsFileEntry", String.valueOf(fileEntry.getFileEntryId()));
+		mockLiferayResourceRequest.setParameter(
+			"rowIdsFolder", String.valueOf(folder.getFolderId()));
+
+		Map<String, String> zipEntries = _getZipEntries(
+			_serveResource(mockLiferayResourceRequest));
+
+		Assert.assertEquals("old", zipEntries.get("Archive/old.txt"));
+		Assert.assertEquals("notes", zipEntries.get("notes.txt"));
+		Assert.assertEquals(zipEntries.toString(), 2, zipEntries.size());
 	}
 
 	private void _testServeResourceDownloadEntry() throws Exception {
@@ -243,6 +310,41 @@ public class DownloadEntriesMVCResourceCommandTest {
 		_assertServeResourceWithoutDownloadPermission(
 			folder.getFolderId(), "rowIdsFileEntry",
 			fileEntry.getFileEntryId());
+	}
+
+	private void _testServeResourceDownloadFolder() throws Exception {
+		Folder folder = _addFolder(
+			"Reports", DLFolderConstants.DEFAULT_PARENT_FOLDER_ID);
+
+		Folder subfolder = _addFolder("2025", folder.getFolderId());
+
+		_addFileEntry("q1", "q1.txt", subfolder.getFolderId());
+
+		_addFileEntry("original", "report.txt", folder.getFolderId());
+
+		Folder otherFolder = _addFolder(
+			"Other", DLFolderConstants.DEFAULT_PARENT_FOLDER_ID);
+
+		FileEntry fileEntry = _addFileEntry(
+			"shortcut", "report.txt", otherFolder.getFolderId());
+
+		_dlAppLocalService.addFileShortcut(
+			null, TestPropsValues.getUserId(), _group.getGroupId(),
+			folder.getFolderId(), fileEntry.getFileEntryId(),
+			ServiceContextTestUtil.getServiceContext(_group.getGroupId()));
+
+		Map<String, String> zipEntries = _getZipEntries(
+			_serveResource(
+				_getMockLiferayResourceRequest(
+					folder.getFolderId(),
+					"/document_library/download_folder")));
+
+		Assert.assertEquals("q1", zipEntries.get("2025/q1.txt"));
+		Assert.assertTrue(
+			zipEntries.toString(), zipEntries.containsKey("report.txt"));
+		Assert.assertTrue(
+			zipEntries.toString(), zipEntries.containsKey("report (1).txt"));
+		Assert.assertEquals(zipEntries.toString(), 3, zipEntries.size());
 	}
 
 	@Inject
