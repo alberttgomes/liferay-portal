@@ -54,8 +54,14 @@ public class LayoutServiceContextHelperTest {
 			PermissionCheckerMethodTestRule.INSTANCE);
 
 	@Test
-	@TestInfo({"LPD-79722", "LPD-99386"})
+	@TestInfo({"LPD-79722", "LPD-99386", "LPD-102690"})
 	public void testGetServiceContextAutoCloseable() throws Exception {
+		_testGetServiceContextAutoCloseable();
+
+		_testGetServiceContextAutoCloseableWithLocale();
+	}
+
+	private void _testGetServiceContextAutoCloseable() throws Exception {
 		Group group = GroupTestUtil.addGroup();
 
 		Layout layout = LayoutTestUtil.addTypeContentLayout(group);
@@ -98,9 +104,9 @@ public class LayoutServiceContextHelperTest {
 		}
 	}
 
-	@Test
-	@TestInfo("LPD-102690")
-	public void testGetServiceContextAutoCloseableLocale() throws Exception {
+	private void _testGetServiceContextAutoCloseableWithLocale()
+		throws Exception {
+
 		ServiceContext serviceContext = new ServiceContext();
 
 		HttpServletRequest httpServletRequest = new MockHttpServletRequest();
