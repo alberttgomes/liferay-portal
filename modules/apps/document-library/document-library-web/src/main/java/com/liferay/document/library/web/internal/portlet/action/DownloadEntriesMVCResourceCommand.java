@@ -5,9 +5,13 @@
 
 package com.liferay.document.library.web.internal.portlet.action;
 
+import com.liferay.document.library.configuration.DLSizeLimitConfigurationProvider;
 import com.liferay.document.library.constants.DLPortletKeys;
+import com.liferay.document.library.kernel.model.DLFolder;
 import com.liferay.document.library.kernel.model.DLFolderConstants;
 import com.liferay.document.library.kernel.service.DLAppService;
+import com.liferay.document.library.kernel.service.DLFolderLocalService;
+import com.liferay.document.library.web.internal.exception.DLObjectSizeLimitExceededException;
 import com.liferay.document.library.web.internal.security.permission.resource.DLFileEntryPermission;
 import com.liferay.petra.io.StreamUtil;
 import com.liferay.petra.string.StringBundler;
@@ -15,6 +19,9 @@ import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.exception.InvalidRepositoryException;
 import com.liferay.portal.kernel.exception.PortalException;
+import com.liferay.portal.kernel.language.Language;
+import com.liferay.portal.kernel.log.Log;
+import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.portlet.PortletResponseUtil;
 import com.liferay.portal.kernel.portlet.bridges.mvc.MVCResourceCommand;
 import com.liferay.portal.kernel.repository.model.FileEntry;
@@ -36,6 +43,8 @@ import com.liferay.portal.util.RepositoryUtil;
 import jakarta.portlet.PortletException;
 import jakarta.portlet.ResourceRequest;
 import jakarta.portlet.ResourceResponse;
+
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -87,6 +96,29 @@ public class DownloadEntriesMVCResourceCommand implements MVCResourceCommand {
 			}
 			else {
 				_downloadFileEntries(resourceRequest, resourceResponse);
+			}
+
+			return false;
+		}
+		catch (DLObjectSizeLimitExceededException
+					dlObjectSizeLimitExceededException) {
+
+			if (_log.isDebugEnabled()) {
+				_log.debug(dlObjectSizeLimitExceededException);
+			}
+
+			try {
+				resourceResponse.setProperty(
+					ResourceResponse.HTTP_STATUS_CODE,
+					String.valueOf(
+						HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE));
+
+				PortletResponseUtil.write(
+					resourceResponse,
+					dlObjectSizeLimitExceededException.getMessage());
+			}
+			catch (IOException ioException) {
+				throw new PortletException(ioException);
 			}
 
 			return false;
@@ -159,6 +191,29 @@ public class DownloadEntriesMVCResourceCommand implements MVCResourceCommand {
 		else {
 			long folderId = ParamUtil.getLong(resourceRequest, "folderId");
 
+			long size = 0;
+
+			for (FileEntry fileEntry : fileEntries) {
+				size += fileEntry.getSize();
+			}
+
+			for (FileShortcut fileShortcut : fileShortcuts) {
+				FileEntry fileEntry = _dlAppService.getFileEntry(
+					fileShortcut.getToFileEntryId());
+
+				fileEntries.add(fileEntry);
+
+				size += fileEntry.getSize();
+			}
+
+			for (Folder folder : folders) {
+				if (!_isExternalRepositoryFolder(folder)) {
+					size += _getFolderSize(themeDisplay, folder.getFolderId());
+				}
+			}
+
+			_validateSize(themeDisplay, size);
+
 			PortletResponseUtil.setHeaders(
 				resourceRequest, resourceResponse, null, null,
 				ContentTypes.APPLICATION_ZIP,
@@ -175,13 +230,6 @@ public class DownloadEntriesMVCResourceCommand implements MVCResourceCommand {
 			for (FileEntry fileEntry : fileEntries) {
 				_zipFileEntry(
 					fileEntry, StringPool.BLANK, permissionChecker, fileNames,
-					zipOutputStream);
-			}
-
-			for (FileShortcut fileShortcut : fileShortcuts) {
-				_zipFileEntry(
-					_dlAppService.getFileEntry(fileShortcut.getToFileEntryId()),
-					StringPool.BLANK, permissionChecker, fileNames,
 					zipOutputStream);
 			}
 
@@ -208,6 +256,8 @@ public class DownloadEntriesMVCResourceCommand implements MVCResourceCommand {
 
 		_checkFolder(folderId);
 
+		_validateSize(themeDisplay, _getFolderSize(themeDisplay, folderId));
+
 		PortletResponseUtil.setHeaders(
 			resourceRequest, resourceResponse, null, null,
 			ContentTypes.APPLICATION_ZIP,
@@ -223,6 +273,40 @@ public class DownloadEntriesMVCResourceCommand implements MVCResourceCommand {
 			themeDisplay.getPermissionChecker(), zipOutputStream);
 
 		zipOutputStream.finish();
+	}
+
+	private long _getFolderSize(ThemeDisplay themeDisplay, long folderId) {
+		DLFolder dlFolder = _dlFolderLocalService.fetchDLFolder(folderId);
+
+		if (dlFolder == null) {
+			return _dlFolderLocalService.getFolderSize(
+				themeDisplay.getCompanyId(), themeDisplay.getScopeGroupId(),
+				StringPool.SLASH);
+		}
+
+		return _dlFolderLocalService.getFolderSize(
+			dlFolder.getCompanyId(), dlFolder.getGroupId(),
+			dlFolder.getTreePath());
+	}
+
+	private long _getMaxSizeToDownload(ThemeDisplay themeDisplay) {
+		long groupMaxSizeToDownload =
+			_dlSizeLimitConfigurationProvider.getGroupMaxSizeToDownload(
+				themeDisplay.getScopeGroupId());
+
+		if (groupMaxSizeToDownload != 0) {
+			return groupMaxSizeToDownload;
+		}
+
+		long companyMaxSizeToDownload =
+			_dlSizeLimitConfigurationProvider.getCompanyMaxSizeToDownload(
+				themeDisplay.getCompanyId());
+
+		if (companyMaxSizeToDownload != 0) {
+			return companyMaxSizeToDownload;
+		}
+
+		return _dlSizeLimitConfigurationProvider.getSystemMaxSizeToDownload();
 	}
 
 	private String _getPath(String path, String name) {
@@ -281,6 +365,23 @@ public class DownloadEntriesMVCResourceCommand implements MVCResourceCommand {
 		}
 
 		return _isExternalRepositoryFolder(_dlAppService.getFolder(folderId));
+	}
+
+	private void _validateSize(ThemeDisplay themeDisplay, long size)
+		throws PortalException {
+
+		long maxSizeToDownload = _getMaxSizeToDownload(themeDisplay);
+
+		if ((maxSizeToDownload == 0) || (size <= maxSizeToDownload)) {
+			return;
+		}
+
+		throw new DLObjectSizeLimitExceededException(
+			_language.format(
+				themeDisplay.getLocale(),
+				"the-total-size-of-all-items-to-download-must-not-exceed-x",
+				_language.formatStorageSize(
+					maxSizeToDownload, themeDisplay.getLocale())));
 	}
 
 	private void _zipFileEntry(
@@ -349,7 +450,19 @@ public class DownloadEntriesMVCResourceCommand implements MVCResourceCommand {
 		}
 	}
 
+	private static final Log _log = LogFactoryUtil.getLog(
+		DownloadEntriesMVCResourceCommand.class);
+
 	@Reference
 	private DLAppService _dlAppService;
+
+	@Reference
+	private DLFolderLocalService _dlFolderLocalService;
+
+	@Reference
+	private DLSizeLimitConfigurationProvider _dlSizeLimitConfigurationProvider;
+
+	@Reference
+	private Language _language;
 
 }
