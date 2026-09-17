@@ -9,6 +9,7 @@ import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
 import com.liferay.depot.constants.DepotConstants;
 import com.liferay.depot.constants.DepotRolesConstants;
 import com.liferay.depot.model.DepotEntry;
+import com.liferay.depot.service.DepotEntryGroupRelLocalService;
 import com.liferay.depot.service.DepotEntryLocalService;
 import com.liferay.exportimport.test.rule.LazyReferencing;
 import com.liferay.exportimport.test.rule.LazyReferencingTestRule;
@@ -186,6 +187,10 @@ public class SiteResourceTest extends BaseSiteResourceTestCase {
 		_testGetSitesPageWithActiveOrSiteGroups(false, true);
 		_testGetSitesPageWithActiveOrSiteGroups(true, false);
 		_testGetSitesPageWithAssetLibraryMember();
+		_testGetSitesPageWithConnectedAssetLibraryRole(
+			DepotRolesConstants.ASSET_LIBRARY_ADMINISTRATOR);
+		_testGetSitesPageWithConnectedAssetLibraryRole(
+			DepotRolesConstants.ASSET_LIBRARY_OWNER);
 		_testGetSitesPageWithDepotEntry();
 		_testGetSitesPageWithExcludedExternalReferenceCodes();
 		_testGetSitesPageWithInactiveSites();
@@ -193,13 +198,7 @@ public class SiteResourceTest extends BaseSiteResourceTestCase {
 		_testGetSitesPageWithoutSiteMembership();
 		_testGetSitesPageWithSearch();
 		_testGetSitesPageWithUser(
-			_addUserWithDepotRole(
-				_addDepotEntry(),
-				DepotRolesConstants.ASSET_LIBRARY_ADMINISTRATOR));
-		_testGetSitesPageWithUser(
-			_addUserWithDepotRole(
-				_addDepotEntry(), DepotRolesConstants.ASSET_LIBRARY_OWNER));
-		_testGetSitesPageWithUser(
+			_testPostSite_addSite(randomSite()),
 			_addUserWithRegularRole(RoleConstants.CMS_ADMINISTRATOR));
 	}
 
@@ -565,6 +564,20 @@ public class SiteResourceTest extends BaseSiteResourceTestCase {
 		Assert.assertEquals(totalCount, sitesPage2.getTotalCount());
 	}
 
+	private void _testGetSitesPageWithConnectedAssetLibraryRole(String roleName)
+		throws Exception {
+
+		DepotEntry depotEntry = _addDepotEntry();
+
+		Site site = _testPostSite_addSite(randomSite());
+
+		_depotEntryGroupRelLocalService.addDepotEntryGroupRel(
+			depotEntry.getDepotEntryId(), site.getId());
+
+		_testGetSitesPageWithUser(
+			site, _addUserWithDepotRole(depotEntry, roleName));
+	}
+
 	private void _testGetSitesPageWithDepotEntry() throws Exception {
 		Page<Site> sitesPage = siteResource.getSitesPage(
 			true, null, null, Pagination.of(1, 100));
@@ -715,8 +728,8 @@ public class SiteResourceTest extends BaseSiteResourceTestCase {
 		assertEquals(postSite, items.get(0));
 	}
 
-	private void _testGetSitesPageWithUser(User user) throws Exception {
-		Site site = _testPostSite_addSite(randomSite());
+	private void _testGetSitesPageWithUser(Site site, User user)
+		throws Exception {
 
 		SiteResource siteResource = _getSiteResource(user);
 
@@ -1888,6 +1901,9 @@ public class SiteResourceTest extends BaseSiteResourceTestCase {
 
 	@DeleteAfterTestRun
 	private DepotEntry _depotEntry;
+
+	@Inject
+	private DepotEntryGroupRelLocalService _depotEntryGroupRelLocalService;
 
 	@Inject
 	private DepotEntryLocalService _depotEntryLocalService;
