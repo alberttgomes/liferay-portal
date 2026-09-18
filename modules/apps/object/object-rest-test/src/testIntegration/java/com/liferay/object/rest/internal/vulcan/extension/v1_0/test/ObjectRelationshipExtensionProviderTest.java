@@ -173,15 +173,16 @@ public class ObjectRelationshipExtensionProviderTest {
 
 		// Partial update
 
-		String objectFieldValue2 = RandomTestUtil.randomString();
-
-		ObjectEntry objectEntry1 = _addRelatedObjectEntry(
-			objectDefinition, objectFieldValue2, objectRelationship);
-
 		String objectFieldValue1 = RandomTestUtil.randomString();
 
+		ObjectEntry objectEntry1 = _addRelatedObjectEntry(
+			objectDefinition, objectFieldValue1, RandomTestUtil.randomString(),
+			objectRelationship);
+
+		String objectFieldValue2 = RandomTestUtil.randomString();
+
 		_setExtendedProperties(
-			objectEntry1.getExternalReferenceCode(), objectFieldValue1,
+			objectEntry1.getExternalReferenceCode(), null, objectFieldValue2,
 			objectRelationship, true);
 
 		Map<String, Serializable> values =
@@ -196,21 +197,19 @@ public class ObjectRelationshipExtensionProviderTest {
 		// Update
 
 		ObjectEntry objectEntry2 = _addRelatedObjectEntry(
-			objectDefinition, RandomTestUtil.randomString(),
+			objectDefinition, objectFieldValue1, RandomTestUtil.randomString(),
 			objectRelationship);
 
-		objectFieldValue1 = RandomTestUtil.randomString();
-
 		_setExtendedProperties(
-			objectEntry2.getExternalReferenceCode(), objectFieldValue1,
+			objectEntry2.getExternalReferenceCode(), null, objectFieldValue2,
 			objectRelationship, false);
 
 		values = ObjectEntryLocalServiceUtil.getValues(
 			objectEntry2.getObjectEntryId());
 
+		Assert.assertTrue(Validator.isNull(values.get(_OBJECT_FIELD_NAME_1)));
 		Assert.assertEquals(
-			objectFieldValue1, values.get(_OBJECT_FIELD_NAME_1));
-		Assert.assertTrue(Validator.isNull(values.get(_OBJECT_FIELD_NAME_2)));
+			objectFieldValue2, values.get(_OBJECT_FIELD_NAME_2));
 
 		ObjectRelationshipLocalServiceUtil.deleteObjectRelationship(
 			objectRelationship);
@@ -257,8 +256,8 @@ public class ObjectRelationshipExtensionProviderTest {
 	}
 
 	private ObjectEntry _addRelatedObjectEntry(
-			ObjectDefinition objectDefinition, String objectFieldValue2,
-			ObjectRelationship objectRelationship)
+			ObjectDefinition objectDefinition, String objectFieldValue1,
+			String objectFieldValue2, ObjectRelationship objectRelationship)
 		throws Exception {
 
 		ObjectEntry objectEntry =
@@ -268,7 +267,7 @@ public class ObjectRelationshipExtensionProviderTest {
 				ObjectEntryFolderConstants.
 					PARENT_OBJECT_ENTRY_FOLDER_ID_DEFAULT,
 				HashMapBuilder.<String, Serializable>put(
-					_OBJECT_FIELD_NAME_1, RandomTestUtil.randomString()
+					_OBJECT_FIELD_NAME_1, objectFieldValue1
 				).put(
 					_OBJECT_FIELD_NAME_2, objectFieldValue2
 				).build(),
@@ -315,7 +314,8 @@ public class ObjectRelationshipExtensionProviderTest {
 
 	private void _setExtendedProperties(
 			String externalReferenceCode, String objectFieldValue1,
-			ObjectRelationship objectRelationship, boolean partialUpdate)
+			String objectFieldValue2, ObjectRelationship objectRelationship,
+			boolean partialUpdate)
 		throws Exception {
 
 		_extensionProvider.setExtendedProperties(
@@ -330,7 +330,9 @@ public class ObjectRelationshipExtensionProviderTest {
 				objectRelationship.getName(),
 				(Serializable)Collections.singletonList(
 					HashMapBuilder.<String, Object>put(
-						_OBJECT_FIELD_NAME_1, objectFieldValue1
+						_OBJECT_FIELD_NAME_1, () -> objectFieldValue1
+					).put(
+						_OBJECT_FIELD_NAME_2, () -> objectFieldValue2
 					).put(
 						"externalReferenceCode", externalReferenceCode
 					).build())
