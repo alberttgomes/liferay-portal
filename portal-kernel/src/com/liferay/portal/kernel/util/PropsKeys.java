@@ -1798,6 +1798,10 @@ public interface PropsKeys {
 	public static final String NETVIBES_SERVLET_MAPPING =
 		"netvibes.servlet.mapping";
 
+	/**
+	 * @deprecated As of Cavanaugh (7.4.x), with no direct replacement
+	 */
+	@Deprecated
 	public static final String NOTIFICATION_EMAIL_TEMPLATE_ENABLED =
 		"notification.email.template.enabled";
 

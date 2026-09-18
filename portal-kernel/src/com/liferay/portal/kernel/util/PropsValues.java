@@ -1485,6 +1485,10 @@ public class PropsValues {
 	public static final String NETVIBES_SERVLET_MAPPING = PropsUtil.get(
 		PropsKeys.NETVIBES_SERVLET_MAPPING);
 
+	/**
+	 * @deprecated As of Cavanaugh (7.4.x), with no direct replacement
+	 */
+	@Deprecated
 	public static final boolean NOTIFICATION_EMAIL_TEMPLATE_ENABLED =
 		GetterUtil.getBoolean(
 			PropsUtil.get(PropsKeys.NOTIFICATION_EMAIL_TEMPLATE_ENABLED));
