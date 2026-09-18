@@ -63,13 +63,12 @@ public class LayoutServiceContextHelperTest {
 	@TestInfo({"LPD-79722", "LPD-99386", "LPD-102690", "LPD-105885"})
 	public void testGetServiceContextAutoCloseable() throws Exception {
 		_testGetServiceContextAutoCloseable();
-
 		_testGetServiceContextAutoCloseableWithConcurrentSwaps();
 		_testGetServiceContextAutoCloseableWithLocale();
 		_testGetServiceContextAutoCloseableWithRequestAttributes();
 	}
 
-	private FutureTask<Void> _createSwapFutureTask(
+	private FutureTask<Void> _getFutureTask(
 		Layout layout, CountDownLatch openCountDownLatch,
 		CountDownLatch otherOpenCountDownLatch, ServiceContext serviceContext) {
 
@@ -164,10 +163,10 @@ public class LayoutServiceContextHelperTest {
 		CountDownLatch openCountDownLatch1 = new CountDownLatch(1);
 		CountDownLatch openCountDownLatch2 = new CountDownLatch(1);
 
-		FutureTask<Void> futureTask1 = _createSwapFutureTask(
+		FutureTask<Void> futureTask1 = _getFutureTask(
 			LayoutTestUtil.addTypeContentLayout(group), openCountDownLatch1,
 			openCountDownLatch2, serviceContext);
-		FutureTask<Void> futureTask2 = _createSwapFutureTask(
+		FutureTask<Void> futureTask2 = _getFutureTask(
 			LayoutTestUtil.addTypeContentLayout(group), openCountDownLatch2,
 			openCountDownLatch1, serviceContext);
 
