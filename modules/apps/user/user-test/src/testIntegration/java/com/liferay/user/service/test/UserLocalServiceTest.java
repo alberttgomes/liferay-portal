@@ -69,7 +69,6 @@ import com.liferay.portal.kernel.service.UserGroupLocalService;
 import com.liferay.portal.kernel.service.UserLocalService;
 import com.liferay.portal.kernel.service.UserNotificationEventLocalService;
 import com.liferay.portal.kernel.service.WorkflowDefinitionLinkLocalService;
-import com.liferay.portal.kernel.servlet.HttpHeaders;
 import com.liferay.portal.kernel.test.AssertUtils;
 import com.liferay.portal.kernel.test.ReflectionTestUtil;
 import com.liferay.portal.kernel.test.TestInfo;
@@ -77,7 +76,6 @@ import com.liferay.portal.kernel.test.randomizerbumpers.NumericStringRandomizerB
 import com.liferay.portal.kernel.test.randomizerbumpers.UniqueStringRandomizerBumper;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.rule.DataGuard;
-import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
 import com.liferay.portal.kernel.test.util.CompanyTestUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
 import com.liferay.portal.kernel.test.util.OrganizationTestUtil;
@@ -93,11 +91,11 @@ import com.liferay.portal.kernel.transaction.TransactionConfig;
 import com.liferay.portal.kernel.transaction.TransactionInvokerUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.Constants;
-import com.liferay.portal.kernel.util.ContentTypes;
 import com.liferay.portal.kernel.util.DateUtil;
 import com.liferay.portal.kernel.util.DigesterUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.HashMapDictionaryBuilder;
+import com.liferay.portal.kernel.util.HttpUtil;
 import com.liferay.portal.kernel.util.LinkedHashMapBuilder;
 import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
@@ -127,11 +125,6 @@ import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 import com.liferay.portal.test.rule.SynchronousMailTestRule;
 
 import java.io.Serializable;
-
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 
 import java.util.Calendar;
 import java.util.Collections;
@@ -414,7 +407,7 @@ public class UserLocalServiceTest {
 	public void testAddUserWithUserLanguageId() throws Exception {
 		int initialInboxSize = MailServiceTestUtil.getInboxSize();
 
-		_user = _addUser(LocaleUtil.FRANCE);
+		_addUser(LocaleUtil.FRANCE);
 
 		Assert.assertEquals(
 			initialInboxSize + 1, MailServiceTestUtil.getInboxSize());
@@ -425,19 +418,18 @@ public class UserLocalServiceTest {
 			MailServiceTestUtil.lastMailMessageContains(
 				"doAsUserLanguageId=fr_FR"));
 		Assert.assertFalse(
-			MailServiceTestUtil.lastMailMessageContains("&languageId="));
-		Assert.assertFalse(
-			MailServiceTestUtil.lastMailMessageContains("?languageId="));
+			MailServiceTestUtil.lastMailMessageContains("languageId="));
 
 		MailMessage mailMessage = MailServiceTestUtil.getLastMailMessage();
 
-		String content = _postURL(_getPasswordSetupURL(mailMessage.getBody()));
+		String content = HttpUtil.URLtoString(
+			_getUpdatePasswordURL(mailMessage.getBody()), true);
 
-		Assert.assertTrue(content, content.contains(" lang=\"fr-FR\""));
 		Assert.assertTrue(
 			content,
 			content.contains(
 				LanguageUtil.get(LocaleUtil.FRANCE, "change-password")));
+		Assert.assertTrue(content, content.contains(" lang=\"fr-FR\""));
 	}
 
 	@Test
@@ -1369,7 +1361,9 @@ public class UserLocalServiceTest {
 	@Test
 	@TestInfo("LPD-105501")
 	public void testSendPasswordWithUserLanguageId() throws Exception {
-		_user = UserTestUtil.addUser(
+		int initialInboxSize = MailServiceTestUtil.getInboxSize();
+
+		User user = UserTestUtil.addUser(
 			TestPropsValues.getGroupId(), LocaleUtil.FRANCE);
 
 		try (SafeCloseable safeCloseable =
@@ -1381,10 +1375,8 @@ public class UserLocalServiceTest {
 
 			serviceContext.setPathMain(_portal.getPathMain());
 
-			int initialInboxSize = MailServiceTestUtil.getInboxSize();
-
 			_userLocalService.sendPassword(
-				TestPropsValues.getCompanyId(), _user.getEmailAddress(), null,
+				TestPropsValues.getCompanyId(), user.getEmailAddress(), null,
 				null, null, null, serviceContext);
 
 			Assert.assertEquals(
@@ -2045,34 +2037,15 @@ public class UserLocalServiceTest {
 		Assert.assertNotNull(user.getPasswordPolicy());
 	}
 
-	private String _getPasswordSetupURL(String body) {
-		Matcher matcher = _passwordSetupURLPattern.matcher(body);
+	private String _getUpdatePasswordURL(String content) {
+		Matcher matcher = _updatePasswordURLPattern.matcher(content);
 
 		if (!matcher.find()) {
 			throw new IllegalStateException(
-				"Unable to find a password setup URL in " + body);
+				"Unable to find an update password URL in " + content);
 		}
 
 		return matcher.group();
-	}
-
-	private String _postURL(String urlString) throws Exception {
-		int index = urlString.indexOf(CharPool.QUESTION);
-
-		HttpResponse<String> httpResponse = _httpClient.send(
-			HttpRequest.newBuilder(
-			).uri(
-				URI.create(urlString.substring(0, index))
-			).header(
-				HttpHeaders.CONTENT_TYPE,
-				ContentTypes.APPLICATION_X_WWW_FORM_URLENCODED
-			).POST(
-				HttpRequest.BodyPublishers.ofString(
-					urlString.substring(index + 1))
-			).build(),
-			HttpResponse.BodyHandlers.ofString());
-
-		return httpResponse.body();
 	}
 
 	private void
@@ -2474,7 +2447,7 @@ public class UserLocalServiceTest {
 	}
 
 	private static String _originalName;
-	private static final Pattern _passwordSetupURLPattern = Pattern.compile(
+	private static final Pattern _updatePasswordURLPattern = Pattern.compile(
 		"https?://[^\\s<]*/portal/update_password\\?[^\\s<]*");
 
 	@Inject
@@ -2494,8 +2467,6 @@ public class UserLocalServiceTest {
 
 	@Inject
 	private GroupLocalService _groupLocalService;
-
-	private final HttpClient _httpClient = HttpClient.newHttpClient();
 
 	@Inject
 	private PasswordPolicyLocalService _passwordPolicyLocalService;
@@ -2519,9 +2490,6 @@ public class UserLocalServiceTest {
 
 	@Inject
 	private TicketLocalService _ticketLocalService;
-
-	@DeleteAfterTestRun
-	private User _user;
 
 	@Inject
 	private UserGroupLocalService _userGroupLocalService;
