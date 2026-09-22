@@ -54,7 +54,7 @@ public class ClientExtensionPortletIdBatchEngineContentProcessorImplTest {
 
 		long targetCompanyId = sourceCompanyId + 1;
 
-		_mockImportProcess(targetCompanyId, true);
+		_mock(targetCompanyId, true);
 
 		String externalReferenceCode = RandomTestUtil.randomString();
 
@@ -68,7 +68,7 @@ public class ClientExtensionPortletIdBatchEngineContentProcessorImplTest {
 	public void testProcessIgnoresContentFromSameCompany() {
 		long companyId = RandomTestUtil.randomLong();
 
-		_mockImportProcess(companyId, true);
+		_mock(companyId, true);
 
 		String content = _getPortletId(
 			companyId, RandomTestUtil.randomString());
@@ -79,7 +79,7 @@ public class ClientExtensionPortletIdBatchEngineContentProcessorImplTest {
 
 	@Test
 	public void testProcessIgnoresContentWhenCompanyIdIsNotSet() {
-		_mockImportProcess(0, true);
+		_mock(0, true);
 
 		String content = _getPortletId(
 			RandomTestUtil.randomLong(), RandomTestUtil.randomString());
@@ -92,7 +92,7 @@ public class ClientExtensionPortletIdBatchEngineContentProcessorImplTest {
 	public void testProcessIgnoresContentWhenImportInProcessIsNotSet() {
 		long sourceCompanyId = RandomTestUtil.randomLong(1, Long.MAX_VALUE - 1);
 
-		_mockImportProcess(sourceCompanyId + 1, false);
+		_mock(sourceCompanyId + 1, false);
 
 		String content = _getPortletId(
 			sourceCompanyId, RandomTestUtil.randomString());
@@ -103,14 +103,14 @@ public class ClientExtensionPortletIdBatchEngineContentProcessorImplTest {
 
 	@Test
 	public void testProcessIgnoresNullContent() {
-		_mockImportProcess(RandomTestUtil.randomLong(), true);
+		_mock(RandomTestUtil.randomLong(), true);
 
 		Assert.assertNull(_batchEngineContentProcessor.process(null));
 	}
 
 	@Test
 	public void testProcessIgnoresUnrelatedPortletIds() {
-		_mockImportProcess(RandomTestUtil.randomLong(), true);
+		_mock(RandomTestUtil.randomLong(), true);
 
 		String content = "com_liferay_journal_web_portlet_JournalPortlet";
 
@@ -124,7 +124,7 @@ public class ClientExtensionPortletIdBatchEngineContentProcessorImplTest {
 
 		long targetCompanyId = sourceCompanyId + 1;
 
-		_mockImportProcess(targetCompanyId, true);
+		_mock(targetCompanyId, true);
 
 		String externalReferenceCode = RandomTestUtil.randomString();
 		String instanceSuffix = "_INSTANCE_" + RandomTestUtil.randomString();
@@ -143,7 +143,7 @@ public class ClientExtensionPortletIdBatchEngineContentProcessorImplTest {
 
 		long targetCompanyId = sourceCompanyId + 1;
 
-		_mockImportProcess(targetCompanyId, true);
+		_mock(targetCompanyId, true);
 
 		String externalReferenceCode1 = RandomTestUtil.randomString();
 		String externalReferenceCode2 = RandomTestUtil.randomString();
@@ -171,7 +171,7 @@ public class ClientExtensionPortletIdBatchEngineContentProcessorImplTest {
 			_PORTLET_ID_PREFIX, companyId, StringPool.UNDERLINE, suffix);
 	}
 
-	private void _mockImportProcess(long companyId, boolean importInProcess) {
+	private void _mock(long companyId, boolean importInProcess) {
 		_companyThreadLocalMockedStatic.when(
 			CompanyThreadLocal::getCompanyId
 		).thenReturn(
