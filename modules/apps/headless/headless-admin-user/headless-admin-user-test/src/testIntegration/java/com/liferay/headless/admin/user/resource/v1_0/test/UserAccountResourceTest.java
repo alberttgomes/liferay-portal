@@ -70,7 +70,6 @@ import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.configuration.test.util.ConfigurationTemporarySwapper;
 import com.liferay.portal.kernel.captcha.CaptchaException;
-import com.liferay.portal.kernel.encryptor.EncryptorUtil;
 import com.liferay.portal.kernel.json.JSONArray;
 import com.liferay.portal.kernel.json.JSONFactory;
 import com.liferay.portal.kernel.json.JSONFactoryUtil;
@@ -122,6 +121,7 @@ import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.test.util.UserGroupTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
+import com.liferay.portal.kernel.util.Base64;
 import com.liferay.portal.kernel.util.CalendarFactoryUtil;
 import com.liferay.portal.kernel.util.ContentTypes;
 import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
@@ -160,6 +160,10 @@ import jakarta.ws.rs.core.Response;
 
 import java.io.InputStream;
 
+import java.nio.charset.StandardCharsets;
+
+import java.security.Key;
+
 import java.text.DateFormat;
 
 import java.util.ArrayList;
@@ -174,6 +178,9 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
+import javax.crypto.Cipher;
+import javax.crypto.spec.GCMParameterSpec;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -2083,6 +2090,25 @@ public class UserAccountResourceTest extends BaseUserAccountResourceTestCase {
 		}
 	}
 
+	private String _decryptToken(Key key, String token) throws Exception {
+		byte[] encryptedBytes = Base64.decode(token);
+
+		byte[] cipherBytes = Arrays.copyOfRange(
+			encryptedBytes, _GCM_INITIALIZATION_VECTOR_LENGTH,
+			encryptedBytes.length);
+
+		byte[] initializationVector = Arrays.copyOfRange(
+			encryptedBytes, 0, _GCM_INITIALIZATION_VECTOR_LENGTH);
+
+		Cipher cipher = Cipher.getInstance(_AES_GCM_NOPADDING);
+
+		cipher.init(
+			Cipher.DECRYPT_MODE, key,
+			new GCMParameterSpec(_GCM_TAG_LENGTH_BITS, initializationVector));
+
+		return new String(cipher.doFinal(cipherBytes), StandardCharsets.UTF_8);
+	}
+
 	private Long _getAccountEntryId() {
 		return _accountEntry.getAccountEntryId();
 	}
@@ -3086,7 +3112,10 @@ public class UserAccountResourceTest extends BaseUserAccountResourceTestCase {
 
 			UserAccountResource.Builder builder = UserAccountResource.builder();
 
-			UserAccountResource userAccountResourceGuestUser = builder.locale(
+			UserAccountResource userAccountResourceGuestUser = builder.endpoint(
+				testCompany.getVirtualHostname(),
+				PortalUtil.getPortalServerPort(false), "http"
+			).locale(
 				LocaleUtil.getDefault()
 			).build();
 
@@ -3109,8 +3138,7 @@ public class UserAccountResourceTest extends BaseUserAccountResourceTestCase {
 			captcha = captchaResource.getCaptchaChallenge();
 
 			JSONObject jsonObject = JSONFactoryUtil.createJSONObject(
-				EncryptorUtil.decrypt(
-					testCompany.getKeyObj(), captcha.getToken()));
+				_decryptToken(testCompany.getKeyObj(), captcha.getToken()));
 
 			userAccountResourceGuestUser.postUserAccount(
 				jsonObject.getString("answer"), captcha.getToken(),
@@ -3303,6 +3331,12 @@ public class UserAccountResourceTest extends BaseUserAccountResourceTestCase {
 			}
 		}
 	}
+
+	private static final String _AES_GCM_NOPADDING = "AES/GCM/NoPadding";
+
+	private static final int _GCM_INITIALIZATION_VECTOR_LENGTH = 12;
+
+	private static final int _GCM_TAG_LENGTH_BITS = 128;
 
 	private AccountEntry _accountEntry;
 
