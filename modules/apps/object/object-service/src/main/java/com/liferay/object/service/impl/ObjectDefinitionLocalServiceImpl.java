@@ -138,6 +138,7 @@ import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dependency.manager.DependencyManagerSyncUtil;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.language.Language;
+import com.liferay.portal.kernel.lazy.referencing.LazyReferencingThreadLocal;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.mass.delete.MassDeleteCacheThreadLocal;
@@ -2741,7 +2742,14 @@ public class ObjectDefinitionLocalServiceImpl
 
 		boolean oldEnableObjectEntrySubscription =
 			objectDefinition.isEnableObjectEntrySubscription();
-		int oldStatus = objectDefinition.getStatus();
+
+		boolean addSystemObjectFields = false;
+
+		if (LazyReferencingThreadLocal.isEnabled() &&
+			(objectDefinition.getStatus() == WorkflowConstants.STATUS_EMPTY)) {
+
+			addSystemObjectFields = true;
+		}
 
 		_validateExternalReferenceCode(
 			externalReferenceCode, objectDefinition.isSystem());
@@ -2901,8 +2909,7 @@ public class ObjectDefinitionLocalServiceImpl
 			objectDefinition = _update(objectDefinition);
 
 			_updateObjectFields(
-				oldStatus == WorkflowConstants.STATUS_EMPTY, objectDefinition,
-				objectFields);
+				addSystemObjectFields, objectDefinition, objectFields);
 
 			_objectFolderItemLocalService.updateObjectFolderObjectFolderItem(
 				objectDefinition.getObjectDefinitionId(),
@@ -2966,8 +2973,7 @@ public class ObjectDefinitionLocalServiceImpl
 		}
 
 		_updateObjectFields(
-			oldStatus == WorkflowConstants.STATUS_EMPTY, objectDefinition,
-			objectFields);
+			addSystemObjectFields, objectDefinition, objectFields);
 
 		_objectFolderItemLocalService.updateObjectFolderObjectFolderItem(
 			objectDefinition.getObjectDefinitionId(),
