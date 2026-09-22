@@ -494,20 +494,8 @@ public class ObjectDefinitionResourceTest
 				externalReferenceCode);
 
 		Assert.assertTrue(emptyObjectDefinition.getModifiable());
-		Assert.assertEquals(
-			new Status() {
-				{
-					code = WorkflowConstants.STATUS_EMPTY;
-					label = WorkflowConstants.getStatusLabel(
-						WorkflowConstants.STATUS_EMPTY);
-					label_i18n = _language.get(
-						LanguageResources.getResourceBundle(
-							LocaleUtil.getDefault()),
-						WorkflowConstants.getStatusLabel(
-							WorkflowConstants.STATUS_EMPTY));
-				}
-			},
-			emptyObjectDefinition.getStatus());
+		_assertObjectDefinitionStatus(
+			WorkflowConstants.STATUS_EMPTY, emptyObjectDefinition);
 		Assert.assertTrue(emptyObjectDefinition.getSystem());
 
 		ObjectDefinition randomObjectDefinition = randomObjectDefinition();
@@ -532,20 +520,8 @@ public class ObjectDefinitionResourceTest
 				externalReferenceCode);
 
 		Assert.assertTrue(emptyObjectDefinition.getModifiable());
-		Assert.assertEquals(
-			new Status() {
-				{
-					code = WorkflowConstants.STATUS_EMPTY;
-					label = WorkflowConstants.getStatusLabel(
-						WorkflowConstants.STATUS_EMPTY);
-					label_i18n = _language.get(
-						LanguageResources.getResourceBundle(
-							LocaleUtil.getDefault()),
-						WorkflowConstants.getStatusLabel(
-							WorkflowConstants.STATUS_EMPTY));
-				}
-			},
-			emptyObjectDefinition.getStatus());
+		_assertObjectDefinitionStatus(
+			WorkflowConstants.STATUS_EMPTY, emptyObjectDefinition);
 		Assert.assertTrue(emptyObjectDefinition.getSystem());
 
 		// Empty object definition created by object action
@@ -566,20 +542,8 @@ public class ObjectDefinitionResourceTest
 				externalReferenceCode);
 
 		Assert.assertTrue(emptyObjectDefinition.getModifiable());
-		Assert.assertEquals(
-			new Status() {
-				{
-					code = WorkflowConstants.STATUS_EMPTY;
-					label = WorkflowConstants.getStatusLabel(
-						WorkflowConstants.STATUS_EMPTY);
-					label_i18n = _language.get(
-						LanguageResources.getResourceBundle(
-							LocaleUtil.getDefault()),
-						WorkflowConstants.getStatusLabel(
-							WorkflowConstants.STATUS_EMPTY));
-				}
-			},
-			emptyObjectDefinition.getStatus());
+		_assertObjectDefinitionStatus(
+			WorkflowConstants.STATUS_EMPTY, emptyObjectDefinition);
 
 		// Empty object definition created by object relationship
 
@@ -600,20 +564,8 @@ public class ObjectDefinitionResourceTest
 			objectDefinitionResource.getObjectDefinitionByExternalReferenceCode(
 				externalReferenceCode);
 
-		Assert.assertEquals(
-			new Status() {
-				{
-					code = WorkflowConstants.STATUS_EMPTY;
-					label = WorkflowConstants.getStatusLabel(
-						WorkflowConstants.STATUS_EMPTY);
-					label_i18n = _language.get(
-						LanguageResources.getResourceBundle(
-							LocaleUtil.getDefault()),
-						WorkflowConstants.getStatusLabel(
-							WorkflowConstants.STATUS_EMPTY));
-				}
-			},
-			emptyObjectDefinition.getStatus());
+		_assertObjectDefinitionStatus(
+			WorkflowConstants.STATUS_EMPTY, emptyObjectDefinition);
 
 		// Empty object definition created by relationship object field
 
@@ -635,20 +587,8 @@ public class ObjectDefinitionResourceTest
 			objectDefinitionResource.getObjectDefinitionByExternalReferenceCode(
 				externalReferenceCode);
 
-		Assert.assertEquals(
-			new Status() {
-				{
-					code = WorkflowConstants.STATUS_EMPTY;
-					label = WorkflowConstants.getStatusLabel(
-						WorkflowConstants.STATUS_EMPTY);
-					label_i18n = _language.get(
-						LanguageResources.getResourceBundle(
-							LocaleUtil.getDefault()),
-						WorkflowConstants.getStatusLabel(
-							WorkflowConstants.STATUS_EMPTY));
-				}
-			},
-			emptyObjectDefinition.getStatus());
+		_assertObjectDefinitionStatus(
+			WorkflowConstants.STATUS_EMPTY, emptyObjectDefinition);
 
 		randomModifiableSystemObjectDefinition =
 			_randomModifiableSystemObjectDefinition();
@@ -670,20 +610,8 @@ public class ObjectDefinitionResourceTest
 			objectDefinitionResource.getObjectDefinitionByExternalReferenceCode(
 				externalReferenceCode);
 
-		Assert.assertEquals(
-			new Status() {
-				{
-					code = WorkflowConstants.STATUS_EMPTY;
-					label = WorkflowConstants.getStatusLabel(
-						WorkflowConstants.STATUS_EMPTY);
-					label_i18n = _language.get(
-						LanguageResources.getResourceBundle(
-							LocaleUtil.getDefault()),
-						WorkflowConstants.getStatusLabel(
-							WorkflowConstants.STATUS_EMPTY));
-				}
-			},
-			emptyObjectDefinition.getStatus());
+		_assertObjectDefinitionStatus(
+			WorkflowConstants.STATUS_EMPTY, emptyObjectDefinition);
 		Assert.assertFalse(emptyObjectDefinition.getSystem());
 
 		// Enable index search
@@ -1000,20 +928,8 @@ public class ObjectDefinitionResourceTest
 		postObjectDefinition = objectDefinitionResource.postObjectDefinition(
 			randomObjectDefinition());
 
-		Assert.assertEquals(
-			postObjectDefinition.getStatus(),
-			new Status() {
-				{
-					code = WorkflowConstants.STATUS_DRAFT;
-					label = WorkflowConstants.getStatusLabel(
-						WorkflowConstants.STATUS_DRAFT);
-					label_i18n = _language.get(
-						LanguageResources.getResourceBundle(
-							LocaleUtil.getDefault()),
-						WorkflowConstants.getStatusLabel(
-							WorkflowConstants.STATUS_DRAFT));
-				}
-			});
+		_assertObjectDefinitionStatus(
+			WorkflowConstants.STATUS_DRAFT, postObjectDefinition);
 
 		postObjectDefinition.setStatus(
 			new Status() {
@@ -1026,20 +942,9 @@ public class ObjectDefinitionResourceTest
 			objectDefinitionResource.putObjectDefinition(
 				postObjectDefinition.getId(), postObjectDefinition);
 
-		Assert.assertEquals(
-			randomPersistedPublishedObjectDefinition.getStatus(),
-			new Status() {
-				{
-					code = WorkflowConstants.STATUS_APPROVED;
-					label = WorkflowConstants.getStatusLabel(
-						WorkflowConstants.STATUS_APPROVED);
-					label_i18n = _language.get(
-						LanguageResources.getResourceBundle(
-							LocaleUtil.getDefault()),
-						WorkflowConstants.getStatusLabel(
-							WorkflowConstants.STATUS_APPROVED));
-				}
-			});
+		_assertObjectDefinitionStatus(
+			WorkflowConstants.STATUS_APPROVED,
+			randomPersistedPublishedObjectDefinition);
 
 		// Empty object definition created by object action
 
@@ -1062,20 +967,8 @@ public class ObjectDefinitionResourceTest
 			objectDefinitionResource.getObjectDefinitionByExternalReferenceCode(
 				externalReferenceCode);
 
-		Assert.assertEquals(
-			new Status() {
-				{
-					code = WorkflowConstants.STATUS_EMPTY;
-					label = WorkflowConstants.getStatusLabel(
-						WorkflowConstants.STATUS_EMPTY);
-					label_i18n = _language.get(
-						LanguageResources.getResourceBundle(
-							LocaleUtil.getDefault()),
-						WorkflowConstants.getStatusLabel(
-							WorkflowConstants.STATUS_EMPTY));
-				}
-			},
-			emptyObjectDefinition.getStatus());
+		_assertObjectDefinitionStatus(
+			WorkflowConstants.STATUS_EMPTY, emptyObjectDefinition);
 
 		// Empty object definition created by object relationship
 
@@ -1100,20 +993,8 @@ public class ObjectDefinitionResourceTest
 			objectDefinitionResource.getObjectDefinitionByExternalReferenceCode(
 				externalReferenceCode);
 
-		Assert.assertEquals(
-			new Status() {
-				{
-					code = WorkflowConstants.STATUS_EMPTY;
-					label = WorkflowConstants.getStatusLabel(
-						WorkflowConstants.STATUS_EMPTY);
-					label_i18n = _language.get(
-						LanguageResources.getResourceBundle(
-							LocaleUtil.getDefault()),
-						WorkflowConstants.getStatusLabel(
-							WorkflowConstants.STATUS_EMPTY));
-				}
-			},
-			emptyObjectDefinition.getStatus());
+		_assertObjectDefinitionStatus(
+			WorkflowConstants.STATUS_EMPTY, emptyObjectDefinition);
 
 		// Empty object definition created by relationship object field
 
@@ -1139,20 +1020,8 @@ public class ObjectDefinitionResourceTest
 			objectDefinitionResource.getObjectDefinitionByExternalReferenceCode(
 				externalReferenceCode);
 
-		Assert.assertEquals(
-			new Status() {
-				{
-					code = WorkflowConstants.STATUS_EMPTY;
-					label = WorkflowConstants.getStatusLabel(
-						WorkflowConstants.STATUS_EMPTY);
-					label_i18n = _language.get(
-						LanguageResources.getResourceBundle(
-							LocaleUtil.getDefault()),
-						WorkflowConstants.getStatusLabel(
-							WorkflowConstants.STATUS_EMPTY));
-				}
-			},
-			emptyObjectDefinition.getStatus());
+		_assertObjectDefinitionStatus(
+			WorkflowConstants.STATUS_EMPTY, emptyObjectDefinition);
 
 		// Enable localization
 
@@ -2300,6 +2169,23 @@ public class ObjectDefinitionResourceTest
 	private void _assertNotFound(JSONObject jsonObject) {
 		Assert.assertEquals("NOT_FOUND", jsonObject.getString("status"));
 		Assert.assertNull(jsonObject.get("title"));
+	}
+
+	private void _assertObjectDefinitionStatus(
+		int statusCode, ObjectDefinition objectDefinition) {
+
+		Assert.assertEquals(
+			new Status() {
+				{
+					code = statusCode;
+					label = WorkflowConstants.getStatusLabel(statusCode);
+					label_i18n = _language.get(
+						LanguageResources.getResourceBundle(
+							LocaleUtil.getDefault()),
+						WorkflowConstants.getStatusLabel(statusCode));
+				}
+			},
+			objectDefinition.getStatus());
 	}
 
 	private void _assertObjectDefinitionWithPermissions(
@@ -3720,20 +3606,8 @@ public class ObjectDefinitionResourceTest
 			objectDefinitionResource.getObjectDefinitionByExternalReferenceCode(
 				emptyObjectDefinitionExternalReferenceCode1);
 
-		Assert.assertEquals(
-			new Status() {
-				{
-					code = WorkflowConstants.STATUS_EMPTY;
-					label = WorkflowConstants.getStatusLabel(
-						WorkflowConstants.STATUS_EMPTY);
-					label_i18n = _language.get(
-						LanguageResources.getResourceBundle(
-							LocaleUtil.getDefault()),
-						WorkflowConstants.getStatusLabel(
-							WorkflowConstants.STATUS_EMPTY));
-				}
-			},
-			emptyObjectDefinition.getStatus());
+		_assertObjectDefinitionStatus(
+			WorkflowConstants.STATUS_EMPTY, emptyObjectDefinition);
 
 		ObjectDefinition randomObjectDefinition2 = randomObjectDefinition();
 
@@ -3781,20 +3655,8 @@ public class ObjectDefinitionResourceTest
 			_objectFieldLocalService.fetchObjectField(
 				putObjectDefinition2.getId(), "systemObjectField"));
 
-		Assert.assertEquals(
-			new Status() {
-				{
-					code = WorkflowConstants.STATUS_APPROVED;
-					label = WorkflowConstants.getStatusLabel(
-						WorkflowConstants.STATUS_APPROVED);
-					label_i18n = _language.get(
-						LanguageResources.getResourceBundle(
-							LocaleUtil.getDefault()),
-						WorkflowConstants.getStatusLabel(
-							WorkflowConstants.STATUS_APPROVED));
-				}
-			},
-			putObjectDefinition2.getStatus());
+		_assertObjectDefinitionStatus(
+			WorkflowConstants.STATUS_APPROVED, putObjectDefinition2);
 
 		String emptyObjectDefinitionExternalReferenceCode2 =
 			RandomTestUtil.randomString();
@@ -3828,20 +3690,8 @@ public class ObjectDefinitionResourceTest
 			objectDefinitionResource.getObjectDefinitionByExternalReferenceCode(
 				emptyObjectDefinitionExternalReferenceCode2);
 
-		Assert.assertEquals(
-			new Status() {
-				{
-					code = WorkflowConstants.STATUS_EMPTY;
-					label = WorkflowConstants.getStatusLabel(
-						WorkflowConstants.STATUS_EMPTY);
-					label_i18n = _language.get(
-						LanguageResources.getResourceBundle(
-							LocaleUtil.getDefault()),
-						WorkflowConstants.getStatusLabel(
-							WorkflowConstants.STATUS_EMPTY));
-				}
-			},
-			emptyObjectDefinition.getStatus());
+		_assertObjectDefinitionStatus(
+			WorkflowConstants.STATUS_EMPTY, emptyObjectDefinition);
 
 		ObjectDefinition randomObjectDefinition4 = randomObjectDefinition();
 
@@ -3864,20 +3714,8 @@ public class ObjectDefinitionResourceTest
 					true, ObjectField::getSystem,
 					_getObjectField(putObjectDefinition4, "systemObjectField"));
 
-				Assert.assertEquals(
-					new Status() {
-						{
-							code = WorkflowConstants.STATUS_APPROVED;
-							label = WorkflowConstants.getStatusLabel(
-								WorkflowConstants.STATUS_APPROVED);
-							label_i18n = _language.get(
-								LanguageResources.getResourceBundle(
-									LocaleUtil.getDefault()),
-								WorkflowConstants.getStatusLabel(
-									WorkflowConstants.STATUS_APPROVED));
-						}
-					},
-					putObjectDefinition4.getStatus());
+				_assertObjectDefinitionStatus(
+					WorkflowConstants.STATUS_APPROVED, putObjectDefinition4);
 
 				_objectDefinitionLocalService.deleteObjectDefinition(
 					putObjectDefinition4.getId());
@@ -3947,20 +3785,8 @@ public class ObjectDefinitionResourceTest
 		Assert.assertEquals(
 			ObjectDefinitionConstants.SCOPE_DEPOT, objectDefinition.getScope());
 
-		Assert.assertEquals(
-			new Status() {
-				{
-					code = WorkflowConstants.STATUS_EMPTY;
-					label = WorkflowConstants.getStatusLabel(
-						WorkflowConstants.STATUS_EMPTY);
-					label_i18n = _language.get(
-						LanguageResources.getResourceBundle(
-							LocaleUtil.getDefault()),
-						WorkflowConstants.getStatusLabel(
-							WorkflowConstants.STATUS_EMPTY));
-				}
-			},
-			objectDefinition.getStatus());
+		_assertObjectDefinitionStatus(
+			WorkflowConstants.STATUS_EMPTY, objectDefinition);
 
 		_objectDefinitionLocalService.deleteObjectDefinition(
 			putObjectDefinition.getId());
