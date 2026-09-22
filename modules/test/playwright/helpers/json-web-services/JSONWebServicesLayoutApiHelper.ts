@@ -133,6 +133,32 @@ export class JSONWebServicesLayoutApiHelper {
 		);
 	}
 
+	/**
+	 * Returns the draft layout of the content layout with the given external
+	 * reference code in the given group.
+	 */
+	async getDraftLayoutByExternalReferenceCode(
+		externalReferenceCode: string,
+		groupId: string
+	): Promise<Layout> {
+		const urlSearchParams = new URLSearchParams();
+
+		urlSearchParams.append(
+			'externalReferenceCode',
+			`${externalReferenceCode}-draft`
+		);
+		urlSearchParams.append('groupId', groupId);
+
+		return this.apiHelpers.post(
+			`${liferayConfig.environment.baseUrl}${this.basePath}/get-layout-by-external-reference-code`,
+			{
+				data: urlSearchParams.toString(),
+				failOnStatusCode: true,
+				headers: await this.apiHelpers.getJSONWebServicesHeaders(),
+			}
+		);
+	}
+
 	async getLayoutsCount(
 		groupId: number,
 		privateLayout: boolean
