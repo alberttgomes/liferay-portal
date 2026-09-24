@@ -19,6 +19,7 @@ import com.liferay.layout.page.template.internal.upgrade.v3_4_1.FragmentEntryLin
 import com.liferay.layout.page.template.internal.upgrade.v5_3_0.LayoutPageTemplateCollectionUpgradeProcess;
 import com.liferay.layout.page.template.internal.upgrade.v6_1_0.util.LayoutPageTemplateStructureRelElementVariationAudienceEntryRelTable;
 import com.liferay.layout.page.template.internal.upgrade.v6_1_0.util.LayoutPageTemplateStructureRelElementVariationTable;
+import com.liferay.portal.kernel.model.Release;
 import com.liferay.portal.kernel.service.CompanyLocalService;
 import com.liferay.portal.kernel.service.LayoutLocalService;
 import com.liferay.portal.kernel.service.LayoutPrototypeLocalService;
@@ -289,6 +290,11 @@ public class LayoutPageTemplateServiceUpgradeStepRegistrator
 
 	@Reference
 	private LayoutPrototypeLocalService _layoutPrototypeLocalService;
+
+	@Reference(
+		target = "(&(release.bundle.symbolic.name=com.liferay.object.service)(release.schema.version>=10.8.0))"
+	)
+	private Release _objectServiceRelease;
 
 	@Reference
 	private Portal _portal;
