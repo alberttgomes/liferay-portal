@@ -102,6 +102,7 @@ import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.MimeTypesUtil;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsUtil;
 import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.ReleaseInfo;
 import com.liferay.portal.kernel.util.SetUtil;
@@ -112,6 +113,7 @@ import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.Validator_IW;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.kernel.webdav.WebDAVUtil;
+import com.liferay.portal.kernel.webserver.WebServerServletTokenUtil;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.portal.model.impl.ImageImpl;
 import com.liferay.portal.util.PortalInstances;
@@ -758,6 +760,12 @@ public class WebServerServlet extends HttpServlet {
 					return 0;
 				}
 			}
+		}
+
+		if ((imageId <= 0) ||
+			!_isImageTokenAccepted(httpServletRequest, imageId)) {
+
+			return 0;
 		}
 
 		return imageId;
@@ -2039,6 +2047,38 @@ public class WebServerServlet extends HttpServlet {
 	private boolean _isBrowserExecutableContentType(String contentType) {
 		return _browserExecutableContentTypes.contains(
 			StringUtil.toLowerCase(contentType));
+	}
+
+	private boolean _isImageTokenAccepted(
+		HttpServletRequest httpServletRequest, long imageId) {
+
+		String token = WebServerServletTokenUtil.getToken(imageId);
+
+		if (Validator.isNotNull(token)) {
+			String imageToken = ParamUtil.getString(httpServletRequest, "t");
+
+			if (MessageDigest.isEqual(
+					imageToken.getBytes(StandardCharsets.UTF_8),
+					token.getBytes(StandardCharsets.UTF_8))) {
+
+				return true;
+			}
+		}
+
+		if (GetterUtil.getBoolean(
+				PropsUtil.get("image.token.check.disabled"))) {
+
+			return true;
+		}
+
+		if (_log.isWarnEnabled()) {
+			_log.warn(
+				StringBundler.concat(
+					"Image ", imageId,
+					" was requested without a valid \"t\" parameter"));
+		}
+
+		return false;
 	}
 
 	private boolean _processCompanyInactiveRequest(
