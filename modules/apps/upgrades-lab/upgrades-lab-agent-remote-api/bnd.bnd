@@ -1,0 +1,10 @@
+Bundle-Name: Liferay Upgrades Lab Agent Remote API
+Bundle-SymbolicName: com.liferay.upgrades.lab.agent.remote.api
+Bundle-Version: 1.0.0
+Export-Package:\
+	com.liferay.upgrades.lab.agent.remote.constants,\
+	com.liferay.upgrades.lab.agent.remote.exception,\
+	com.liferay.upgrades.lab.agent.remote.model,\
+	com.liferay.upgrades.lab.agent.remote.runner,\
+	com.liferay.upgrades.lab.agent.remote.service,\
+	com.liferay.upgrades.lab.agent.remote.service.persistence
