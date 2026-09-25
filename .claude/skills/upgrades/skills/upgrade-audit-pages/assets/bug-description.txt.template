@@ -1,0 +1,36 @@
+**Page:** Dashboard
+**Reference URL ({source-version}):** https://portal-source.example.com/group/intranet
+**Target URL ({target-version}):** https://portal-target.example.com/group/intranet
+**Type:** Visual
+**Viewport:** desktop (1440x900)
+**Affected element:** button[role=button] with text "Save"
+
+### Description
+
+The primary "Save" button lost its hover effect in {target-version}.
+
+### Expected Behavior ({source-version})
+
+```
+background-color: #0747A6
+```
+
+### Current Behavior ({target-version})
+
+```
+background-color: #0B5FFF (no change on hover)
+```
+
+### Evidence
+
+- Source screenshot: screenshots/dashboard/source-desktop.png
+- Target screenshot: screenshots/dashboard/target-desktop.png
+- Diff: screenshots/dashboard/diff-desktop.png
+- Computed styles: styles/dashboard.json (lines 42-58)
+
+### Steps to Reproduce
+
+1. Open https://portal-target.example.com/group/intranet (logged in)
+1. Locate the "Save" button in the main form
+1. Hover the button
+1. Observe that background-color does not change

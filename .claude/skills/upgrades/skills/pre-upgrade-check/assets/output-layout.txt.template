@@ -1,0 +1,13 @@
+<workspace.root>/
+├── docker-compose.yml              # incorporated from client (or scaffolded) — ships to client
+├── docker-compose/
+│   ├── database/dump/              # dump staged here (auto-restore)
+│   └── liferay/mnt/liferay/files/  # portal-ext, osgi/configs (ES config), deploy key
+├── bundles/                        # source build output, mounted into the container
+├── UPGRADE-README.md               # rendered — ships to client
+└── pre-upgrade-notes/<run-id>/
+    ├── report.csv / report.xlsx / report.md   # the feedback-sheet mirror (import the .xlsx)
+    ├── inventory.md                # Step 1 snapshot
+    ├── change-logs/NNN-*.md        # one per source edit / artifact replacement
+    ├── screenshots/                # reindex before/after, login render
+    └── logs/                       # build.log, db-import.log, catalina-boot.log, reindex.log

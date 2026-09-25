@@ -1,0 +1,7 @@
+This project contains <total> projects with <max-level> level(s) of project dependencies.
+Level 1 count: <n>
+	:<gradle-key> <consumer_count> (<dep1>, <dep2>, ...)
+	:<gradle-key> <consumer_count> ()
+Level 2 count: <n>
+	:<gradle-key> <consumer_count> (<dep1>, <dep2>, ...)
+...

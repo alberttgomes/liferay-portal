@@ -1,0 +1,13 @@
+module:               {module_name}
+imports_replaced:     {N}
+patterns_applied:     {M}
+  simple:             {count}
+  param_change:       {count}
+  param_reorder:      {count}
+  class_swap:         {count}
+  class_structure:    {count}
+  regex:              {count}
+message_only_flagged:       {K}
+skipped_entries:            {S}
+check_class_transforms:     {F}
+files_reverted:             {R}

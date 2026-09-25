@@ -1,0 +1,9 @@
+name,target_url,source_url,requires_auth,notes
+Public home,https://portal-target.example.com/,https://portal-source.example.com/,false,
+Login page,https://portal-target.example.com/c/portal/login,https://portal-source.example.com/c/portal/login,false,Do not actually log in here — only compare visuals
+Dashboard,/group/intranet,/group/intranet,true,Relative URLs use audit.{source|target}.base.url from CLAUDE.md
+User profile,/user/my-profile,/user/my-profile,true,
+Document library,/group/intranet/documents,/group/intranet/documents,true,Ignore document list — content may legitimately differ
+Wiki,/group/intranet/wiki,/group/intranet/wiki,true,
+Blog,/group/intranet/blog,/group/intranet/blog,true,
+Admin - users,/group/control_panel/manage?p_p_id=com_liferay_users_admin,/group/control_panel/manage?p_p_id=com_liferay_users_admin,true,Admin only — user list content may differ

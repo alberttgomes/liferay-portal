@@ -1,0 +1,79 @@
+# Upgrade State
+
+Source: TODO · Target: TODO · Branch: TODO · Started: TODO
+
+This file is the agent's working memory for the current upgrade run. Keep it out of the upgrade branch's commits. `/upgrade-plan` populates it initially; every `/upgrade-phase` and `/upgrade-module` invocation appends to it.
+
+---
+
+## Reference data source
+
+- Requested tag: TODO
+- Actual source served: TODO (e.g. `tag:2026.q1.0` or `master@<sha>`)
+- Fetched at: TODO
+
+## Phase tracker
+
+Phases 1–4 are the agent's scope. Phase 5, Fix Frontend, is deferred.
+
+| Phase | Name | Status | Started | Completed | Commit | Artifact dir |
+|-------|------|-----------|--------|---------|-----------|--------|--------------|
+| 1 | Upgrade Environment | TODO | pending | | | | |
+| 2 | Fix Compile | TODO | pending | | | | |
+| 3 | Fix Startup | TODO | pending | | | | |
+| 4 | Check Reindex | TODO | pending | | | | |
+| 5 | Fix Frontend | — | deferred | | | | |
+
+Status values: `pending`, `in-progress`, `complete`, `blocked`, `skipped`, `deferred`.
+Phase 5 (Fix Frontend) is **deferred** — its design is still open.
+
+## Workspace inventory
+
+Populated by `/upgrade-plan`.
+
+- Modules: TODO count, TODO by category (OSGi service, portlet, fragment, theme, CX, other)
+- Themes: TODO
+- Fragment bundles: TODO
+- JSP override modules: TODO
+- Service Builder projects: TODO
+- Custom JS (AUI uses, MetalJS uses, React, other): TODO
+- Portal-ext.properties count: TODO
+- OSGi config files: TODO
+
+## Decision log
+
+Append-only record of non-trivial judgment calls — semantic replacements, architecture choices, skipped items, human-review deferrals. Each entry includes date, phase, summary, and the agent's reasoning.
+
+- TODO: (filled in as the upgrade proceeds)
+
+## Flagged for human review
+
+Items the agent flagged for a human. Each is one of two **kinds** — tag every entry:
+- `[applied — verify]` — the agent **made** the change autonomously (a deterministic catalog hit, e.g. a `classStructurePattern` structural rewrite, **or** a documented known-manual-change from `known-manual-changes.md`) and wants a human to confirm it at PR time (the customer's code may extend/override the touched class, or a defaulted business value may need correcting).
+- `[not applied — resolve]` — the agent **declined** to automate it (no safe/cataloged path); a human must resolve it.
+
+Grouped by severity (orthogonal to kind):
+
+**Blocking** — must be resolved before proceeding past the current phase.
+
+- TODO
+
+**Non-blocking** — can be addressed in a follow-up; filed for visibility.
+
+- TODO
+
+## Artifact manifest
+
+Pointers to the raw artifacts under `.claude/upgrade-artifacts/<run-id>/` and the committed deliverables under `upgrade-notes/<run-id>/`.
+
+- `<run-id>`: TODO (minted by `/upgrade-plan`)
+- No `tasks.csv` — the Phase tracker above is the record.
+- Phase 1 artifacts: TODO
+- Phase 2 artifacts: TODO
+- ...
+
+## Re-run notes
+
+When the upgrade is resumed after an interruption, the agent records what it had to re-check on resume here.
+
+- TODO

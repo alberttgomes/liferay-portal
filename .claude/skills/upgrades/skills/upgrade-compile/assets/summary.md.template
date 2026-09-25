@@ -1,0 +1,8 @@
+## Phase 2 — Fix Compile
+
+| Module | SB regen | Jakarta | JSP | Manual fixes | Status |
+|---|---|---|---|---|---|
+| :modules:acme:acme-api | yes | yes | no | 0 | clean |
+| ...
+
+Blocked modules (still failing): none / list

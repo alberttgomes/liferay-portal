@@ -1,0 +1,118 @@
+{
+	"run_id": "20260611-103000",
+	"project": "petros",
+	"branch": "petros-7.4",
+	"testmap_file": "test-map.tsv",
+	"status_filter": "Needs Automation",
+	"original_url": "https://portal.example.com",
+	"upgrade_url": "http://localhost:8080",
+	"base_url_var": "BASE_URL",
+	"env_written": true,
+	"scaffold_commit": "1a2b3c4",
+	"cleanup_commit": null,
+	"phase": "phase2",
+	"test_cases": [
+		{
+			"id": "site-membership-joinsite-user-can-join-an-open-site",
+			"context": "siteMembership",
+			"section": "Site Membership",
+			"flow": "JoinSite",
+			"spec_file": "tests/siteMembership/joinSite/joinSite.spec.ts",
+			"page_class": "pages/siteMembership/joinSite/JoinSitePage.ts",
+			"needs_auth": true,
+			"status": "locator-fixed",
+			"blocked_category": null,
+			"blocked_reason": null,
+			"commits": [
+				"3fa1b2c",
+				"9d8e7f6",
+				"5c4b3a2"
+			],
+			"bug_id": null,
+			"updated_at": "2026-06-11T14:22:00Z"
+		},
+		{
+			"id": "site-membership-joinsite-membership-badge-is-displayed",
+			"context": "siteMembership",
+			"section": "Site Membership",
+			"flow": "JoinSite",
+			"spec_file": "tests/siteMembership/joinSite/joinSite.spec.ts",
+			"page_class": "pages/siteMembership/joinSite/JoinSitePage.ts",
+			"needs_auth": true,
+			"status": "bug",
+			"blocked_category": null,
+			"blocked_reason": null,
+			"commits": [
+				"3fa1b2c"
+			],
+			"bug_id": "#001",
+			"updated_at": "2026-06-11T14:35:00Z"
+		},
+		{
+			"id": "bookshop-listing-filter-the-listing-by-category",
+			"context": "bookshop",
+			"section": "Bookshop",
+			"flow": "Listing",
+			"spec_file": "tests/bookshop/listing/listing.spec.ts",
+			"page_class": "pages/bookshop/listing/ListingPage.ts",
+			"needs_auth": false,
+			"status": "blocked",
+			"blocked_category": "ambiguous",
+			"blocked_reason": "The Then clause says only \"the listing is updated\", which does not identify an observable outcome. Skipped without spending fix attempts; the executor could not decide either.",
+			"bdd": "When the user selects a category\nThen the listing is updated",
+			"ambiguous_question": "Should the test assert that only the chosen category's cards remain, that the card count changes, or that a specific known product appears?",
+			"clarification": null,
+			"manual_action": "Decide the intended assertion, write it into the test map, and reset the case to pending.",
+			"deleted_paths": [],
+			"delete_declined": false,
+			"commits": [],
+			"bug_id": null,
+			"updated_at": "2026-06-11T13:10:00Z"
+		},
+		{
+			"id": "emailcases-publicmanifestationsubmission-user-can-submit-a-manifestation",
+			"context": "emailCases",
+			"section": "Email Cases",
+			"flow": "PublicManifestationSubmission",
+			"spec_file": "tests/emailCases/publicManifestationSubmission/publicManifestationSubmission.spec.ts",
+			"page_class": "pages/emailCases/publicManifestationSubmission/PublicManifestationSubmissionPage.ts",
+			"needs_auth": false,
+			"status": "blocked",
+			"blocked_category": "broken-page",
+			"blocked_reason": "Form page at /web/guest/manifestations returns HTTP 500 on the original portal; retried twice over 10 minutes.",
+			"manual_action": null,
+			"deleted_paths": [],
+			"delete_declined": false,
+			"commits": [],
+			"bug_id": null,
+			"updated_at": "2026-06-11T11:05:00Z"
+		},
+		{
+			"id": "payments-gateway-payment-is-confirmed-by-the-gateway",
+			"context": "payments",
+			"section": "Payments",
+			"flow": "Gateway",
+			"spec_file": "tests/payments/gateway/gateway.spec.ts",
+			"page_class": "pages/payments/gateway/GatewayPage.ts",
+			"needs_auth": true,
+			"status": "deleted",
+			"blocked_category": "external-dependency",
+			"blocked_reason": "Confirmation depends on a callback from the payment provider's sandbox, which the test cannot trigger or observe. The whole Gateway flow shares the dependency, so the context was removed.",
+			"bdd": "Given the user has an open order\nWhen the payment is confirmed by the gateway\nThen the order status changes to Paid",
+			"manual_action": "Trigger a sandbox payment on the provider's console, then verify the order status changed to Paid in the portal.",
+			"deleted_paths": [
+				"tests/payments/gateway/gateway.spec.ts",
+				"tests/payments/gateway/config.ts",
+				"pages/payments/gateway/GatewayPage.ts",
+				"fixtures/gatewayTest.ts",
+				"project entry \"gateway\" in petros.config.ts"
+			],
+			"delete_declined": false,
+			"commits": [
+				"7e6d5c4"
+			],
+			"bug_id": null,
+			"updated_at": "2026-06-11T12:40:00Z"
+		}
+	]
+}

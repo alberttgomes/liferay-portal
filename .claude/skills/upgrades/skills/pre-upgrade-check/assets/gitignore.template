@@ -1,0 +1,31 @@
+# Root .gitignore for the source-reproduction workspace (rendered by /pre-upgrade-check Step 10).
+# Standard Liferay workspace ignores + the reproduction env's large/secret artifacts.
+
+# --- Liferay workspace ---
+**/*.iml
+**/.classpath
+**/.project
+**/.settings
+**/.sass-cache
+**/bin
+**/build
+**/node_modules
+**/dist
+**/.web_bundle_build
+.gradle
+/.idea
+/.vscode
+/bundles
+
+# --- /pre-upgrade-check reproduction environment ---
+# Large / secret artifacts stay OUT of git; place them per UPGRADE-README.md before `docker compose up`.
+# Committed: docker-compose.yml, docker-compose/liferay/mnt/liferay/files (portal-ext, osgi/configs), 01-restore.sh.
+/docker-compose/database/dump/*
+!/docker-compose/database/dump/.gitkeep
+!/docker-compose/database/dump/01-restore.sh
+/docker-compose/liferay/data/document_library/*
+!/docker-compose/liferay/data/document_library/.gitkeep
+/docker-compose/liferay/mnt/liferay/files/deploy/*
+!/docker-compose/liferay/mnt/liferay/files/deploy/.gitkeep
+# Local-only compose override (e.g. points the document library at an existing store)
+/docker-compose.override.yml

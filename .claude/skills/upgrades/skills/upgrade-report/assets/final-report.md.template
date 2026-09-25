@@ -1,0 +1,25 @@
+# Upgrade Report: <source> → <target>
+
+## Metadata
+(run-id, branch, started, completed, reference data source)
+
+## Executive summary
+(3–5 sentences: what was upgraded, overall outcome, items that need human attention)
+
+## Phase outcomes
+(one subsection per phase, short)
+
+## Database upgrade (human-run, out of agent scope)
+(standalone-tool results)
+
+## Smoke tests
+(pass/fail per canonical URL)
+
+## Flagged for human review
+(consolidated from every phase, grouped by severity)
+
+## Artifact manifest
+(pointers into .claude/upgrade-artifacts/<run-id>/)
+
+## Recommendations
+(what to do before merging the upgrade branch; common follow-ups)

@@ -1,0 +1,11 @@
+{
+	"completed": [
+		"home",
+		"dashboard",
+		"..."
+	],
+	"current_run_id": "<timestamp>",
+	"remaining": [
+		"..."
+	]
+}

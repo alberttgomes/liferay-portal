@@ -1,0 +1,21 @@
+Upgrade Analyzer complete.
+
+Game Plan: <N> modules across <L> levels.
+  Level 1 (<n> modules): no workspace dependencies — upgrade in any order.
+  Level 2 (<n> modules): depend on Level 1.
+  …
+  Top priority: <module1> (<n> consumers), <module2> (<n> consumers), <module3> (<n> consumers).
+  Generated-source groups (one Phase 2 branch/PR each): <group-roots, or 'none'>.
+
+Startup Game Plan:
+  1. Exporters: <n>
+  2. Services and APIs: <n>
+  3. Plugins: <n>
+  4. Fragment-Hosts: <n>
+  5. Others: <n>
+
+Output files written to:
+  .claude/upgrade-artifacts/<run-id>/phase-2-compile/upgrade-analyzer/
+
+Findings recorded in upgrade-state.md.
+Next: continue Phase 2 — upgrade-compile walks the Game Plan.

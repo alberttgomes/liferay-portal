@@ -1,0 +1,6 @@
+<file>:<line> <verbatim text>  =>  auto-removed (constraint-only + provided)
+<file>:<line> <verbatim text>  =>  removed (probed; provided transitively)
+<file>:<line> <verbatim text>  =>  removed (probed; package-level provision)
+<file>:<line> <verbatim text>  =>  kept (used by <symbol>)
+<file>:<line> <verbatim text>  =>  kept (real classpath contributor)
+<file>:<line> <verbatim text>  =>  skipped (cap)

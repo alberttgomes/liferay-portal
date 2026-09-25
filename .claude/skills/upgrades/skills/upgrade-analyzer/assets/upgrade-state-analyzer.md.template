@@ -1,0 +1,28 @@
+## Upgrade Analyzer
+
+### Game Plan (compile-time dependency order)
+- Total modules: <N>
+- Dependency levels: <L>
+- Level breakdown: Level 1: <n>, Level 2: <n>, …
+- Top priority modules (highest consumer count):
+  - `:<module>` — <N> consumers
+  - …
+- Generated-source groups (each is **one** Phase 2 branch/PR, processed at its earliest member level):
+  - `<group-root>` (<Service Builder|REST Builder>) — members: `:<api>`, `:<service|client>`, … — Level <n>
+  - … (omit this line if there are none)
+- Recommended compile order: start with Level 1 (no workspace dependencies), then Level 2, … — but
+  process each generated-source group above as a single work unit (one regen, one branch, one PR)
+- Artifacts:
+  - `.claude/upgrade-artifacts/<run-id>/phase-2-compile/upgrade-analyzer/projects-<timestamp>.txt`
+  - `.claude/upgrade-artifacts/<run-id>/phase-2-compile/upgrade-analyzer/projects-<timestamp>.csv`
+
+### Startup Game Plan (OSGi runtime order)
+- Exporters: <n> modules
+- Services and APIs: <n> modules
+- Plugins: <n> modules
+- Fragment-Hosts: <n> modules
+- Others: <n> modules
+- Recommended deployment order: Exporters → Services/APIs → Plugins → Fragment-Hosts → Others
+- Artifacts:
+  - `.claude/upgrade-artifacts/<run-id>/phase-2-compile/upgrade-analyzer/projects-<timestamp>-startup.txt`
+  - `.claude/upgrade-artifacts/<run-id>/phase-2-compile/upgrade-analyzer/projects-<timestamp>-startup.csv`

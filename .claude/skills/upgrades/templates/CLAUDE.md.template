@@ -1,0 +1,116 @@
+# Liferay Workspace — Upgrade Context
+
+This file orients Claude Code for upgrade work in this specific Liferay workspace. `/upgrade-init` populates the `TODO:` fields; keep them current as the workspace evolves.
+
+For the three-tier model and general agent documentation, see the upgrade agent README.
+
+---
+
+## Upgrade identity
+
+- `upgrade.source.version`: TODO: e.g. `7.3.10-ga1`
+- `upgrade.target.version`: TODO: e.g. `2026.q1.0`
+- `upgrade.target.java.version`: TODO: e.g. `21`
+- `upgrade.branch`: TODO: e.g. `upgrade/7.3-to-2026.q1` (created by `/upgrade-init`)
+- `upgrade.workspace.plugin.version`: TODO: e.g. `11.0.1` (optional — used by `/upgrade-setup-version` step 3; leave blank to be asked at runtime)
+- `upgrade.gradle.version`: TODO: e.g. `8.5` (optional — used by `/upgrade-setup-version` step 4; leave blank to be asked at runtime)
+- `customer.name`: TODO: short customer identifier (reports, artifact naming), e.g. `acme`
+
+## Portal runtime
+
+Before running any `/upgrade-*` command that starts the portal, the agent reads the workspace `README.md` (or whichever file `runtime.docs` points to) and fills in what it can. These fields are overrides / fallbacks.
+
+- `runtime.docs`: TODO: path to the README that documents how to run the portal, e.g. `README.md`
+- `portal.start.command`: TODO: e.g. `docker compose up -d`
+- `portal.stop.command`: TODO: e.g. `docker compose down`
+- `portal.url`: TODO: e.g. `http://localhost:8080`
+- `portal.ready.check`: TODO: URL or log pattern; e.g. `http://localhost:8080/c/portal/login`
+- `portal.admin.credentials`: TODO: reference (env var or file path); **never inline the password here**
+- `portal.deploy.folder`: TODO: absolute or workspace-relative path; e.g. `bundles/osgi/modules`
+
+## Docker compose
+
+- `docker.compose.file`: TODO: e.g. `docker-compose.yml`
+- `docker.services.portal`: TODO: e.g. `liferay`
+- `docker.services.database`: TODO: e.g. `database`
+- `docker.services.search`: TODO: e.g. `search`
+
+## Database
+
+The agent does **no** database work — it never connects to or upgrades the DB. These fields only drive the Phase 1 docker DB-image alignment and let the agent start the DB container.
+
+- `db.type`: TODO: source DB type — `mysql`, `postgresql`, `sqlserver`, or `oracle` (auto-detected from docker-compose)
+- `db.target.type`: TODO: target DB type (may differ from source) — drives the Phase 1 docker-compose DB image
+- `db.target.version`: TODO: target DB version, e.g. `8.0` — drives the Phase 1 docker-compose DB image
+- `db.name`: TODO: e.g. `lportal`
+- `db.container.name`: TODO: Docker container name for the database service; auto-detected from docker-compose if blank
+
+## Search
+
+- `search.engine`: TODO: `elasticsearch` or `opensearch` (auto-detected from docker-compose; the engine type does **not** change in the upgrade)
+- `search.version`: TODO: **target** search version — a **concrete** version, e.g. `8.17.4` (not `8.x`). `/upgrade-init` recommends the closest compatible LTS for the target Liferay version (via the compatibility matrix); drives the Phase 1 docker search image tag verbatim
+
+## Workspace layout
+
+- `modules.root`: TODO: e.g. `modules/`
+- `themes.root`: TODO: e.g. `themes/`
+- `client-extensions.root`: TODO: e.g. `client-extensions/`
+- `node.version`: TODO: a **concrete** patch, e.g. `20.18.0` (not `20.x`) — feeds the Phase 1 root `allprojects` block verbatim; `/upgrade-init` seeds a known-good patch for the target era (2024.Q4+ → 20.x line) for you to confirm
+
+## Smoke test targets
+
+> **Not populated by `/upgrade-init`.** Smoke and page targets belong to the frontend area (Phase 5), whose design is still open.
+
+- TODO: (deferred to the Phase 5 redesign)
+
+## Coding conventions
+
+Anything the agent should respect in generated and modified code. Examples:
+
+- Indentation: tabs (Liferay convention) — or spaces if your team overrides.
+- Import order / grouping: follow Liferay source-formatter defaults unless noted.
+- Comment style on non-trivial transformations: TODO.
+- Custom logging wrapper: TODO.
+
+## Behavior overrides (optional)
+
+Uncomment and adjust to change agent defaults in this workspace.
+
+```text
+# default: preserve-architecture
+# override: modernize-client-extensions   # propose CX migrations by default
+
+# default: aui-target = vanilla-for-dom, clay-for-widgets
+# override: aui-target = clay-everywhere
+
+# default: js-build-target = bundler-2x
+# override: js-build-target = client-extension
+
+# default: jquery-handling = detect-and-flag
+# override: jquery-handling = auto-remove  # not recommended
+
+# default: issue-key-era-filter = off
+# override: issue-key-era-filter = on
+
+# default: upgrade.module.dependency.prune = true
+# override: upgrade.module.dependency.prune = false   # disable upgrade-module step 4b compile-verified prune
+```
+
+## Visual & Functional audit
+
+Configuration consumed by the `/upgrade-audit-pages` skill (run manually — it belongs to the frontend / Page-by-Page area; the Phase 5 design is still open). It compares pages between the source and target portals once the upgraded portal is up. The skill reuses `upgrade.source.version` and `upgrade.target.version` for report labels — do not duplicate them here.
+
+- `audit.source.base.url`: TODO: e.g. `https://portal-source.example.com` (no trailing slash)
+- `audit.target.base.url`: TODO: e.g. `https://portal-target.example.com` (no trailing slash)
+- `audit.user`: TODO: email or screen name used for pages with `requires_auth=true`
+- `audit.password`: TODO: reference only (env var or file path) — **never inline**
+- `audit.viewports`: TODO: comma-separated; default `desktop`. Options: `desktop` (1440x900), `tablet` (768x1024), `mobile` (375x812)
+- `audit.pages.file`: TODO: path to the CSV with the page list; default `.claude/audits/pages.csv` (a starter template is at `.claude/audits/pages.example.csv`)
+
+Calibration log (intentional design system changes the team has already validated and does not want re-flagged) lives inside the skill at `.claude/skills/upgrade-audit-pages/references/known-design-system-changes.md`. Edit that file as the team learns which patterns are intentional.
+
+## Upgrade-specific notes
+
+Anything that surfaced during `/upgrade-plan` and is worth the agent remembering across sessions. `/upgrade-plan` appends here automatically; hand-edit freely.
+
+- TODO: (filled in by `/upgrade-plan`)

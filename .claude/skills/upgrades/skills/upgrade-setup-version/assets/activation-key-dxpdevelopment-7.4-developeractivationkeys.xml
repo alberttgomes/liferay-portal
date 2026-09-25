@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+
+<license>
+	<account-name>Liferay, Inc.</account-name>
+	<owner>Michael Matheus Cavalcanti</owner>
+	<description>Liferay, Inc. Developer Activation Keys</description>
+	<product-name>DXP Development</product-name>
+	<product-version>7.4</product-version>
+	<license-name>Digital Enterprise Development</license-name>
+	<license-type>developer</license-type>
+	<license-version>6</license-version>
+	<start-date>Wednesday, April 12, 2023 9:15:35 PM GMT</start-date>
+	<expiration-date>Friday, March 19, 2123 9:15:35 PM GMT</expiration-date>
+	<max-http-sessions>5</max-http-sessions>
+	<key>2048d9e37307a4929bc4b66ca29fd600e16696f2e5f7c488240c16b0aa0e8620a1f98daf7af695237a4ba089cf2cedfc979552ff420061901b84115352cbf7c1950590e0b5d44e00e5a86f816ba1fb182eb9e602ec12e4ecad479827d7bbc8384c41cc0353b642cdf962a0a791850356788e06cc95985836addd9274578e4e02f0e98f8d</key>
+</license>

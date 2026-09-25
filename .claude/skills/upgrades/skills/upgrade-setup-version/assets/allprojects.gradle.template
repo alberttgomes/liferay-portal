@@ -1,0 +1,13 @@
+allprojects {
+    java {                                    // see guard below
+        sourceCompatibility = JavaVersion.VERSION_<target>
+        targetCompatibility = JavaVersion.VERSION_<target>
+    }
+    node {
+        nodeVersion = "<node.version>"
+    }
+    repositories {
+        mavenLocal()
+        maven { url "https://repository-cdn.liferay.com/nexus/content/groups/public" }
+    }
+}

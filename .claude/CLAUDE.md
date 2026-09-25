@@ -127,3 +127,29 @@ Functional tests are a last resort, reserved for complete UI flows that cannot b
 ### Format Source
 
 Run `/format-source` (the `format-source` skill). See `.claude/skills/format-source/SKILL.md` for details.
+
+### Upgrades
+
+The upgrade agent drives a customer upgrade through numbered phases, one skill per phase. Its skills live in `.claude/skills/upgrades/skills`.
+
+Run the entry points in this order:
+
+1. `/pre-upgrade-check` — validate the delivered client artifacts by reproducing their original environment from source. Runs before anything else.
+
+2. `/upgrade-init` — configure the workspace, gather the target version and Jira fields, and create the upgrade branch.
+
+3. `/upgrade-phase <N>` — execute one phase. `/upgrade-plan` and `/upgrade-refresh-references` are inputs the compile phase runs itself.
+
+`/upgrade-run` chains `/upgrade-init` and phases 1 to 4 unattended from a terminal, answering `/upgrade-init` from an `upgrade-run.properties` file instead of asking. The Upgrades Lab runner under `modules/apps/upgrades-lab` drives the same skills one process per step instead.
+
+The phases are:
+
+| Phase | Skill | Purpose |
+| --- | --- | --- |
+| 1 | `upgrade-setup-version` | Point the workspace build and Docker images at the target version. |
+| 2 | `upgrade-compile` | Make every module compile against the target version. |
+| 3 | `upgrade-startup` | Bring the portal and its modules up cleanly. |
+| 4 | `upgrade-reindex` | Confirm the search index rebuilds. |
+| 5 | `upgrade-frontend-flow` | Run the frontend regression flows. |
+
+The agent never upgrades the database schema. Schema migration is Liferay's own upgrade process, run against the portal, and is outside the agent's scope.

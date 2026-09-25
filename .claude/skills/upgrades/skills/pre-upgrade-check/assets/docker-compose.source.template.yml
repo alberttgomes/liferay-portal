@@ -1,0 +1,119 @@
+# FALLBACK scaffold — used by /pre-upgrade-check Step 4 ONLY when the client shipped no
+# runnable docker environment. Prefer reusing the client's compose (see references/reuse-client-docker.md).
+#
+# This reproduces the team's base-workspace structure: the official liferay/dxp image customized
+# purely by GRANULAR bind mounts from ./bundles/* (the build output) — NO Dockerfile / bundle tar.
+# Placeholders (<...>) are substituted from the detected SOURCE version / dump engine.
+# For a MySQL dump, swap the `database` service for a `mysql:<ver>` image (same volume layout).
+
+services:
+
+  database:
+    image: <db-image>            # e.g. postgres:16  (>= the dump writer; pg_restore is forward-compatible)
+    container_name: <customer>-db
+    environment:
+      - POSTGRES_DB=<db-name>    # e.g. lportal
+      - POSTGRES_USER=<db-user>  # e.g. postgres
+      - POSTGRES_PASSWORD=<db-pass>
+    ports:
+      - "5432:5432"
+    volumes:
+      # Auto-restore on first init (empty volume). Place the dump + optional 01-restore.sh here.
+      - ./docker-compose/database/dump/:/docker-entrypoint-initdb.d
+      # Mount the PARENT dir: postgres 18+ stores data in a versioned subdir and EXITS on init if
+      # the volume is at /var/lib/postgresql/data. The parent path also works for postgres <= 17.
+      - database_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U <db-user> -d <db-name>"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  elasticsearch:
+    image: <es-image>            # source-era engine, e.g. elasticsearch:6.8.23 (7.1-7.2), :7.17.x (7.3-7.4/2023), :8.x (2024+)
+    environment:
+      - cluster.name=<cluster-name>          # e.g. liferay-cluster (must match ElasticsearchConfiguration.config)
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+      - "9300:9300"            # transport client for ES 6.x (Liferay 7.1-7.2); REST-only eras use 9200
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    # Liferay 7.1-7.3 require these analysis plugins on the node (installed on first boot).
+    # Drop this block for eras/images that already bundle them.
+    command: >
+      bash -c '
+        if [ ! -d "plugins/analysis-icu" ]; then
+          ./bin/elasticsearch-plugin install --batch analysis-icu analysis-kuromoji analysis-smartcn analysis-stempel;
+        fi;
+        /usr/local/bin/docker-entrypoint.sh elasticsearch
+      '
+
+  liferay:
+    image: 'liferay/dxp:<source-tag>'   # or liferay/portal:<tag> for CE. Confirm the exact pullable tag.
+    # FALLBACK when no image exists for the client's exact source patch level — build the client
+    # bundle on a JDK base image instead of pulling. Comment out `image:` above and use:
+    #   build: .                 # Dockerfile: FROM eclipse-temurin:<java>-jdk, COPY the bundle, run it
+    container_name: <customer>-liferay
+    user: root:root
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      - LIFERAY_DISABLE_TRIAL_LICENSE=true
+      - LIFERAY_JDBC_PERIOD_DEFAULT_PERIOD_DRIVER_UPPERCASEC_LASS_UPPERCASEN_AME=org.postgresql.Driver
+      - LIFERAY_JDBC_PERIOD_DEFAULT_PERIOD_URL=jdbc:postgresql://database:5432/<db-name>?reWriteBatchedInserts=true
+      - LIFERAY_JDBC_PERIOD_DEFAULT_PERIOD_USERNAME=<db-user>
+      - LIFERAY_JDBC_PERIOD_DEFAULT_PERIOD_PASSWORD=<db-pass>
+      - LIFERAY_JPDA_ENABLED=true
+      - LIFERAY_MODULE_PERIOD_FRAMEWORK_PERIOD_PROPERTIES_PERIOD_OSGI_PERIOD_CONSOLE=0.0.0.0:11311
+      # Accept every host so DB-mapped vanity hosts resolve. Clients often run several
+      # sites/instances on vanity hostnames — add them to /etc/hosts and verify each at login (Step 8).
+      - LIFERAY_VIRTUAL_PERIOD_HOSTS_PERIOD_VALID_PERIOD_HOSTS=*
+    ports:
+      - "8000:8000"            # JPDA debug
+      - "8080:8080"            # HTTP
+      - "11311:11311"          # Gogo / OSGi console
+    volumes:
+      # Source build output (from `blade gw clean deploy`) — mounted, NOT baked into an image.
+      - ./bundles/deploy:/opt/liferay/deploy
+      - ./bundles/osgi/modules:/opt/liferay/osgi/modules
+      - ./bundles/osgi/war:/opt/liferay/osgi/war
+      # Document library — read-only data; bind-mount from the delivered path to avoid duplicating GBs.
+      # If the store lives elsewhere on a given machine, override this one mount locally with a
+      # git-ignored docker-compose.override.yml (example at the bottom of this file).
+      - <document-library-path>:/opt/liferay/data/document_library
+      # Runtime config the image copies into the bundle on boot: portal-ext, osgi/configs
+      # (incl. ElasticsearchConfiguration.config pointing at the `elasticsearch` service), and the
+      # source-line DXP developer activation key under deploy/. See references/source-version-matrix.md.
+      - ./docker-compose/liferay/mnt/liferay/files:/mnt/liferay/files
+
+  mailhog:
+    container_name: mailhog
+    image: mailhog/mailhog:v1.0.1
+    ports:
+      - "8025:8025"            # web UI
+      - "1025:1025"            # SMTP
+
+volumes:
+  database_data:
+  elasticsearch_data:
+
+# --- Companion config staged under docker-compose/liferay/mnt/liferay/files/osgi/configs/ ---
+# com.liferay.portal.search.elasticsearch<N>.configuration.ElasticsearchConfiguration.config
+# (PID suffix by era: elasticsearch7 for 7.3-2023.q*, elasticsearch8 for 2024.q*+; the 6.x
+#  transport-client era 7.1-7.2 uses the elasticsearch PID with transportAddresses on 9300):
+#   productionModeEnabled="true"
+#   operationMode="REMOTE"
+#   clusterName="<cluster-name>"
+#   networkHostAddresses=["elasticsearch:9200"]   # 7.3+ REST
+#   # transportAddresses=["elasticsearch:9300"]   # 7.1-7.2 transport client
+#
+# --- Local-only document-library override (git-ignored docker-compose.override.yml) ---
+# When the multi-GB store lives outside the repo, point just this mount at it without touching the
+# committed compose:
+#   services:
+#     liferay:
+#       volumes:
+#         - /abs/path/to/document_library:/opt/liferay/data/document_library

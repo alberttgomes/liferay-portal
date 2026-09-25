@@ -1,0 +1,68 @@
+# Liferay Upgrade Audit Report
+
+**Source version:** <upgrade.source.version>
+**Target version:** <upgrade.target.version>
+**Date:** <ISO-8601 timestamp>
+**Pages audited:** <N>
+**Bugs:** <total> (Critical: <X>, High: <Y>, Medium: <Z>, Low: <W>)
+
+## Summary by page
+
+| Page | Bugs | Critical | High | Medium | Low | Details |
+|------|-----:|---------:|-----:|-------:|----:|---------|
+| Home | 3 | 0 | 1 | 2 | 0 | [#home](#home) |
+| Dashboard | 5 | 1 | 2 | 1 | 1 | [#dashboard](#dashboard) |
+
+## Top critical bugs
+
+1. [Bug #007 — Save button no-op on Dashboard](#bug-007)
+2. [Bug #015 — Login fails on Mobile viewport](#bug-015)
+3. ...
+
+## Recurring patterns
+
+Patterns observed across multiple pages — consider grouping into a single ticket:
+
+- **Primary button hover removed** — affects 12 pages (Home, Dashboard, Profile, …). Likely single root cause in Clay theme override. → Suggested as **single ticket**, not 12.
+- **New axe-core color-contrast violations** on `.btn-secondary` — affects 8 pages. → **Single ticket**.
+
+---
+
+## Pages
+
+### Home <a id="home"></a>
+
+- Target URL (<upgrade.target.version>): <url>
+- Source URL (<upgrade.source.version>): <url>
+- Viewports audited: desktop
+
+#### Bug #001 — <short title>  <a id="bug-001"></a>
+
+- **Page:** Home
+- **Reference page (<upgrade.source.version>):** <url>
+- **Type:** Visual | Functional | Accessibility | Console | Network | Structural
+- **Severity:** Critical | High | Medium | Low
+- **Viewport:** desktop
+- **Affected element:** <semantic selector + visible text>
+
+**Description:** <one paragraph>
+
+**Expected behavior (<upgrade.source.version>):** <description>
+**Current behavior (<upgrade.target.version>):** <description>
+
+**Evidence:**
+- Source screenshot: `./screenshots/home/source-desktop.png`
+- Target screenshot: `./screenshots/home/target-desktop.png`
+- Diff: `./screenshots/home/diff-desktop.png`
+- Computed styles: `./styles/home.json` (lines X–Y)
+- Console log: `./console/home.log`
+
+**Steps to reproduce:**
+1. <step>
+2. <step>
+
+---
+
+### Dashboard <a id="dashboard"></a>
+
+[same structure]
