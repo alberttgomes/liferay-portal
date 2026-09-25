@@ -1,0 +1,246 @@
+components:
+    schemas:
+        UpgradeRun:
+            description:
+                One upgrade run as the runner knows it. The result branch and the pull request URL stay empty until the run reaches publishing.
+            properties:
+                branch:
+                    description:
+                        The branch of the repository to upgrade.
+                    type: string
+                credentialKeyReference:
+                    description:
+                        The key reference of the private key the runner reaches the repository with. Leave it out when the repository needs no credential.
+                    type: string
+                customerName:
+                    description:
+                        The short customer identifier the agent names reports and artifacts with.
+                    type: string
+                dbTargetType:
+                    description:
+                        The database type the upgraded workspace runs against, such as mysql or postgresql.
+                    type: string
+                dbTargetVersion:
+                    description:
+                        The database version the upgraded workspace runs against, such as 8.0.
+                    type: string
+                externalReferenceCode:
+                    description:
+                        The identifier the runner knows the run by.
+                    readOnly: true
+                    type: string
+                firstPhase:
+                    description:
+                        The phase the agent started at. It is 1 unless the run resumed another run.
+                    format: int32
+                    readOnly: true
+                    type: integer
+                id:
+                    description:
+                        The primary key of the run the portal stores.
+                    format: int64
+                    readOnly: true
+                    type: integer
+                licensePath:
+                    description:
+                        The path, on the runner's host, of the DXP license file the agent places in the workspace for the target portal, or of a folder holding it. The file's root element must be license or licenses. Leave it out to use the license the runner is configured with.
+                    type: string
+                nodeVersion:
+                    description:
+                        The concrete Node.js patch version for the upgraded workspace, such as 20.18.0. The agent feeds it into a Docker image tag verbatim, so a range does not resolve.
+                    type: string
+                pullRequestURL:
+                    description:
+                        The pull request the run published its result to.
+                    readOnly: true
+                    type: string
+                repositoryURL:
+                    description:
+                        The URL of the repository to upgrade. An SSH URL needs a credential key reference. An HTTPS or file URL of a repository Git can reach anonymously needs none.
+                    type: string
+                resultBranch:
+                    description:
+                        The branch the run pushed its result to.
+                    readOnly: true
+                    type: string
+                searchVersion:
+                    description:
+                        The concrete search engine version for the upgraded workspace, such as 8.17.4. The agent feeds it into a Docker image tag verbatim, so a range does not resolve.
+                    type: string
+                status:
+                    description:
+                        The status the run is in.
+                    enum:
+                        -   blocked
+                        -   cancelled
+                        -   cloning
+                        -   failed
+                        -   provisioning
+                        -   publishing
+                        -   queued
+                        -   running
+                        -   successful
+                        -   timed-out
+                        -   validating
+                    readOnly: true
+                    type: string
+                statusMessage:
+                    description:
+                        What the run was doing when it last reported.
+                    readOnly: true
+                    type: string
+                upgradeSourceVersion:
+                    description:
+                        The Liferay version the repository currently targets, such as 7.4.13-u92.
+                    type: string
+                upgradeTargetJavaVersion:
+                    description:
+                        The Java version the upgraded workspace builds with, such as 21.
+                    type: string
+                upgradeTargetVersion:
+                    description:
+                        The Liferay version to upgrade the repository to, such as 2026.q1.0.
+                    type: string
+                workspacePath:
+                    description:
+                        The directory on the runner host where the run cloned and upgraded the repository.
+                    readOnly: true
+                    type: string
+            required:
+                -   branch
+                -   customerName
+                -   dbTargetType
+                -   dbTargetVersion
+                -   nodeVersion
+                -   repositoryURL
+                -   searchVersion
+                -   upgradeSourceVersion
+                -   upgradeTargetJavaVersion
+                -   upgradeTargetVersion
+        UpgradeRunResumption:
+            description:
+                What a resumed run changes from the finished run it continues. Both properties are optional.
+            properties:
+                firstPhase:
+                    description:
+                        The phase the agent starts at, 1 to 4. Leave it out to start at the phase the finished run stopped in. Every phase before it is taken as complete on the result branch.
+                    format: int32
+                    type: integer
+                settings:
+                    additionalProperties:
+                        type: string
+                    description:
+                        Workspace settings to add to or replace among the finished run's settings, keyed as in upgrade-run.properties, such as customer.name. A null value removes the key.
+                    type: object
+info:
+    description:
+        "Submits, polls, and cancels upgrade runs on the configured upgrade runner. A Java client JAR is available for use with the group ID 'com.liferay', artifact ID 'com.liferay.upgrades.lab.agent.remote.rest.client', and version '1.0.0'."
+    license:
+        name: Apache 2.0
+        url: http://www.apache.org/licenses/LICENSE-2.0.html
+    title: Upgrades Lab Agent Remote
+    version: v1.0
+openapi: 3.0.1
+paths:
+    "/upgrade-runs":
+        post:
+            description:
+                Submits an upgrade run to the runner and returns the run it created.
+            operationId: postUpgradeRun
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/UpgradeRun"
+                    application/xml:
+                        schema:
+                            $ref: "#/components/schemas/UpgradeRun"
+            responses:
+                200:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/UpgradeRun"
+                        application/xml:
+                            schema:
+                                $ref: "#/components/schemas/UpgradeRun"
+                    description:
+                        The submitted run.
+            tags: ["UpgradeRun"]
+    "/upgrade-runs/by-external-reference-code/{externalReferenceCode}":
+        get:
+            description:
+                Returns the runner's view of the run at this moment.
+            operationId: getUpgradeRunByExternalReferenceCode
+            parameters:
+                -   in: path
+                    name: externalReferenceCode
+                    required: true
+                    schema:
+                        type: string
+            responses:
+                200:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/UpgradeRun"
+                        application/xml:
+                            schema:
+                                $ref: "#/components/schemas/UpgradeRun"
+                    description:
+                        The run.
+            tags: ["UpgradeRun"]
+    "/upgrade-runs/by-external-reference-code/{externalReferenceCode}/cancel":
+        post:
+            description:
+                Cancels the run and releases whatever the substrate allocated for it. Cancelling a run that already finished does nothing. The run stays stored and keeps answering to GET.
+            operationId: postUpgradeRunByExternalReferenceCodeCancel
+            parameters:
+                -   in: path
+                    name: externalReferenceCode
+                    required: true
+                    schema:
+                        type: string
+            responses:
+                200:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/UpgradeRun"
+                        application/xml:
+                            schema:
+                                $ref: "#/components/schemas/UpgradeRun"
+                    description:
+                        The cancelled run.
+            tags: ["UpgradeRun"]
+    "/upgrade-runs/by-external-reference-code/{externalReferenceCode}/resume":
+        post:
+            description:
+                Submits a new run that continues the finished run from a phase. The runner reuses the finished run's clone when it still exists on its host and clones the result branch otherwise. The finished run is left as it is.
+            operationId: postUpgradeRunByExternalReferenceCodeResume
+            parameters:
+                -   in: path
+                    name: externalReferenceCode
+                    required: true
+                    schema:
+                        type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/UpgradeRunResumption"
+                    application/xml:
+                        schema:
+                            $ref: "#/components/schemas/UpgradeRunResumption"
+            responses:
+                200:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/UpgradeRun"
+                        application/xml:
+                            schema:
+                                $ref: "#/components/schemas/UpgradeRun"
+                    description:
+                        The resumed run.
+            tags: ["UpgradeRun"]

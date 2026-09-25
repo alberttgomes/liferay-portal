@@ -1,0 +1,6 @@
+Bundle-Name: Liferay Upgrades Lab Agent Remote REST Client
+Bundle-SymbolicName: com.liferay.upgrades.lab.agent.remote.rest.client
+Bundle-Version: 1.0.0
+Export-Package:\
+	com.liferay.upgrades.lab.agent.remote.rest.client.dto.v1_0,\
+	com.liferay.upgrades.lab.agent.remote.rest.client.function

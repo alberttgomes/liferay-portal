@@ -1,0 +1,6 @@
+Bundle-Name: Liferay Upgrades Lab Agent Remote REST API
+Bundle-SymbolicName: com.liferay.upgrades.lab.agent.remote.rest.api
+Bundle-Version: 1.0.0
+Export-Package:\
+	com.liferay.upgrades.lab.agent.remote.rest.dto.v1_0,\
+	com.liferay.upgrades.lab.agent.remote.rest.resource.v1_0

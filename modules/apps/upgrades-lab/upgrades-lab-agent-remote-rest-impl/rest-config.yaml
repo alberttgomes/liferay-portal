@@ -1,0 +1,13 @@
+apiDir: ../upgrades-lab-agent-remote-rest-api/src/main/java
+apiPackagePath: com.liferay.upgrades.lab.agent.remote.rest
+application:
+    baseURI: /upgrades-lab-agent-remote
+    className: UpgradesLabAgentRemoteRESTApplication
+    name: Liferay.Upgrades.Lab.Agent.Remote.REST
+author: Albert Gomes Cabral
+clientDir: ../upgrades-lab-agent-remote-rest-client/src/main/java
+compatibilityVersion: 15
+forcePredictableOperationId: true
+generateBatch: false
+javaEEPackage: jakarta
+testDir: ../upgrades-lab-agent-remote-rest-test/src/testIntegration/java
