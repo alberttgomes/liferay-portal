@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<!DOCTYPE service-builder PUBLIC "-//Liferay//DTD Service Builder 7.4.0//EN" "http://www.liferay.com/dtd/liferay-service-builder_7_4_0.dtd">
+
+<service-builder auto-import-default-references="false" auto-namespace-tables="true" mvcc-enabled="true" package-path="com.liferay.upgrades.lab.agent.remote">
+	<author>Albert Gomes Cabral</author>
+	<namespace>Upgrades</namespace>
+	<entity external-reference-code="company" local-service="true" name="UpgradeRun" remote-service="false" uuid="true">
+
+		<!-- PK fields -->
+
+		<column name="upgradeRunId" primary="true" type="long" />
+
+		<!-- Audit fields -->
+
+		<column name="companyId" type="long" />
+		<column name="userId" type="long" />
+		<column name="userName" type="String" />
+		<column name="createDate" type="Date" />
+		<column name="modifiedDate" type="Date" />
+
+		<!-- Other fields -->
+
+		<column name="branch" type="String" />
+		<column name="credentialKeyReference" type="String" />
+		<column name="customerName" type="String" />
+		<column name="dbTargetType" type="String" />
+		<column name="dbTargetVersion" type="String" />
+		<column name="endDate" type="Date" />
+		<column name="nodeVersion" type="String" />
+		<column name="pullRequestURL" type="String" />
+		<column name="repositoryURL" type="String" />
+		<column name="resultBranch" type="String" />
+		<column name="searchVersion" type="String" />
+		<column name="startDate" type="Date" />
+		<column name="targetRelease" type="String" />
+		<column name="upgradeSourceVersion" type="String" />
+		<column name="upgradeTargetJavaVersion" type="String" />
+		<column name="workspacePath" type="String" />
+		<column name="status" type="int" />
+		<column convert-null="false" name="statusMessage" type="String" />
+
+		<!-- Order -->
+
+		<order by="desc">
+			<order-column name="createDate" />
+		</order>
+	</entity>
+</service-builder>
