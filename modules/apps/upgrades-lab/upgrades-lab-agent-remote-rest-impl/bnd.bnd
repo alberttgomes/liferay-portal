@@ -1,0 +1,3 @@
+Bundle-Name: Liferay Upgrades Lab Agent Remote REST Implementation
+Bundle-SymbolicName: com.liferay.upgrades.lab.agent.remote.rest.impl
+Bundle-Version: 1.0.0
