@@ -1,0 +1,4 @@
+Bundle-Name: Liferay Upgrades Lab Agent Remote Runner Local
+Bundle-SymbolicName: com.liferay.upgrades.lab.agent.remote.runner.local
+Bundle-Version: 1.0.0
+-includeresource: META-INF/upgrade-agent=../../../../.claude/skills/upgrades
