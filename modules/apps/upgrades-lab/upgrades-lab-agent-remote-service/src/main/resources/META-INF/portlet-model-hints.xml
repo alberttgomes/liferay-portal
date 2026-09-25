@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+
+<model-hints>
+	<model name="com.liferay.upgrades.lab.agent.remote.model.UpgradeRun">
+		<field name="mvccVersion" type="long" />
+		<field name="uuid" type="String" />
+		<field name="externalReferenceCode" type="String" />
+		<field name="upgradeRunId" type="long" />
+		<field name="companyId" type="long" />
+		<field name="userId" type="long" />
+		<field name="userName" type="String" />
+		<field name="createDate" type="Date" />
+		<field name="modifiedDate" type="Date" />
+		<field name="branch" type="String">
+			<hint name="max-length">255</hint>
+		</field>
+		<field name="credentialKeyReference" type="String">
+			<hint name="max-length">255</hint>
+		</field>
+		<field name="customerName" type="String" />
+		<field name="dbTargetType" type="String" />
+		<field name="dbTargetVersion" type="String" />
+		<field name="endDate" type="Date" />
+		<field name="nodeVersion" type="String" />
+		<field name="pullRequestURL" type="String">
+			<hint name="max-length">255</hint>
+		</field>
+		<field name="repositoryURL" type="String">
+			<hint name="max-length">255</hint>
+		</field>
+		<field name="resultBranch" type="String">
+			<hint name="max-length">255</hint>
+		</field>
+		<field name="searchVersion" type="String" />
+		<field name="startDate" type="Date" />
+		<field name="targetRelease" type="String" />
+		<field name="upgradeSourceVersion" type="String" />
+		<field name="upgradeTargetJavaVersion" type="String" />
+		<field name="workspacePath" type="String">
+			<hint name="max-length">4000</hint>
+		</field>
+		<field name="status" type="int" />
+		<field name="statusMessage" type="String">
+			<hint-collection name="CLOB" />
+		</field>
+	</model>
+</model-hints>
