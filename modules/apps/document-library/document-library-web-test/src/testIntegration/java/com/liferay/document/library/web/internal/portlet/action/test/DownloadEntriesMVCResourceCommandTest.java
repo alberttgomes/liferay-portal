@@ -92,6 +92,7 @@ public class DownloadEntriesMVCResourceCommandTest {
 		_testServeResourceDownloadEntries();
 		_testServeResourceDownloadEntry();
 		_testServeResourceDownloadFolder();
+		_testServeResourceDownloadFolderWithoutShortcutTargetPermission();
 		_testServeResourceMaxSizeToDownload();
 	}
 
@@ -351,6 +352,45 @@ public class DownloadEntriesMVCResourceCommandTest {
 		Assert.assertTrue(
 			zipEntries.toString(), zipEntries.containsKey("report (1).txt"));
 		Assert.assertEquals(zipEntries.toString(), 3, zipEntries.size());
+	}
+
+	private void _testServeResourceDownloadFolderWithoutShortcutTargetPermission()
+		throws Exception {
+
+		Folder folder = _addFolder(
+			"Shared", DLFolderConstants.DEFAULT_PARENT_FOLDER_ID);
+
+		_addFileEntry("visible", "visible.txt", folder.getFolderId());
+
+		ServiceContext serviceContext =
+			ServiceContextTestUtil.getServiceContext(_group.getGroupId());
+
+		serviceContext.setAddGroupPermissions(false);
+		serviceContext.setAddGuestPermissions(false);
+
+		FileEntry fileEntry = _dlAppLocalService.addFileEntry(
+			null, TestPropsValues.getUserId(), _group.getGroupId(),
+			DLFolderConstants.DEFAULT_PARENT_FOLDER_ID, "private.txt",
+			ContentTypes.TEXT_PLAIN, "private".getBytes(), null, null, null,
+			serviceContext);
+
+		_dlAppLocalService.addFileShortcut(
+			null, TestPropsValues.getUserId(), _group.getGroupId(),
+			folder.getFolderId(), fileEntry.getFileEntryId(),
+			ServiceContextTestUtil.getServiceContext(_group.getGroupId()));
+
+		try (ContextUserReplace contextUserReplace = new ContextUserReplace(
+				_user)) {
+
+			Map<String, String> zipEntries = _getZipEntries(
+				_serveResource(
+					_getMockLiferayResourceRequest(
+						folder.getFolderId(),
+						"/document_library/download_folder")));
+
+			Assert.assertEquals("visible", zipEntries.get("visible.txt"));
+			Assert.assertEquals(zipEntries.toString(), 1, zipEntries.size());
+		}
 	}
 
 	private void _testServeResourceMaxSizeToDownload() throws Exception {
