@@ -69,7 +69,6 @@ import java.util.Set;
 import org.apache.cxf.jaxrs.utils.ExceptionUtils;
 import org.apache.cxf.jaxrs.utils.JAXRSUtils;
 import org.apache.cxf.message.Message;
-import org.apache.cxf.rs.security.jose.jws.JwsJwtCompactConsumer;
 import org.apache.cxf.rs.security.jose.jwt.JwtClaims;
 import org.apache.cxf.rs.security.jose.jwt.JwtToken;
 import org.apache.cxf.rs.security.oauth2.utils.OAuthConstants;
@@ -190,10 +189,6 @@ public class DynamicRegistrationServiceContainerRequestFilter
 		throws Exception {
 
 		JwtToken jwtToken = _getJwtToken(httpServletRequest);
-
-		if (jwtToken == null) {
-			throw ExceptionUtils.toNotAuthorizedException(null, null);
-		}
 
 		long currentTime = System.currentTimeMillis() / Time.SECOND;
 		long expirationTime = GetterUtil.getLong(jwtToken.getClaim("exp"));
@@ -398,7 +393,9 @@ public class DynamicRegistrationServiceContainerRequestFilter
 		return null;
 	}
 
-	private JwtToken _getJwtToken(HttpServletRequest httpServletRequest) {
+	private JwtToken _getJwtToken(HttpServletRequest httpServletRequest)
+		throws Exception {
+
 		String authorization = httpServletRequest.getHeader("Authorization");
 
 		if (!StringUtil.startsWith(authorization, "Bearer ")) {
@@ -409,31 +406,23 @@ public class DynamicRegistrationServiceContainerRequestFilter
 
 		OAuth2Authorization oAuth2Authorization =
 			_oAuth2AuthorizationLocalService.
-				fetchOAuth2AuthorizationByAccessTokenContent(
-					accessTokenContent);
+				getOAuth2AuthorizationByAccessTokenContent(accessTokenContent);
 
-		if (oAuth2Authorization != null) {
-			JwtClaims jwtClaims = new JwtClaims();
+		JwtClaims jwtClaims = new JwtClaims();
 
-			jwtClaims.setClaim(
-				"application_id", oAuth2Authorization.getOAuth2ApplicationId());
-			jwtClaims.setClaim("sub", oAuth2Authorization.getUserId());
+		jwtClaims.setClaim(
+			"application_id", oAuth2Authorization.getOAuth2ApplicationId());
+		jwtClaims.setClaim("sub", oAuth2Authorization.getUserId());
 
-			Date accessTokenExpirationDate =
-				oAuth2Authorization.getAccessTokenExpirationDate();
+		Date accessTokenExpirationDate =
+			oAuth2Authorization.getAccessTokenExpirationDate();
 
-			if (accessTokenExpirationDate != null) {
-				jwtClaims.setExpiryTime(
-					accessTokenExpirationDate.getTime() / Time.SECOND);
-			}
-
-			return new JwtToken(jwtClaims);
+		if (accessTokenExpirationDate != null) {
+			jwtClaims.setExpiryTime(
+				accessTokenExpirationDate.getTime() / Time.SECOND);
 		}
 
-		JwsJwtCompactConsumer jwsJwtCompactConsumer = new JwsJwtCompactConsumer(
-			accessTokenContent);
-
-		return jwsJwtCompactConsumer.getJwtToken();
+		return new JwtToken(jwtClaims);
 	}
 
 	private AuditMessage _getRejectAuditMessage(
