@@ -170,6 +170,8 @@ type TProductVirtualSettings = {
 	termsOfUseContent?: {
 		[key: string]: string;
 	};
+	termsOfUseJournalArticleId?: number;
+	termsOfUseRequired?: boolean;
 	url?: string;
 	useSample?: boolean;
 };
