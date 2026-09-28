@@ -976,8 +976,8 @@ public class WebServerServlet extends HttpServlet {
 				String title = name;
 
 				sendFile(
-					httpServletResponse, user, groupId, folderId,
-					URLCodec.decodeURL(title));
+					httpServletRequest, httpServletResponse, user, groupId,
+					folderId, URLCodec.decodeURL(title));
 
 				return;
 			}
@@ -985,7 +985,8 @@ public class WebServerServlet extends HttpServlet {
 
 		try {
 			sendFile(
-				httpServletResponse, user, groupId, folderId, "index.html");
+				httpServletRequest, httpServletResponse, user, groupId,
+				folderId, "index.html");
 
 			return;
 		}
@@ -996,7 +997,8 @@ public class WebServerServlet extends HttpServlet {
 
 			try {
 				sendFile(
-					httpServletResponse, user, groupId, folderId, "index.htm");
+					httpServletRequest, httpServletResponse, user, groupId,
+					folderId, "index.htm");
 
 				return;
 			}
@@ -1039,6 +1041,33 @@ public class WebServerServlet extends HttpServlet {
 
 		sendHTML(
 			httpServletResponse, URLCodec.decodeURL(path), webServerEntries);
+	}
+
+	protected void sendFile(
+			HttpServletRequest httpServletRequest,
+			HttpServletResponse httpServletResponse, User user, long groupId,
+			long folderId, String title)
+		throws Exception {
+
+		FileEntry fileEntry = DLAppLocalServiceUtil.getFileEntry(
+			groupId, folderId, title);
+
+		_checkFileEntry(fileEntry, httpServletRequest);
+
+		httpServletResponse.setHeader(
+			HttpHeaders.CACHE_CONTROL,
+			FileEntryHttpHeaderCustomizerUtil.getHttpHeaderValue(
+				fileEntry, HttpHeaders.CACHE_CONTROL,
+				HttpHeaders.CACHE_CONTROL_PRIVATE_VALUE));
+
+		String contentDispositionType =
+			_isBrowserExecutableContentType(fileEntry.getMimeType()) ?
+				HttpHeaders.CONTENT_DISPOSITION_ATTACHMENT : null;
+
+		ServletResponseUtil.sendFile(
+			null, httpServletResponse, fileEntry.getTitle(),
+			fileEntry.getContentStream(), fileEntry.getSize(),
+			fileEntry.getMimeType(), contentDispositionType);
 	}
 
 	protected void sendFile(
@@ -1281,30 +1310,6 @@ public class WebServerServlet extends HttpServlet {
 					inputStream, contentLength, contentType);
 			}
 		}
-	}
-
-	protected void sendFile(
-			HttpServletResponse httpServletResponse, User user, long groupId,
-			long folderId, String title)
-		throws Exception {
-
-		FileEntry fileEntry = DLAppLocalServiceUtil.getFileEntry(
-			groupId, folderId, title);
-
-		httpServletResponse.setHeader(
-			HttpHeaders.CACHE_CONTROL,
-			FileEntryHttpHeaderCustomizerUtil.getHttpHeaderValue(
-				fileEntry, HttpHeaders.CACHE_CONTROL,
-				HttpHeaders.CACHE_CONTROL_PRIVATE_VALUE));
-
-		String contentDispositionType =
-			_isBrowserExecutableContentType(fileEntry.getMimeType()) ?
-				HttpHeaders.CONTENT_DISPOSITION_ATTACHMENT : null;
-
-		ServletResponseUtil.sendFile(
-			null, httpServletResponse, fileEntry.getTitle(),
-			fileEntry.getContentStream(), fileEntry.getSize(),
-			fileEntry.getMimeType(), contentDispositionType);
 	}
 
 	protected void sendGroups(
