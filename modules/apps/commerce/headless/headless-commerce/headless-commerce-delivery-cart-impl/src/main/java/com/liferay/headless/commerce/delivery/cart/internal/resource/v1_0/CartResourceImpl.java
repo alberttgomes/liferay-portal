@@ -1335,6 +1335,10 @@ public class CartResourceImpl extends BaseCartResourceImpl {
 			}
 		}
 
+		if (billingAddressId > 0) {
+			_commerceAddressService.getCommerceAddress(billingAddressId);
+		}
+
 		long commerceShippingMethodId =
 			commerceOrder.getCommerceShippingMethodId();
 
@@ -1362,6 +1366,24 @@ public class CartResourceImpl extends BaseCartResourceImpl {
 			}
 			else {
 				shippingAddressId = commerceAddress.getCommerceAddressId();
+			}
+		}
+
+		if (shippingAddressId > 0) {
+			_commerceAddressService.getCommerceAddress(shippingAddressId);
+		}
+
+		CartItem[] cartItems = cart.getCartItems();
+
+		if (cartItems != null) {
+			for (CartItem cartItem : cartItems) {
+				long cartItemShippingAddressId = GetterUtil.getLong(
+					cartItem.getShippingAddressId());
+
+				if (cartItemShippingAddressId > 0) {
+					_commerceAddressService.getCommerceAddress(
+						cartItemShippingAddressId);
+				}
 			}
 		}
 
