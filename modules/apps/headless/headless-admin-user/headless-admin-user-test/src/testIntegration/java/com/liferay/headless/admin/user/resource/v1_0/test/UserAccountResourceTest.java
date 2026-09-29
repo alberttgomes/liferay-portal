@@ -25,6 +25,7 @@ import com.liferay.depot.constants.DepotConstants;
 import com.liferay.depot.model.DepotEntry;
 import com.liferay.depot.service.DepotEntryGroupRelLocalService;
 import com.liferay.depot.service.DepotEntryLocalService;
+import com.liferay.document.library.kernel.model.DLFileEntry;
 import com.liferay.document.library.kernel.model.DLFolderConstants;
 import com.liferay.expando.kernel.model.ExpandoColumn;
 import com.liferay.expando.kernel.model.ExpandoColumnConstants;
@@ -1026,7 +1027,7 @@ public class UserAccountResourceTest extends BaseUserAccountResourceTestCase {
 			});
 
 		_testPatchUserAccountWithGender();
-		_testPatchUserAccountWithImageExternalReferenceCode();
+		_testPatchUserAccountWithImage();
 	}
 
 	@Override
@@ -1958,14 +1959,23 @@ public class UserAccountResourceTest extends BaseUserAccountResourceTestCase {
 		return _expandoColumnLocalService.updateExpandoColumn(expandoColumn);
 	}
 
-	private FileEntry _addImageFileEntry() throws Exception {
+	private FileEntry _addImageFileEntry(boolean addPermissions)
+		throws Exception {
+
 		Company company = _companyLocalService.getCompany(
 			TestPropsValues.getCompanyId());
 
 		Group group = company.getGroup();
 
+		ServiceContext serviceContext =
+			ServiceContextTestUtil.getServiceContext(group.getGroupId());
+
+		serviceContext.setAddGroupPermissions(addPermissions);
+		serviceContext.setAddGuestPermissions(addPermissions);
+
 		LocalRepository localRepository =
-			RepositoryProviderUtil.getLocalRepository(group.getGroupId());
+			RepositoryProviderUtil.getLocalRepository(
+				serviceContext.getScopeGroupId());
 
 		byte[] bytes = FileUtil.getBytes(getClass(), "/images/liferay.png");
 
@@ -1977,8 +1987,7 @@ public class UserAccountResourceTest extends BaseUserAccountResourceTestCase {
 			RandomTestUtil.randomString(), ContentTypes.IMAGE_PNG,
 			RandomTestUtil.randomString(), RandomTestUtil.randomString(),
 			StringPool.BLANK, StringPool.BLANK, inputStream, bytes.length, null,
-			null, null,
-			ServiceContextTestUtil.getServiceContext(group.getGroupId()));
+			null, null, serviceContext);
 	}
 
 	private UserAccount _addUserAccount(
@@ -2971,24 +2980,73 @@ public class UserAccountResourceTest extends BaseUserAccountResourceTestCase {
 		}
 	}
 
-	private void _testPatchUserAccountWithImageExternalReferenceCode()
-		throws Exception {
+	private void _testPatchUserAccountWithImage() throws Exception {
+		_setUpTestUserAccountResource();
 
-		UserAccount postUserAccount = testPatchUserAccount_addUserAccount();
+		FileEntry fileEntry = _addImageFileEntry(false);
 
-		UserAccount randomPatchUserAccount = randomPatchUserAccount();
+		UserAccount userAccount = new UserAccount() {
+			{
+				imageExternalReferenceCode =
+					fileEntry.getExternalReferenceCode();
+			}
+		};
 
-		FileEntry fileEntry = _addImageFileEntry();
+		HttpInvoker.HttpResponse httpResponse =
+			_regularUserAccountResource.patchUserAccountHttpResponse(
+				_regularUserAccount.getId(), userAccount);
 
-		randomPatchUserAccount.setImageExternalReferenceCode(
-			fileEntry.getExternalReferenceCode());
+		Assert.assertEquals(
+			Response.Status.FORBIDDEN.getStatusCode(),
+			httpResponse.getStatusCode());
 
-		randomPatchUserAccount.setImageId(0L);
+		userAccount = new UserAccount() {
+			{
+				imageId = fileEntry.getFileEntryId();
+			}
+		};
 
-		UserAccount patchUserAccount = userAccountResource.patchUserAccount(
-			postUserAccount.getId(), randomPatchUserAccount);
+		httpResponse = _regularUserAccountResource.patchUserAccountHttpResponse(
+			_regularUserAccount.getId(), userAccount);
 
-		Assert.assertTrue(patchUserAccount.getImageId() > 0);
+		Assert.assertEquals(
+			Response.Status.FORBIDDEN.getStatusCode(),
+			httpResponse.getStatusCode());
+
+		Role role = RoleTestUtil.addRole(RoleConstants.TYPE_REGULAR);
+
+		_resourcePermissionLocalService.setResourcePermissions(
+			TestPropsValues.getCompanyId(), DLFileEntry.class.getName(),
+			ResourceConstants.SCOPE_INDIVIDUAL,
+			String.valueOf(fileEntry.getFileEntryId()), role.getRoleId(),
+			new String[] {ActionKeys.VIEW});
+
+		_userLocalService.addRoleUsers(
+			role.getRoleId(), new long[] {_regularUserAccount.getId()});
+
+		userAccount = new UserAccount() {
+			{
+				imageExternalReferenceCode =
+					fileEntry.getExternalReferenceCode();
+				imageId = 0L;
+			}
+		};
+
+		userAccount = _regularUserAccountResource.patchUserAccount(
+			_regularUserAccount.getId(), userAccount);
+
+		Assert.assertTrue(userAccount.getImageId() > 0);
+
+		userAccount = new UserAccount() {
+			{
+				imageId = fileEntry.getFileEntryId();
+			}
+		};
+
+		userAccount = _regularUserAccountResource.patchUserAccount(
+			_regularUserAccount.getId(), userAccount);
+
+		Assert.assertTrue(userAccount.getImageId() > 0);
 	}
 
 	private void _testPostAccountUserAccountsByExternalReferenceCodeByEmailAddressWithRoleId()
@@ -3215,7 +3273,7 @@ public class UserAccountResourceTest extends BaseUserAccountResourceTestCase {
 
 		UserAccount randomUserAccount = randomUserAccount();
 
-		FileEntry fileEntry = _addImageFileEntry();
+		FileEntry fileEntry = _addImageFileEntry(true);
 
 		randomUserAccount.setImageExternalReferenceCode(
 			fileEntry.getExternalReferenceCode());
@@ -3325,7 +3383,7 @@ public class UserAccountResourceTest extends BaseUserAccountResourceTestCase {
 
 		UserAccount randomPutUserAccount = randomUserAccount();
 
-		FileEntry fileEntry = _addImageFileEntry();
+		FileEntry fileEntry = _addImageFileEntry(true);
 
 		randomPutUserAccount.setImageExternalReferenceCode(
 			fileEntry.getExternalReferenceCode());
@@ -3347,7 +3405,7 @@ public class UserAccountResourceTest extends BaseUserAccountResourceTestCase {
 
 		UserAccount randomPutUserAccount = randomUserAccount();
 
-		FileEntry fileEntry = _addImageFileEntry();
+		FileEntry fileEntry = _addImageFileEntry(true);
 
 		randomPutUserAccount.setImageExternalReferenceCode(
 			fileEntry.getExternalReferenceCode());
