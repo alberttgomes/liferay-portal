@@ -8,6 +8,7 @@ package com.liferay.document.library.web.internal.portlet.action;
 import com.liferay.document.library.constants.DLPortletKeys;
 import com.liferay.document.library.kernel.model.DLFolderConstants;
 import com.liferay.document.library.kernel.service.DLAppService;
+import com.liferay.document.library.web.internal.security.permission.resource.DLFileEntryPermission;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
@@ -118,10 +119,17 @@ public class DownloadEntriesMVCResourceCommand implements MVCResourceCommand {
 			return;
 		}
 
+		ThemeDisplay themeDisplay = (ThemeDisplay)resourceRequest.getAttribute(
+			WebKeys.THEME_DISPLAY);
+
 		if ((fileEntries.size() == 1) && fileShortcuts.isEmpty() &&
 			folders.isEmpty()) {
 
 			FileEntry fileEntry = fileEntries.get(0);
+
+			DLFileEntryPermission.check(
+				themeDisplay.getPermissionChecker(), fileEntry,
+				ActionKeys.DOWNLOAD);
 
 			PortletResponseUtil.sendFile(
 				resourceRequest, resourceResponse, fileEntry.getFileName(),
@@ -136,16 +144,16 @@ public class DownloadEntriesMVCResourceCommand implements MVCResourceCommand {
 			FileEntry fileEntry = _dlAppService.getFileEntry(
 				fileShortcut.getToFileEntryId());
 
+			DLFileEntryPermission.check(
+				themeDisplay.getPermissionChecker(), fileEntry,
+				ActionKeys.DOWNLOAD);
+
 			PortletResponseUtil.sendFile(
 				resourceRequest, resourceResponse, fileEntry.getFileName(),
 				fileEntry.getContentStream(), 0, fileEntry.getMimeType(),
 				HttpHeaders.CONTENT_DISPOSITION_ATTACHMENT);
 		}
 		else {
-			ThemeDisplay themeDisplay =
-				(ThemeDisplay)resourceRequest.getAttribute(
-					WebKeys.THEME_DISPLAY);
-
 			long folderId = ParamUtil.getLong(resourceRequest, "folderId");
 
 			String zipFileName = _getZipFileName(folderId, themeDisplay);
