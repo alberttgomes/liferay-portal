@@ -46,14 +46,9 @@ public class HTMLImageAttachmentElementHandlerTest {
 			invocationOnMock -> invocationOnMock.getArgument(0, String.class)
 		);
 
-		_htmlImageAttachmentElementHandler =
-			new HTMLImageAttachmentElementHandler();
-
 		ReflectionTestUtil.setFieldValue(
 			_htmlImageAttachmentElementHandler, "_attachmentElementReplacer",
 			attachmentElementReplacer);
-
-		_dlAppService = Mockito.mock(DLAppService.class);
 
 		ReflectionTestUtil.setFieldValue(
 			_htmlImageAttachmentElementHandler, "_dlAppService", _dlAppService);
@@ -110,8 +105,9 @@ public class HTMLImageAttachmentElementHandlerTest {
 			fileEntryId, "\" />");
 	}
 
-	private DLAppService _dlAppService;
-	private HTMLImageAttachmentElementHandler
-		_htmlImageAttachmentElementHandler;
+	private final DLAppService _dlAppService = Mockito.mock(DLAppService.class);
+	private final HTMLImageAttachmentElementHandler
+		_htmlImageAttachmentElementHandler =
+			new HTMLImageAttachmentElementHandler();
 
 }
