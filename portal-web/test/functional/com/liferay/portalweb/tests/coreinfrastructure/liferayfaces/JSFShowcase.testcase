@@ -208,7 +208,6 @@ definition {
 	test InputHiddenSmoke {
 
 		// InputHiddenConversion
-
 		//Navigator.openWithAppendToBaseURL(urlAppend = "web/jsf-showcase/jsf-showcase/-/jsf-tag/h/inputhidden/conversion");
 		//JSFShowcase.submitHiddenValue(
 		//	key_text = "Copy a date to the value of the hidden input",
@@ -217,7 +216,6 @@ definition {
 		//JSFShowcase.clearHiddenValue(
 		//	message1 = "Apr 5, 0033",
 		//	message2 = "04/05/0033");
-
 		// InputHiddenGeneral
 
 		Navigator.openWithAppendToBaseURL(urlAppend = "web/jsf-showcase/jsf-showcase/-/jsf-tag/h/inputhidden/general");

@@ -439,7 +439,6 @@ public class UserAccountResourceTest extends BaseUserAccountResourceTestCase {
 				}));
 	}
 
-
 	private void _testPostRoomUserAccount() throws Exception {
 		_objectEntry = _objectEntryLocalService.getObjectEntry(
 			_objectEntry.getObjectEntryId());

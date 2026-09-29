@@ -447,7 +447,6 @@ definition {
 			textValue = "FACES-3356");
 
 		// FACES_3404
-
 		//BridgeIssues.addPageAndPortlet(
 		//	pageURL = "faces-3404",
 		//	portletName = "FACES-3404");
