@@ -41,15 +41,20 @@ public class OpenIdConnectSessionLocalServiceTest {
 	@Test
 	public void testAddOpenIdConnectSession() throws Exception {
 		String maxLengthIssuer = RandomTestUtil.randomString(255);
+		String maxLengthSessionId = RandomTestUtil.randomString(255);
 		long userId = RandomTestUtil.randomLong();
 
 		OpenIdConnectSession openIdConnectSession = _addOpenIdConnectSession(
-			maxLengthIssuer, userId);
+			maxLengthIssuer, maxLengthSessionId, userId);
 
 		Assert.assertEquals(
 			openIdConnectSession,
 			_openIdConnectSessionLocalService.getOpenIdConnectSession(
 				userId, maxLengthIssuer));
+		Assert.assertEquals(
+			openIdConnectSession,
+			_openIdConnectSessionLocalService.getOpenIdConnectSession(
+				maxLengthIssuer, maxLengthSessionId));
 	}
 
 	@Test
@@ -94,11 +99,12 @@ public class OpenIdConnectSessionLocalServiceTest {
 	}
 
 	private OpenIdConnectSession _addOpenIdConnectSession() throws Exception {
-		return _addOpenIdConnectSession(null, TestPropsValues.getUserId());
+		return _addOpenIdConnectSession(
+			null, null, TestPropsValues.getUserId());
 	}
 
 	private OpenIdConnectSession _addOpenIdConnectSession(
-		String issuer, long userId) {
+		String issuer, String sessionId, long userId) {
 
 		OpenIdConnectSession openIdConnectSession =
 			_openIdConnectSessionLocalService.createOpenIdConnectSession(
@@ -108,6 +114,7 @@ public class OpenIdConnectSessionLocalServiceTest {
 		openIdConnectSession.setUserId(userId);
 		openIdConnectSession.setAccessToken(RandomTestUtil.randomString());
 		openIdConnectSession.setIssuer(issuer);
+		openIdConnectSession.setSessionId(sessionId);
 
 		return _openIdConnectSessionLocalService.addOpenIdConnectSession(
 			openIdConnectSession);
