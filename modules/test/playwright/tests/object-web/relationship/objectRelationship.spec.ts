@@ -2141,7 +2141,7 @@ test.describe('Manage object relationships through Objects Admin UI', () => {
 			await page.getByRole('link', {name: entryA.id.toString()}).click();
 
 			await page
-				.locator('#editObjectEntry')
+				.locator('[id$="editObjectEntry"]')
 				.getByPlaceholder('Search')
 				.fill('!@#$%');
 
@@ -2569,7 +2569,7 @@ test.describe('Manage object relationships through Objects Admin UI', () => {
 			await page.getByRole('link', {name: entryB.id.toString()}).click();
 
 			await page
-				.locator('#editObjectEntry')
+				.locator('[id$="editObjectEntry"]')
 				.getByPlaceholder('Search')
 				.click();
 
