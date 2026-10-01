@@ -44,12 +44,18 @@ import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
+import com.liferay.portal.odata.filter.FilterParser;
+import com.liferay.portal.odata.filter.FilterParserProvider;
+import com.liferay.portal.odata.filter.expression.ExpressionVisitException;
 import com.liferay.segments.constants.SegmentsEntryConstants;
 import com.liferay.segments.constants.SegmentsExperimentConstants;
 import com.liferay.segments.criteria.Criteria;
 import com.liferay.segments.criteria.CriteriaSerializer;
+import com.liferay.segments.criteria.contributor.SegmentsCriteriaContributor;
+import com.liferay.segments.criteria.contributor.SegmentsCriteriaContributorRegistry;
 import com.liferay.segments.exception.LockedSegmentsEntryException;
 import com.liferay.segments.exception.RequiredSegmentsEntryException;
+import com.liferay.segments.exception.SegmentsEntryCriteriaException;
 import com.liferay.segments.exception.SegmentsEntryKeyException;
 import com.liferay.segments.exception.SegmentsEntryNameException;
 import com.liferay.segments.internal.constants.SegmentsDestinationNames;
@@ -71,6 +77,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -106,6 +113,7 @@ public class SegmentsEntryLocalServiceImpl
 			segmentsEntryKey = StringUtil.toUpperCase(segmentsEntryKey.trim());
 		}
 
+		_validateCriteria(criteria);
 		_validateKey(0, groupId, segmentsEntryKey);
 		_validateName(groupId, nameMap);
 
@@ -426,6 +434,7 @@ public class SegmentsEntryLocalServiceImpl
 
 		segmentsEntryKey = StringUtil.toUpperCase(segmentsEntryKey.trim());
 
+		_validateCriteria(criteria);
 		_validateKey(
 			segmentsEntryId, segmentsEntry.getGroupId(), segmentsEntryKey);
 
@@ -507,6 +516,21 @@ public class SegmentsEntryLocalServiceImpl
 		searchContext.setStart(start);
 
 		return searchContext;
+	}
+
+	private SegmentsCriteriaContributor _getSegmentsCriteriaContributor(
+		String key) {
+
+		for (SegmentsCriteriaContributor segmentsCriteriaContributor :
+				_segmentsCriteriaContributorRegistry.
+					getSegmentsCriteriaContributors()) {
+
+			if (Objects.equals(key, segmentsCriteriaContributor.getKey())) {
+				return segmentsCriteriaContributor;
+			}
+		}
+
+		return null;
 	}
 
 	private List<SegmentsEntry> _getSegmentsEntries(Hits hits)
@@ -616,6 +640,60 @@ public class SegmentsEntryLocalServiceImpl
 			});
 	}
 
+	private void _validateCriteria(String criteria) throws PortalException {
+		if (Validator.isNull(criteria)) {
+			return;
+		}
+
+		Criteria deserializedCriteria = CriteriaSerializer.deserialize(
+			criteria);
+
+		Map<String, Criteria.Criterion> criteriaMap =
+			deserializedCriteria.getCriteria();
+
+		if (criteriaMap == null) {
+			return;
+		}
+
+		for (Map.Entry<String, Criteria.Criterion> entry :
+				criteriaMap.entrySet()) {
+
+			Criteria.Criterion criterion = entry.getValue();
+
+			if (!Objects.equals(
+					Criteria.Type.MODEL.getValue(), criterion.getTypeValue())) {
+
+				continue;
+			}
+
+			String filterString = criterion.getFilterString();
+
+			if (Validator.isNull(filterString)) {
+				continue;
+			}
+
+			SegmentsCriteriaContributor segmentsCriteriaContributor =
+				_getSegmentsCriteriaContributor(entry.getKey());
+
+			if ((segmentsCriteriaContributor == null) ||
+				(segmentsCriteriaContributor.getEntityModel() == null)) {
+
+				continue;
+			}
+
+			FilterParser filterParser = _filterParserProvider.provide(
+				segmentsCriteriaContributor.getEntityModel());
+
+			try {
+				filterParser.parse(filterString);
+			}
+			catch (ExpressionVisitException expressionVisitException) {
+				throw new SegmentsEntryCriteriaException(
+					expressionVisitException);
+			}
+		}
+	}
+
 	private void _validateKey(
 			long segmentsEntryId, long groupId, String segmentsEntryKey)
 		throws PortalException {
@@ -659,6 +737,9 @@ public class SegmentsEntryLocalServiceImpl
 	}
 
 	@Reference
+	private FilterParserProvider _filterParserProvider;
+
+	@Reference
 	private GroupLocalService _groupLocalService;
 
 	@Reference
@@ -669,6 +750,10 @@ public class SegmentsEntryLocalServiceImpl
 
 	@Reference
 	private ResourceLocalService _resourceLocalService;
+
+	@Reference
+	private SegmentsCriteriaContributorRegistry
+		_segmentsCriteriaContributorRegistry;
 
 	@Reference
 	private SegmentsEntryRelLocalService _segmentsEntryRelLocalService;
