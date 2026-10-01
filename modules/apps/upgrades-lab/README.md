@@ -41,6 +41,8 @@ An upgrade run moves through the layers below. Every step is a Java call inside 
 
 1. **Poll and cancel** go back through the same layers. `GET` asks the runner for its current `UpgradeRunnerState` and records it on the row. `POST .../cancel` asks the runner to cancel and records the cancellation. The run stays stored, so `GET` keeps answering for it.
 
+1. **Resume** submits a new run that continues a finished one from a phase. `POST .../resume` goes through the same layers as a submission: the local service copies the finished run's fields and settings onto a new row, applies the settings the caller sent, and hands the runner a request that names the phase to start at, the finished run's result branch, and its clone. See [Resuming a Run](#resuming-a-run).
+
 The runner reports one of the statuses below. A run moves through the nonterminal statuses in ascending order, skipping phases a runner does not need, and reaches a terminal status from anywhere. Nothing leaves a terminal status, which keeps a late report from overwriting a finished run.
 
 | Status | Value | Terminal | Meaning |
@@ -48,7 +50,7 @@ The runner reports one of the statuses below. A run moves through the nontermina
 | `queued` | 1 | No | Accepted, not started. |
 | `validating` | 2 | No | Checking that the branch is reachable. |
 | `provisioning` | 3 | No | Allocating a substrate. The local runner skips this. |
-| `cloning` | 4 | No | Cloning the repository. |
+| `cloning` | 4 | No | Cloning the repository, or reusing the clone of the run being resumed. |
 | `running` | 5 | No | The agent command is executing. |
 | `publishing` | 6 | No | Pushing the result branches and opening the pull request. |
 | `failed` | 7 | Yes | A command exited nonzero or threw. |
@@ -169,6 +171,18 @@ The response to a `GET` then carries the branch in `resultBranch` and the pull r
 
 Cancelling a run kills the agent process along with it, and the run keeps the `cancelled` status. Nothing is published for a cancelled run.
 
+### Resuming a Run
+
+A finished run never changes status again. To carry on from where it stopped, resume it: the portal creates a new run, and the finished run stays as it is. The new run starts at `firstPhase`, which defaults to the phase of the finished run's result branch, so a run blocked in `phase3` resumes at phase 3. Every phase before it is taken as complete.
+
+The runner continues on the finished run's clone when `workspacePath` still exists on its host, which keeps the uncommitted state a phase left behind, such as the derived compose file phase 3 booted the portal with. The agent's working files survive, and the agent itself is unpacked again so the newest skills apply. When the clone is gone, the runner clones the result branch instead and fetches the upgrade branch and the earlier phase branches, which the next phase stacks on.
+
+The runner runs `/upgrade-init` again only when it has to: on a fresh clone, where the excluded files are gone, or when the resumption changed a setting, since only `/upgrade-init` writes `CLAUDE.md`. A reused clone with the same settings already has its upgrade branch, so the runner goes straight to the phases. Either way, it rewrites the phase tracker before invoking the first phase: the rows before it read `complete`, and the rows from it on read `pending`, so `/upgrade-phase` starts the phase over instead of asking whether to resume it. The one row left alone is the first phase's own when it reads `in-progress`, because the finished run stopped inside that phase, and `/upgrade-phase` resumes it where it stopped. The push at the end replaces the phase branch on the remote with whatever the agent committed.
+
+The settings sent with the resumption are merged over the finished run's settings and written to `upgrade-run.properties` as usual. This is how a phase that was `blocked` on a missing input gets its answer: the phase names the key it needs, and the caller supplies it on the resumption. A `null` value removes the key. The merged settings are what the new run stores, so a later resumption of the new run keeps them.
+
+When the finished run already opened a pull request from the same phase branch, the resumed run finds that pull request instead of opening another one, since the branch now holds the new commits.
+
 ### The Agent Environment
 
 The agent command runs with the clone as its working directory and inherits the portal's environment plus the variables below. When the run exports a credential, the inherited `ANTHROPIC_*` and `CLAUDE_CODE_*` variables and `CLAUDE_CONFIG_DIR` are removed first; see [Authenticating the Agent](#authenticating-the-agent).
@@ -260,6 +274,7 @@ A missing required field is rejected before anything is stored. Only `credential
 | `credentialKeyReference` | Write, optional | The key reference of the private key the runner reaches the repository with. Leave it out when the repository needs no credential. |
 | `customerName`, `dbTargetType`, `dbTargetVersion`, `nodeVersion`, `searchVersion`, `upgradeSourceVersion`, `upgradeTargetJavaVersion`, `upgradeTargetVersion` | Write | The workspace settings. See [Workspace Settings](#workspace-settings). |
 | `externalReferenceCode` | Read only | The identifier the runner knows the run by. |
+| `firstPhase` | Read only | The phase the agent started at. It is 1 unless the run resumed another run. |
 | `id` | Read only | The primary key of the stored run. |
 | `licensePath` | Write, optional | The path, on the runner's host, of the DXP license file, or of a folder holding it. Leave it out to use the configured license path. See [Supplying the License](#supplying-the-license). |
 | `pullRequestURL` | Read only | The pull request the run opened for its result. Empty until `publishing`, and empty when `gh` is not available on the host. |
@@ -289,6 +304,34 @@ curl \
 ```
 
 The response is the run with `status` set to `cancelled`. Cancelling a run that already finished does nothing and returns the run as it is.
+
+### Resume a Run
+
+```bash
+UPGRADE_RUN_RESUMPTION=$(cat <<'EOF'
+{
+	"firstPhase": 4,
+	"settings": {
+		"reference.local.path": "/opt/liferay/liferay-portal-ee"
+	}
+}
+EOF
+)
+
+curl \
+	--data "${UPGRADE_RUN_RESUMPTION}" \
+	--header "Content-Type: application/json" \
+	--request POST \
+	--url "${PORTAL_URL}/o/upgrades-lab-agent-remote/v1.0/upgrade-runs/by-external-reference-code/${EXTERNAL_REFERENCE_CODE}/resume" \
+	--user "${PORTAL_USER}:${PORTAL_PASSWORD}"
+```
+
+The run must be in a terminal status, or the call is rejected with `400`. Both body properties are optional, and an empty body resumes at the phase the run stopped in with its settings unchanged. The response is the new run, with its own `externalReferenceCode` to poll. See [Resuming a Run](#resuming-a-run) for what the runner does with it.
+
+| Property | Meaning |
+| --- | --- |
+| `firstPhase` | The phase the agent starts at, 1 to 4. Leave it out to start at the phase of the finished run's result branch. A phase above 1 needs a result branch, so a run that never cloned can only be resumed from phase 1. |
+| `settings` | Workspace settings to add to or replace among the finished run's settings, keyed as in `upgrade-run.properties`. A `null` value removes the key. |
 
 ### Java Client
 
@@ -323,7 +366,7 @@ upgradeRun = upgradeRunResource.getUpgradeRunByExternalReferenceCode(
 
 ## Current State
 
-Submit, poll, and cancel work end to end against the local runner. The gaps that remain are listed below.
+Submit, poll, cancel, and resume work end to end against the local runner. The gaps that remain are listed below.
 
 - **Pull requests depend on `gh`.** Pushing needs only Git, but opening the pull request shells out to the GitHub CLI on the portal host, logged in as the portal's operating system user. Without it a run still publishes its branches and reports them in `resultBranch`, with `pullRequestURL` empty. A token carried on the run, once a secret provider exists, is the path to removing that dependency.
 
@@ -345,7 +388,7 @@ Deploy the api, service, REST API, REST implementation, REST client, and runner 
 ../../../../gradlew deploy
 ```
 
-The entity's schema changed while the bundle version stayed at `1.0.0`. On a bundle that already created the `UpgradeRun` table, drop the table or reset the database before redeploying the service module.
+The entity's schema changed while the bundle version stayed at `1.0.0`. On a bundle that already created the `UpgradeRun` table, either drop the table before redeploying the service module, or set `schema.module.build.auto.upgrade=true` in `portal-ext.properties` and restart with the new service module in place: the portal then rebuilds the table from `tables.sql` on startup, keeping its rows. Deploy the module while Tomcat is stopped, since a hot deploy records the new schema without applying it.
 
 Run the unit tests.
 
