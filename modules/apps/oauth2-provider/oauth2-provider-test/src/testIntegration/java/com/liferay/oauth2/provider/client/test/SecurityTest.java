@@ -14,6 +14,7 @@ import com.liferay.oauth2.provider.service.OAuth2ApplicationLocalService;
 import com.liferay.oauth2.provider.service.OAuth2ScopeGrantLocalService;
 import com.liferay.petra.io.unsync.UnsyncByteArrayInputStream;
 import com.liferay.portal.image.ImageToolUtil;
+import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.model.Company;
 import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.repository.model.FileVersion;
@@ -66,6 +67,8 @@ import org.junit.runner.RunWith;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.ServiceRegistration;
 
+import org.skyscreamer.jsonassert.JSONAssert;
+
 /**
  * @author Stian Sigvartsen
  */
@@ -78,7 +81,9 @@ public class SecurityTest extends BaseClientTestCase {
 		new LiferayIntegrationTestRule();
 
 	@Test
-	public void testConfidentialApplicationIsDisclosedToAuthorizedUser() {
+	public void testConfidentialApplicationIsDisclosedToAuthorizedUser()
+		throws Exception {
+
 		Response response = _getApplicationResponse(
 			_EXTERNAL_REFERENCE_CODE_CLIENT_CREDENTIALS,
 			getAuthenticatedCookie(
@@ -87,9 +92,7 @@ public class SecurityTest extends BaseClientTestCase {
 
 		Assert.assertEquals(200, getStatus(response));
 
-		String bodyString = getBodyAsString(response);
-
-		Assert.assertTrue(bodyString.contains(_CLIENT_ID_CLIENT_CREDENTIALS));
+		_assertApplicationResponseBody(_CLIENT_ID_CLIENT_CREDENTIALS, response);
 	}
 
 	@Test
@@ -264,15 +267,13 @@ public class SecurityTest extends BaseClientTestCase {
 	}
 
 	@Test
-	public void testPublicApplicationIsDisclosedToGuestUser() {
+	public void testPublicApplicationIsDisclosedToGuestUser() throws Exception {
 		Response response = _getApplicationResponse(
 			_EXTERNAL_REFERENCE_CODE_CODE_PKCE, null);
 
 		Assert.assertEquals(200, getStatus(response));
 
-		String bodyString = getBodyAsString(response);
-
-		Assert.assertTrue(bodyString.contains(_CLIENT_ID_CODE_PKCE));
+		_assertApplicationResponseBody(_CLIENT_ID_CODE_PKCE, response);
 	}
 
 	@Test
@@ -350,6 +351,20 @@ public class SecurityTest extends BaseClientTestCase {
 
 	protected String parseXFrameOptionsHeader(Response response) {
 		return response.getHeaderString("x-frame-options");
+	}
+
+	private void _assertApplicationResponseBody(
+			String clientId, Response response)
+		throws Exception {
+
+		JSONAssert.assertEquals(
+			JSONUtil.put(
+				"client_id", clientId
+			).put(
+				"homePageURL",
+				"http://localhost:" + PortalUtil.getPortalServerPort(false)
+			).toString(),
+			getBodyAsString(response), true);
 	}
 
 	private void _assertAuthorizationPageEscapesInjectedScript(
