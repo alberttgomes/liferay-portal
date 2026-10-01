@@ -5,8 +5,10 @@
 
 package com.liferay.upgrades.lab.agent.remote.rest.internal.resource.v1_0;
 
+import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.upgrades.lab.agent.remote.constants.UpgradeRunConstants;
 import com.liferay.upgrades.lab.agent.remote.rest.dto.v1_0.UpgradeRun;
+import com.liferay.upgrades.lab.agent.remote.rest.dto.v1_0.UpgradeRunResumption;
 import com.liferay.upgrades.lab.agent.remote.rest.resource.v1_0.UpgradeRunResource;
 import com.liferay.upgrades.lab.agent.remote.service.UpgradeRunLocalService;
 
@@ -58,6 +60,24 @@ public class UpgradeRunResourceImpl extends BaseUpgradeRunResourceImpl {
 				externalReferenceCode, contextCompany.getCompanyId()));
 	}
 
+	@Override
+	public UpgradeRun postUpgradeRunByExternalReferenceCodeResume(
+			String externalReferenceCode,
+			UpgradeRunResumption upgradeRunResumption)
+		throws Exception {
+
+		if (upgradeRunResumption == null) {
+			upgradeRunResumption = new UpgradeRunResumption();
+		}
+
+		return _toUpgradeRun(
+			_upgradeRunLocalService.resumeUpgradeRun(
+				contextUser.getUserId(), externalReferenceCode,
+				contextCompany.getCompanyId(),
+				GetterUtil.getInteger(upgradeRunResumption.getFirstPhase()),
+				upgradeRunResumption.getSettings()));
+	}
+
 	private UpgradeRun _toUpgradeRun(
 		com.liferay.upgrades.lab.agent.remote.model.UpgradeRun upgradeRun) {
 
@@ -70,6 +90,7 @@ public class UpgradeRunResourceImpl extends BaseUpgradeRunResourceImpl {
 				setDbTargetType(upgradeRun::getDbTargetType);
 				setDbTargetVersion(upgradeRun::getDbTargetVersion);
 				setExternalReferenceCode(upgradeRun::getExternalReferenceCode);
+				setFirstPhase(upgradeRun::getFirstPhase);
 				setId(upgradeRun::getUpgradeRunId);
 				setLicensePath(upgradeRun::getLicensePath);
 				setNodeVersion(upgradeRun::getNodeVersion);
