@@ -439,6 +439,259 @@ public class LocalUpgradeRunnerTest {
 	}
 
 	@Test
+	public void testSubmitResumeFromResultBranch() throws Exception {
+		_writePhaseStatuses("complete", "complete", "blocked");
+
+		UpgradeRunnerState upgradeRunnerState = _submit(
+			_getUpgradeRunRequest(null, null));
+
+		Assert.assertEquals(
+			upgradeRunnerState.getStatusMessage(),
+			UpgradeRunConstants.STATUS_BLOCKED, upgradeRunnerState.getStatus());
+
+		Path workspacePath = Path.of(upgradeRunnerState.getWorkspacePath());
+
+		_deleteDirectory(workspacePath.toFile());
+
+		Files.writeString(
+			_testPath.resolve("pull-request"), RandomTestUtil.randomString());
+
+		_writePhaseStatuses("complete", "complete", "complete", "complete");
+
+		Files.delete(_testPath.resolve("trackers"));
+
+		UpgradeRunnerState resumedUpgradeRunnerState = _submit(
+			_getUpgradeRunRequest(
+				null, 3, null, "phase3",
+				upgradeRunnerState.getWorkspacePath()));
+
+		Assert.assertEquals(
+			resumedUpgradeRunnerState.getStatusMessage(),
+			UpgradeRunConstants.STATUS_SUCCESSFUL,
+			resumedUpgradeRunnerState.getStatus());
+		Assert.assertEquals(
+			"https://github.com/acme/workspace/pull/7",
+			resumedUpgradeRunnerState.getPullRequestURL());
+		Assert.assertEquals(
+			"phase4", resumedUpgradeRunnerState.getResultBranch());
+		Assert.assertNotEquals(
+			upgradeRunnerState.getWorkspacePath(),
+			resumedUpgradeRunnerState.getWorkspacePath());
+
+		List<String> claudeArguments = _readLines("claude-arguments");
+
+		Assert.assertEquals(
+			Arrays.asList(
+				"--permission-mode bypassPermissions --print /upgrade-init",
+				"--permission-mode bypassPermissions --print /upgrade-phase 3",
+				"--permission-mode bypassPermissions --print /upgrade-phase 4"),
+			claudeArguments.subList(4, claudeArguments.size()));
+
+		Path resumedWorkspacePath = Path.of(
+			resumedUpgradeRunnerState.getWorkspacePath());
+
+		Assert.assertEquals(
+			Arrays.asList(
+				"phase1", "phase2", "phase3", "phase4",
+				"upgrade/7.4-to-2026.q1.0"),
+			Arrays.asList(
+				StringUtil.splitLines(
+					_executeGit(
+						resumedWorkspacePath, "for-each-ref",
+						"--format=%(refname:short)", "refs/heads"))));
+
+		Assert.assertEquals(
+			Arrays.asList(
+				"| Phase | Name | Status | Started |",
+				"| --- | --- | --- | --- |",
+				"| 1 | Upgrade Environment | complete | complete |",
+				"| 2 | Fix Compile | complete | complete |",
+				"| 3 | Fix Startup | pending | pending |",
+				"| 4 | Check Reindex | pending | pending |",
+				"| 5 | Fix Frontend | — | deferred |",
+				"| 3 | Phase | complete |"),
+			_readLines("trackers"));
+		Assert.assertEquals(
+			Arrays.asList(
+				"main", "phase1", "phase2", "phase3", "phase4",
+				"upgrade/7.4-to-2026.q1.0"),
+			_getRemoteBranches());
+
+		String ghArguments = _read("gh-arguments");
+
+		Assert.assertTrue(
+			ghArguments,
+			ghArguments.startsWith(
+				"pr\nlist\n--base\nupgrade/7.4-to-2026.q1.0\n--head\n" +
+					"phase4\n"));
+	}
+
+	@Test
+	public void testSubmitResumeInWorkspace() throws Exception {
+		_writePhaseStatuses("complete", "blocked");
+
+		UpgradeRunnerState upgradeRunnerState = _submit(
+			_getUpgradeRunRequest(null, null));
+
+		Assert.assertEquals(
+			upgradeRunnerState.getStatusMessage(),
+			UpgradeRunConstants.STATUS_BLOCKED, upgradeRunnerState.getStatus());
+
+		Path workspacePath = Path.of(upgradeRunnerState.getWorkspacePath());
+
+		Files.writeString(workspacePath.resolve("CLAUDE.md"), "configured");
+
+		_writePhaseStatuses("complete", "complete", "complete", "complete");
+
+		Files.delete(_testPath.resolve("trackers"));
+
+		UpgradeRunnerState resumedUpgradeRunnerState = _submit(
+			_getUpgradeRunRequest(
+				null, 2, null, "phase2", workspacePath.toString()));
+
+		Assert.assertEquals(
+			resumedUpgradeRunnerState.getStatusMessage(),
+			UpgradeRunConstants.STATUS_SUCCESSFUL,
+			resumedUpgradeRunnerState.getStatus());
+		Assert.assertEquals(
+			"phase4", resumedUpgradeRunnerState.getResultBranch());
+		Assert.assertEquals(
+			workspacePath.toString(),
+			resumedUpgradeRunnerState.getWorkspacePath());
+
+		List<String> claudeArguments = _readLines("claude-arguments");
+
+		Assert.assertEquals(
+			Arrays.asList(
+				"--permission-mode bypassPermissions --print /upgrade-phase 2",
+				"--permission-mode bypassPermissions --print /upgrade-phase 3",
+				"--permission-mode bypassPermissions --print /upgrade-phase 4"),
+			claudeArguments.subList(3, claudeArguments.size()));
+
+		Assert.assertEquals(
+			"configured", Files.readString(workspacePath.resolve("CLAUDE.md")));
+		_assertInstalled(
+			"hooks/guard_bash.py", ".claude/hooks/guard_bash.py",
+			workspacePath);
+		Assert.assertEquals(
+			Arrays.asList(
+				"| 2 | Phase | pending |", "| 2 | Phase | complete |",
+				"| 3 | Phase | complete |"),
+			_readLines("trackers"));
+
+		List<String> excludedPaths = Files.readAllLines(
+			workspacePath.resolve(".git/info/exclude"), StandardCharsets.UTF_8);
+
+		Assert.assertEquals(
+			excludedPaths.toString(), 1,
+			Collections.frequency(excludedPaths, "upgrade-state.md"));
+
+		Assert.assertEquals(
+			Arrays.asList(
+				"main", "phase1", "phase2", "phase3", "phase4",
+				"upgrade/7.4-to-2026.q1.0"),
+			_getRemoteBranches());
+	}
+
+	@Test
+	public void testSubmitResumeInWorkspaceWithChangedSettings()
+		throws Exception {
+
+		_writePhaseStatuses("complete", "blocked");
+
+		UpgradeRunnerState upgradeRunnerState = _submit(
+			_getUpgradeRunRequest(null, null));
+
+		Assert.assertEquals(
+			upgradeRunnerState.getStatusMessage(),
+			UpgradeRunConstants.STATUS_BLOCKED, upgradeRunnerState.getStatus());
+
+		_writePhaseStatuses("complete", "complete", "complete", "complete");
+
+		UpgradeRunnerState resumedUpgradeRunnerState = _submit(
+			_getUpgradeRunRequest(
+				null, 2, null, "phase2",
+				HashMapBuilder.putAll(
+					_getSettings()
+				).put(
+					UpgradeRunSettingsKeys.SEARCH_VERSION, "8.19.11"
+				).build(),
+				upgradeRunnerState.getWorkspacePath()));
+
+		Assert.assertEquals(
+			resumedUpgradeRunnerState.getStatusMessage(),
+			UpgradeRunConstants.STATUS_SUCCESSFUL,
+			resumedUpgradeRunnerState.getStatus());
+
+		List<String> claudeArguments = _readLines("claude-arguments");
+
+		Assert.assertEquals(
+			Arrays.asList(
+				"--permission-mode bypassPermissions --print /upgrade-init",
+				"--permission-mode bypassPermissions --print /upgrade-phase 2",
+				"--permission-mode bypassPermissions --print /upgrade-phase 3",
+				"--permission-mode bypassPermissions --print /upgrade-phase 4"),
+			claudeArguments.subList(3, claudeArguments.size()));
+
+		Assert.assertEquals(
+			Arrays.asList(
+				"customer.name=acme", "db.target.type=mysql",
+				"db.target.version=8.0", "node.version=20.18.0",
+				"search.version=8.19.11", "upgrade.source.version=7.4.13-u92",
+				"upgrade.target.java.version=21"),
+			_readLines("settings"));
+	}
+
+	@Test
+	public void testSubmitResumeInWorkspaceWithUnfinishedPhase()
+		throws Exception {
+
+		_writePhaseStatuses("complete", "in-progress");
+
+		UpgradeRunnerState upgradeRunnerState = _submit(
+			_getUpgradeRunRequest(null, null));
+
+		Assert.assertEquals(
+			UpgradeRunConstants.STATUS_FAILED, upgradeRunnerState.getStatus());
+		Assert.assertEquals(
+			"Phase 2, Fix Compile, did not finish after 3 attempts. Its last " +
+				"status was \"in-progress\".",
+			upgradeRunnerState.getStatusMessage());
+		Assert.assertEquals("phase2", upgradeRunnerState.getResultBranch());
+
+		_writePhaseStatuses("complete", "complete", "complete", "complete");
+
+		Files.delete(_testPath.resolve("trackers"));
+
+		UpgradeRunnerState resumedUpgradeRunnerState = _submit(
+			_getUpgradeRunRequest(
+				null, 2, null, "phase2",
+				upgradeRunnerState.getWorkspacePath()));
+
+		Assert.assertEquals(
+			resumedUpgradeRunnerState.getStatusMessage(),
+			UpgradeRunConstants.STATUS_SUCCESSFUL,
+			resumedUpgradeRunnerState.getStatus());
+		Assert.assertEquals(
+			"phase4", resumedUpgradeRunnerState.getResultBranch());
+
+		List<String> claudeArguments = _readLines("claude-arguments");
+
+		Assert.assertEquals(
+			Arrays.asList(
+				"--permission-mode bypassPermissions --print /upgrade-phase 2",
+				"--permission-mode bypassPermissions --print /upgrade-phase 3",
+				"--permission-mode bypassPermissions --print /upgrade-phase 4"),
+			claudeArguments.subList(5, claudeArguments.size()));
+
+		Assert.assertEquals(
+			Arrays.asList(
+				"| 2 | Phase | in-progress |", "| 2 | Phase | complete |",
+				"| 3 | Phase | complete |"),
+			_readLines("trackers"));
+	}
+
+	@Test
 	public void testSubmitUnfinishedPhase() throws Exception {
 		_writePhaseStatuses("TODO | in-progress");
 
@@ -465,6 +718,40 @@ public class LocalUpgradeRunnerTest {
 			Arrays.asList("main", "phase1", "upgrade/7.4-to-2026.q1.0"),
 			_getRemoteBranches());
 		Assert.assertFalse(Files.exists(_testPath.resolve("gh-arguments")));
+	}
+
+	@Test
+	public void testSubmitWithAgentCommand() throws Exception {
+		_configurationProperties.put(
+			"agentCommand",
+			new String[] {
+				_writeScript(
+					"agent",
+					new String[] {
+						"cp \"$UPGRADE_RUN_SETTINGS\" \"$dir/settings\""
+					})
+			});
+
+		UpgradeRunnerState upgradeRunnerState = _submit(
+			_getUpgradeRunRequest(null, null));
+
+		Assert.assertEquals(
+			upgradeRunnerState.getStatusMessage(),
+			UpgradeRunConstants.STATUS_SUCCESSFUL,
+			upgradeRunnerState.getStatus());
+		Assert.assertEquals(
+			"The upgrade agent finished",
+			upgradeRunnerState.getStatusMessage());
+		Assert.assertNull(upgradeRunnerState.getResultBranch());
+
+		Assert.assertEquals(
+			Arrays.asList(
+				"customer.name=acme", "db.target.type=mysql",
+				"db.target.version=8.0", "node.version=20.18.0",
+				"search.version=8.17.4", "upgrade.source.version=7.4.13-u92",
+				"upgrade.target.java.version=21"),
+			_readLines("settings"));
+		Assert.assertFalse(Files.exists(_testPath.resolve("claude-arguments")));
 	}
 
 	@Test
@@ -660,14 +947,30 @@ public class LocalUpgradeRunnerTest {
 					"README.md", "hooks/guard_bash.py", "reference/README.md",
 					"skills/upgrade-run/SKILL.md",
 					"templates/.mcp.json.template",
-					"templates/CLAUDE.md.template", "templates/notes.txt"
+					"templates/CLAUDE.md.template", "templates/notes.txt",
+					"templates/upgrade-state.md.template"
 				}) {
 
 			Path path = agentPath.resolve(relativePath);
 
 			Files.createDirectories(path.getParent());
 
-			Files.writeString(path, relativePath);
+			if (relativePath.equals("templates/upgrade-state.md.template")) {
+				Files.write(
+					path,
+					Arrays.asList(
+						"| Phase | Name | Status | Started |",
+						"| --- | --- | --- | --- |",
+						"| 1 | Upgrade Environment | TODO | pending |",
+						"| 2 | Fix Compile | TODO | pending |",
+						"| 3 | Fix Startup | TODO | pending |",
+						"| 4 | Check Reindex | TODO | pending |",
+						"| 5 | Fix Frontend | — | deferred |"),
+					StandardCharsets.UTF_8);
+			}
+			else {
+				Files.writeString(path, relativePath);
+			}
 
 			urls.add(_toURL(path));
 		}
@@ -704,14 +1007,19 @@ public class LocalUpgradeRunnerTest {
 				"\t\tcp \"$UPGRADE_RUN_LICENSE_PATH\" \"$dir/license\"",
 				"\t\tprintf '%s\\n' \"$UPGRADE_RUN_LICENSE_PATH\" \\",
 				"\t\t\t> \"$dir/license-path\"", "\tfi",
-				"\tgit checkout -b upgrade/7.4-to-2026.q1.0 --quiet",
-				"\tcommit 2026-01-01T00:00:00 Initialize",
+				"\tif ! git checkout upgrade/7.4-to-2026.q1.0 --quiet \\",
+				"\t\t2>/dev/null; then",
+				"\t\tgit checkout -b upgrade/7.4-to-2026.q1.0 --quiet",
+				"\t\tcommit 2026-01-01T00:00:00 Initialize", "\tfi",
 				"elif [ \"${4#/upgrade-phase }\" != \"$4\" ]; then",
 				"\tphase=\"${4#/upgrade-phase }\"",
 				"\tstatuses=\"$dir/phase-statuses\"",
 				"\tstatus=\"$(sed -n \"${phase}p\" \"$statuses\")\"",
+				"\tcat upgrade-state.md >> \"$dir/trackers\"",
 				"\tprintf '| %s | Phase | %s |\\n' \"$phase\" \\",
 				"\t\t\"$status\" > upgrade-state.md",
+				"\tif [ \"$phase\" -gt 1 ]; then",
+				"\t\tgit checkout \"phase$((phase - 1))\" --quiet", "\tfi",
 				"\tgit checkout -B \"phase$phase\" --quiet",
 				"\tdate=\"2026-01-0$((phase + 1))T00:00:00\"",
 				"\tcommit \"$date\" \"Phase $phase\"", "fi"
@@ -723,7 +1031,11 @@ public class LocalUpgradeRunnerTest {
 			"gh",
 			new String[] {
 				"printf '%s\\n' \"$@\" > \"$dir/gh-arguments\"",
-				"echo 'Creating pull request'", "echo",
+				"if [ \"$2\" = list ]; then",
+				"\techo 'https://github.com/acme/workspace/pull/7'", "\texit 0",
+				"fi", "if [ -e \"$dir/pull-request\" ]; then",
+				"\techo 'a pull request for branch \"phase4\" already exists'",
+				"\texit 1", "fi", "echo 'Creating pull request'", "echo",
 				"echo 'https://github.com/acme/workspace/pull/7'"
 			});
 	}
@@ -792,28 +1104,51 @@ public class LocalUpgradeRunnerTest {
 					"--format=%(refname:short)", "refs/heads")));
 	}
 
+	private Map<String, String> _getSettings() {
+		return HashMapBuilder.put(
+			UpgradeRunSettingsKeys.CUSTOMER_NAME, "acme"
+		).put(
+			UpgradeRunSettingsKeys.DB_TARGET_TYPE, "mysql"
+		).put(
+			UpgradeRunSettingsKeys.DB_TARGET_VERSION, "8.0"
+		).put(
+			UpgradeRunSettingsKeys.NODE_VERSION, "20.18.0"
+		).put(
+			UpgradeRunSettingsKeys.SEARCH_VERSION, "8.17.4"
+		).put(
+			UpgradeRunSettingsKeys.UPGRADE_SOURCE_VERSION, "7.4.13-u92"
+		).put(
+			UpgradeRunSettingsKeys.UPGRADE_TARGET_JAVA_VERSION, "21"
+		).build();
+	}
+
 	private UpgradeRunRequest _getUpgradeRunRequest(
-		String credentialKeyReference, String licensePath) {
+		String credentialKeyReference, int firstPhase, String licensePath,
+		String resultBranch, Map<String, String> settings,
+		String workspacePath) {
 
 		return new UpgradeRunRequest(
 			"main", RandomTestUtil.randomLong(), credentialKeyReference,
-			licensePath, "file://" + _testPath.resolve("remote.git"),
-			HashMapBuilder.put(
-				UpgradeRunSettingsKeys.CUSTOMER_NAME, "acme"
-			).put(
-				UpgradeRunSettingsKeys.DB_TARGET_TYPE, "mysql"
-			).put(
-				UpgradeRunSettingsKeys.DB_TARGET_VERSION, "8.0"
-			).put(
-				UpgradeRunSettingsKeys.NODE_VERSION, "20.18.0"
-			).put(
-				UpgradeRunSettingsKeys.SEARCH_VERSION, "8.17.4"
-			).put(
-				UpgradeRunSettingsKeys.UPGRADE_SOURCE_VERSION, "7.4.13-u92"
-			).put(
-				UpgradeRunSettingsKeys.UPGRADE_TARGET_JAVA_VERSION, "21"
-			).build(),
-			RandomTestUtil.randomLong(), "2026.q1.0");
+			firstPhase, licensePath,
+			"file://" + _testPath.resolve("remote.git"), resultBranch, settings,
+			RandomTestUtil.randomLong(), "2026.q1.0", workspacePath);
+	}
+
+	private UpgradeRunRequest _getUpgradeRunRequest(
+		String credentialKeyReference, int firstPhase, String licensePath,
+		String resultBranch, String workspacePath) {
+
+		return _getUpgradeRunRequest(
+			credentialKeyReference, firstPhase, licensePath, resultBranch,
+			_getSettings(), workspacePath);
+	}
+
+	private UpgradeRunRequest _getUpgradeRunRequest(
+		String credentialKeyReference, String licensePath) {
+
+		return _getUpgradeRunRequest(
+			credentialKeyReference, UpgradeRunConstants.PHASE_FIRST,
+			licensePath, null, null);
 	}
 
 	private String _read(String fileName) throws Exception {

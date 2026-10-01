@@ -15,7 +15,9 @@ import com.liferay.portal.configuration.module.configuration.ConfigurationProvid
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
+import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
+import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.uuid.PortalUUIDUtil;
@@ -46,7 +48,6 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
@@ -151,19 +152,37 @@ public class LocalUpgradeRunner implements UpgradeRunner {
 			Path workspacePath)
 		throws Exception {
 
-		String output = _executeCommandForOutput(
-			environment, logPath, workspacePath,
-			ArrayUtil.append(
-				localUpgradeRunnerConfiguration.ghCommand(),
-				new String[] {
-					"pr", "create", "--base", upgradeBranch, "--body",
-					_getPullRequestBody(upgradeRunnerState), "--head",
-					resultBranch, "--title",
-					_getPullRequestTitle(
-						upgradeRunnerState, upgradeTargetVersion)
-				}));
+		try {
+			return _getPullRequestURL(
+				_executeCommandForOutput(
+					environment, logPath, workspacePath,
+					ArrayUtil.append(
+						localUpgradeRunnerConfiguration.ghCommand(),
+						new String[] {
+							"pr", "create", "--base", upgradeBranch, "--body",
+							_getPullRequestBody(upgradeRunnerState), "--head",
+							resultBranch, "--title",
+							_getPullRequestTitle(
+								upgradeRunnerState, upgradeTargetVersion)
+						})));
+		}
+		catch (Exception exception) {
+			String pullRequestURL = _getPullRequestURL(
+				_executeCommandForOutput(
+					environment, logPath, workspacePath,
+					ArrayUtil.append(
+						localUpgradeRunnerConfiguration.ghCommand(),
+						new String[] {
+							"pr", "list", "--base", upgradeBranch, "--head",
+							resultBranch, "--json", "url", "--jq", ".[].url"
+						})));
 
-		return _getPullRequestURL(output);
+			if (pullRequestURL == null) {
+				throw exception;
+			}
+
+			return pullRequestURL;
+		}
 	}
 
 	private void _deleteTempFile(Path path) {
@@ -246,20 +265,16 @@ public class LocalUpgradeRunner implements UpgradeRunner {
 					null, null, UpgradeRunConstants.STATUS_VALIDATING,
 					"Validating the repository and the branch"));
 
-			LocalUpgradeRunnerConfiguration localUpgradeRunnerConfiguration =
-				_configurationProvider.getCompanyConfiguration(
-					LocalUpgradeRunnerConfiguration.class,
-					upgradeRunRequest.getCompanyId());
-
 			if (Validator.isNotNull(
 					upgradeRunRequest.getCredentialKeyReference())) {
 
 				privateKeyPath = _writePrivateKey(upgradeRunRequest);
 			}
 
-			Path workPath = Files.createTempDirectory("upgrade-run-");
-
-			logPath = workPath.resolve("upgrade-run.log");
+			LocalUpgradeRunnerConfiguration localUpgradeRunnerConfiguration =
+				_configurationProvider.getCompanyConfiguration(
+					LocalUpgradeRunnerConfiguration.class,
+					upgradeRunRequest.getCompanyId());
 
 			environment = _getEnvironment(
 				_getLicensePath(
@@ -268,32 +283,75 @@ public class LocalUpgradeRunner implements UpgradeRunner {
 				localUpgradeRunnerConfiguration, privateKeyPath,
 				upgradeRunRequest);
 
-			_executeCommand(
-				environment, logPath, _COMMAND_TIMEOUT_SECONDS, workPath, "git",
-				"ls-remote", "--exit-code",
-				upgradeRunRequest.getRepositoryURL(),
-				upgradeRunRequest.getBranch());
+			Path reusableWorkspacePath = _getReusableWorkspacePath(
+				upgradeRunRequest);
 
-			workspacePath = workPath.resolve(_WORKSPACE_DIR_NAME);
+			if (reusableWorkspacePath == null) {
+				Path workPath = Files.createTempDirectory("upgrade-run-");
 
-			localUpgradeRun.setUpgradeRunnerState(
-				new UpgradeRunnerState(
-					null, null, UpgradeRunConstants.STATUS_CLONING,
-					"Cloning " + upgradeRunRequest.getRepositoryURL(),
-					workspacePath.toString()));
+				logPath = workPath.resolve("upgrade-run.log");
 
-			_executeCommand(
-				environment, logPath, _COMMAND_TIMEOUT_SECONDS, workPath, "git",
-				"clone", "--branch", upgradeRunRequest.getBranch(), "--depth",
-				"1", "--filter=blob:none", upgradeRunRequest.getRepositoryURL(),
-				_WORKSPACE_DIR_NAME);
+				String checkoutBranch = _getCheckoutBranch(upgradeRunRequest);
 
-			Path settingsPath = _writeSettings(
-				upgradeRunRequest.getSettings(), workspacePath);
+				_executeCommand(
+					environment, logPath, _COMMAND_TIMEOUT_SECONDS, workPath,
+					"git", "ls-remote", "--exit-code",
+					upgradeRunRequest.getRepositoryURL(), checkoutBranch);
+
+				workspacePath = workPath.resolve(_WORKSPACE_DIR_NAME);
+
+				localUpgradeRun.setUpgradeRunnerState(
+					new UpgradeRunnerState(
+						null, null, UpgradeRunConstants.STATUS_CLONING,
+						"Cloning " + upgradeRunRequest.getRepositoryURL(),
+						workspacePath.toString()));
+
+				_executeCommand(
+					environment, logPath, _COMMAND_TIMEOUT_SECONDS, workPath,
+					"git", "clone", "--branch", checkoutBranch, "--depth", "1",
+					"--filter=blob:none", upgradeRunRequest.getRepositoryURL(),
+					_WORKSPACE_DIR_NAME);
+
+				if (upgradeRunRequest.getFirstPhase() >
+						UpgradeRunConstants.PHASE_FIRST) {
+
+					_executeCommand(
+						environment, logPath, _COMMAND_TIMEOUT_SECONDS,
+						workspacePath, "git", "fetch", "--depth", "1",
+						"--update-head-ok", "origin",
+						StringBundler.concat(
+							"+refs/heads/",
+							UpgradeRunConstants.BRANCH_PREFIX_PHASE,
+							"*:refs/heads/",
+							UpgradeRunConstants.BRANCH_PREFIX_PHASE, "*"),
+						StringBundler.concat(
+							"+refs/heads/",
+							UpgradeRunConstants.BRANCH_PREFIX_UPGRADE,
+							"*:refs/heads/",
+							UpgradeRunConstants.BRANCH_PREFIX_UPGRADE, "*"));
+				}
+			}
+			else {
+				workspacePath = reusableWorkspacePath;
+
+				logPath = workspacePath.resolveSibling("upgrade-run.log");
+
+				localUpgradeRun.setUpgradeRunnerState(
+					new UpgradeRunnerState(
+						null, null, UpgradeRunConstants.STATUS_CLONING,
+						"Reusing the workspace at " + workspacePath,
+						workspacePath.toString()));
+			}
+
+			Path settingsPath = workspacePath.resolve("upgrade-run.properties");
+
+			boolean settingsChanged = _writeSettings(
+				upgradeRunRequest.getSettings(), settingsPath);
 
 			environment.put("UPGRADE_RUN_SETTINGS", settingsPath.toString());
 
 			_installAgent(
+				reusableWorkspacePath != null,
 				_bundle.findEntries(_AGENT_RESOURCE_PATH, "*", true),
 				workspacePath);
 
@@ -320,8 +378,10 @@ public class LocalUpgradeRunner implements UpgradeRunner {
 			}
 			else {
 				upgradeRunnerState = _runPhases(
-					environment, localUpgradeRun,
-					localUpgradeRunnerConfiguration, logPath, workspacePath);
+					environment, upgradeRunRequest.getFirstPhase(),
+					(reusableWorkspacePath == null) || settingsChanged,
+					localUpgradeRun, localUpgradeRunnerConfiguration, logPath,
+					workspacePath);
 			}
 
 			localUpgradeRun.setUpgradeRunnerState(
@@ -459,8 +519,10 @@ public class LocalUpgradeRunner implements UpgradeRunner {
 				_executeCommandForOutput(
 					environment, logPath, workspacePath, "git", "for-each-ref",
 					"--format=%(refname:short)", "--sort=-committerdate",
-					"refs/heads/" + _BRANCH_PREFIX_PHASE + "*",
-					"refs/heads/" + _BRANCH_PREFIX_UPGRADE + "*")),
+					"refs/heads/" + UpgradeRunConstants.BRANCH_PREFIX_PHASE +
+						"*",
+					"refs/heads/" + UpgradeRunConstants.BRANCH_PREFIX_UPGRADE +
+						"*")),
 			line -> {
 				String branch = line.trim();
 
@@ -470,6 +532,16 @@ public class LocalUpgradeRunner implements UpgradeRunner {
 
 				return branch;
 			});
+	}
+
+	private String _getCheckoutBranch(UpgradeRunRequest upgradeRunRequest) {
+		if (upgradeRunRequest.getFirstPhase() >
+				UpgradeRunConstants.PHASE_FIRST) {
+
+			return upgradeRunRequest.getResultBranch();
+		}
+
+		return upgradeRunRequest.getBranch();
 	}
 
 	private String[] _getClaudeCommand(String[] claudeCommand, String skill) {
@@ -615,36 +687,21 @@ public class LocalUpgradeRunner implements UpgradeRunner {
 		for (String line : StringUtil.splitLines(trackerMarkdown)) {
 			String row = line.trim();
 
-			if (!row.startsWith(StringPool.PIPE)) {
-				continue;
-			}
-
-			row = row.substring(1);
-
-			if (row.endsWith(StringPool.PIPE)) {
-				row = row.substring(0, row.length() - 1);
-			}
-
-			String[] cells = StringUtil.split(row, CharPool.PIPE);
-
-			if ((cells.length < 3) ||
-				!Objects.equals(cells[0].trim(), String.valueOf(phase))) {
+			if (!row.startsWith(StringPool.PIPE) ||
+				!row.endsWith(StringPool.PIPE)) {
 
 				continue;
 			}
 
-			for (String cell : cells) {
-				String status = StringUtil.toLowerCase(
-					StringUtil.removeChar(cell.trim(), CharPool.PRIME));
+			List<String> cells = _getTrackerCells(row);
 
-				if (status.equals(_PHASE_STATUS_TODO)) {
-					return _PHASE_STATUS_PENDING;
-				}
+			if ((cells.size() < 3) ||
+				(GetterUtil.getInteger(cells.get(0)) != phase)) {
 
-				if (ArrayUtil.contains(_PHASE_STATUSES, status)) {
-					return status;
-				}
+				continue;
 			}
+
+			return _getTrackerStatus(cells);
 		}
 
 		return _PHASE_STATUS_PENDING;
@@ -699,7 +756,7 @@ public class LocalUpgradeRunner implements UpgradeRunner {
 
 	private String _getResultBranch(List<String> branches) {
 		for (String branch : branches) {
-			if (branch.startsWith(_BRANCH_PREFIX_PHASE)) {
+			if (branch.startsWith(UpgradeRunConstants.BRANCH_PREFIX_PHASE)) {
 				return branch;
 			}
 		}
@@ -707,9 +764,71 @@ public class LocalUpgradeRunner implements UpgradeRunner {
 		return _getUpgradeBranch(branches);
 	}
 
+	private Path _getReusableWorkspacePath(
+		UpgradeRunRequest upgradeRunRequest) {
+
+		String workspacePathString = upgradeRunRequest.getWorkspacePath();
+
+		if (workspacePathString == null) {
+			return null;
+		}
+
+		Path workspacePath = Path.of(workspacePathString);
+
+		if ((workspacePath.getParent() != null) &&
+			Files.isDirectory(workspacePath.resolve(".git"))) {
+
+			return workspacePath;
+		}
+
+		if (_log.isInfoEnabled()) {
+			_log.info(
+				StringBundler.concat(
+					"Cloning upgrade run ", upgradeRunRequest.getUpgradeRunId(),
+					" again because ", workspacePathString, " is gone"));
+		}
+
+		return null;
+	}
+
+	private List<String> _getTrackerCells(String row) {
+		List<String> cells = new ArrayList<>();
+
+		int offset = 1;
+
+		while (true) {
+			int index = row.indexOf(CharPool.PIPE, offset);
+
+			if (index < 0) {
+				return cells;
+			}
+
+			cells.add(row.substring(offset, index));
+
+			offset = index + 1;
+		}
+	}
+
+	private String _getTrackerStatus(List<String> cells) {
+		for (String cell : cells) {
+			String status = StringUtil.toLowerCase(
+				StringUtil.removeChar(StringUtil.trim(cell), CharPool.PRIME));
+
+			if (status.equals(_PHASE_STATUS_TODO)) {
+				return _PHASE_STATUS_PENDING;
+			}
+
+			if (ArrayUtil.contains(_PHASE_STATUSES, status)) {
+				return status;
+			}
+		}
+
+		return _PHASE_STATUS_PENDING;
+	}
+
 	private String _getUpgradeBranch(List<String> branches) {
 		for (String branch : branches) {
-			if (branch.startsWith(_BRANCH_PREFIX_UPGRADE)) {
+			if (branch.startsWith(UpgradeRunConstants.BRANCH_PREFIX_UPGRADE)) {
 				return branch;
 			}
 		}
@@ -718,7 +837,7 @@ public class LocalUpgradeRunner implements UpgradeRunner {
 	}
 
 	private void _installAgent(
-			Enumeration<URL> urlEnumeration, Path workspacePath)
+			boolean reused, Enumeration<URL> urlEnumeration, Path workspacePath)
 		throws IOException {
 
 		if (urlEnumeration == null) {
@@ -738,11 +857,17 @@ public class LocalUpgradeRunner implements UpgradeRunner {
 				continue;
 			}
 
-			Path targetPath = _getAgentTargetPath(
-				pathString.substring(index + agentResourcePathPrefix.length()),
-				workspacePath);
+			String relativePath = pathString.substring(
+				index + agentResourcePathPrefix.length());
 
-			if (targetPath == null) {
+			Path targetPath = _getAgentTargetPath(relativePath, workspacePath);
+
+			if ((targetPath == null) ||
+				(reused &&
+				 relativePath.startsWith(
+					 _AGENT_TEMPLATES_PATH + StringPool.SLASH) &&
+				 Files.exists(targetPath))) {
+
 				continue;
 			}
 
@@ -759,14 +884,21 @@ public class LocalUpgradeRunner implements UpgradeRunner {
 
 		Files.createDirectories(excludePath.getParent());
 
-		Files.write(
-			excludePath,
-			Arrays.asList(
-				".claude/", ".mcp.json", "CLAUDE.md",
-				"upgrade-run-result.properties", "upgrade-run.properties",
-				"upgrade-state.md"),
-			StandardCharsets.UTF_8, StandardOpenOption.APPEND,
-			StandardOpenOption.CREATE);
+		List<String> excludedPaths = ListUtil.fromArray(
+			".claude/", ".mcp.json", "CLAUDE.md",
+			"upgrade-run-result.properties", "upgrade-run.properties",
+			"upgrade-state.md");
+
+		if (Files.exists(excludePath)) {
+			excludedPaths.removeAll(
+				Files.readAllLines(excludePath, StandardCharsets.UTF_8));
+		}
+
+		if (!excludedPaths.isEmpty()) {
+			Files.write(
+				excludePath, excludedPaths, StandardCharsets.UTF_8,
+				StandardOpenOption.APPEND, StandardOpenOption.CREATE);
+		}
 	}
 
 	private boolean _isLicense(Path path) throws Exception {
@@ -912,8 +1044,91 @@ public class LocalUpgradeRunner implements UpgradeRunner {
 		return branches;
 	}
 
+	private void _resetTracker(int firstPhase, Path trackerPath)
+		throws Exception {
+
+		if (Files.notExists(trackerPath)) {
+			return;
+		}
+
+		Files.write(
+			trackerPath,
+			TransformUtil.transform(
+				Files.readAllLines(trackerPath, StandardCharsets.UTF_8),
+				line -> _resetTrackerRow(firstPhase, line)),
+			StandardCharsets.UTF_8);
+	}
+
+	private String _resetTrackerRow(int firstPhase, String line) {
+		String row = line.trim();
+
+		if (!row.startsWith(StringPool.PIPE) ||
+			!row.endsWith(StringPool.PIPE)) {
+
+			return line;
+		}
+
+		List<String> cells = _getTrackerCells(row);
+
+		if (cells.size() < 3) {
+			return line;
+		}
+
+		int phase = GetterUtil.getInteger(cells.get(0));
+
+		if ((phase < UpgradeRunConstants.PHASE_FIRST) ||
+			(phase > UpgradeRunConstants.PHASE_LAST)) {
+
+			return line;
+		}
+
+		String status = _PHASE_STATUS_PENDING;
+
+		if (phase < firstPhase) {
+			status = _PHASE_STATUS_COMPLETE;
+		}
+		else if ((phase == firstPhase) &&
+				 _PHASE_STATUS_IN_PROGRESS.equals(_getTrackerStatus(cells))) {
+
+			return line;
+		}
+
+		for (int i = 1; i < cells.size(); i++) {
+			String cell = StringUtil.toLowerCase(
+				StringUtil.removeChar(
+					StringUtil.trim(cells.get(i)), CharPool.PRIME));
+
+			if (!cell.equals(_PHASE_STATUS_TODO) &&
+				!ArrayUtil.contains(_PHASE_STATUSES, cell)) {
+
+				continue;
+			}
+
+			if ((phase < firstPhase) && cell.equals(_PHASE_STATUS_SKIPPED)) {
+				continue;
+			}
+
+			cells.set(
+				i,
+				StringBundler.concat(
+					StringPool.SPACE, status, StringPool.SPACE));
+		}
+
+		StringBundler sb = new StringBundler((2 * cells.size()) + 1);
+
+		sb.append(StringPool.PIPE);
+
+		for (String cell : cells) {
+			sb.append(cell);
+			sb.append(StringPool.PIPE);
+		}
+
+		return sb.toString();
+	}
+
 	private UpgradeRunnerState _runPhases(
-			Map<String, String> environment, LocalUpgradeRun localUpgradeRun,
+			Map<String, String> environment, int firstPhase,
+			boolean initRequired, LocalUpgradeRun localUpgradeRun,
 			LocalUpgradeRunnerConfiguration localUpgradeRunnerConfiguration,
 			Path logPath, Path workspacePath)
 		throws Exception {
@@ -923,15 +1138,24 @@ public class LocalUpgradeRunner implements UpgradeRunner {
 				null, null, UpgradeRunConstants.STATUS_RUNNING,
 				"Initializing the workspace", workspacePath.toString()));
 
+		String resultBranch = null;
+
+		if (!initRequired) {
+			resultBranch = _getUpgradeBranch(
+				_getBranches(environment, logPath, workspacePath));
+		}
+
 		String[] claudeCommand =
 			localUpgradeRunnerConfiguration.claudeCommand();
 
-		_executeCommand(
-			environment, logPath, _AGENT_TIMEOUT_SECONDS, workspacePath,
-			_getClaudeCommand(claudeCommand, "/upgrade-init"));
+		if (resultBranch == null) {
+			_executeCommand(
+				environment, logPath, _AGENT_TIMEOUT_SECONDS, workspacePath,
+				_getClaudeCommand(claudeCommand, "/upgrade-init"));
 
-		String resultBranch = _getUpgradeBranch(
-			_getBranches(environment, logPath, workspacePath));
+			resultBranch = _getUpgradeBranch(
+				_getBranches(environment, logPath, workspacePath));
+		}
 
 		if (resultBranch == null) {
 			throw new UpgradeRunnerException(
@@ -941,8 +1165,15 @@ public class LocalUpgradeRunner implements UpgradeRunner {
 
 		Path trackerPath = workspacePath.resolve("upgrade-state.md");
 
-		for (int phase = UpgradeRunConstants.PHASE_FIRST;
-			 phase <= UpgradeRunConstants.PHASE_LAST; phase++) {
+		_resetTracker(firstPhase, trackerPath);
+
+		if (firstPhase > UpgradeRunConstants.PHASE_FIRST) {
+			resultBranch = _getResultBranch(
+				_getBranches(environment, logPath, workspacePath));
+		}
+
+		for (int phase = firstPhase; phase <= UpgradeRunConstants.PHASE_LAST;
+			 phase++) {
 
 			String phaseName = _PHASE_NAMES[phase - 1];
 
@@ -1111,8 +1342,8 @@ public class LocalUpgradeRunner implements UpgradeRunner {
 		return privateKeyPath;
 	}
 
-	private Path _writeSettings(
-			Map<String, String> settings, Path workspacePath)
+	private boolean _writeSettings(
+			Map<String, String> settings, Path settingsPath)
 		throws IOException {
 
 		StringBundler sb = new StringBundler(4 * settings.size());
@@ -1126,11 +1357,17 @@ public class LocalUpgradeRunner implements UpgradeRunner {
 			sb.append(CharPool.NEW_LINE);
 		}
 
-		Path settingsPath = workspacePath.resolve("upgrade-run.properties");
+		String content = sb.toString();
 
-		Files.writeString(settingsPath, sb.toString());
+		if (Files.exists(settingsPath) &&
+			content.equals(Files.readString(settingsPath))) {
 
-		return settingsPath;
+			return false;
+		}
+
+		Files.writeString(settingsPath, content);
+
+		return true;
 	}
 
 	private static final String _AGENT_RESOURCE_PATH = "META-INF/upgrade-agent";
@@ -1140,10 +1377,6 @@ public class LocalUpgradeRunner implements UpgradeRunner {
 	private static final String _AGENT_TEMPLATES_PATH = "templates";
 
 	private static final long _AGENT_TIMEOUT_SECONDS = 3600;
-
-	private static final String _BRANCH_PREFIX_PHASE = "phase";
-
-	private static final String _BRANCH_PREFIX_UPGRADE = "upgrade/";
 
 	private static final long _COMMAND_TIMEOUT_SECONDS = 600;
 
@@ -1157,6 +1390,8 @@ public class LocalUpgradeRunner implements UpgradeRunner {
 
 	private static final String _PHASE_STATUS_COMPLETE = "complete";
 
+	private static final String _PHASE_STATUS_IN_PROGRESS = "in-progress";
+
 	private static final String _PHASE_STATUS_PENDING = "pending";
 
 	private static final String _PHASE_STATUS_SKIPPED = "skipped";
@@ -1165,7 +1400,7 @@ public class LocalUpgradeRunner implements UpgradeRunner {
 
 	private static final String[] _PHASE_STATUSES = {
 		_PHASE_STATUS_BLOCKED, _PHASE_STATUS_COMPLETE, "deferred",
-		"in-progress", _PHASE_STATUS_PENDING, _PHASE_STATUS_SKIPPED
+		_PHASE_STATUS_IN_PROGRESS, _PHASE_STATUS_PENDING, _PHASE_STATUS_SKIPPED
 	};
 
 	private static final String _SSH_COMMAND =
