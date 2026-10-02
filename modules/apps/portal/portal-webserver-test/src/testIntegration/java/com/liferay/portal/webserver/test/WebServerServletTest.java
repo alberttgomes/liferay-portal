@@ -873,6 +873,10 @@ public class WebServerServletTest {
 				logoId, WebServerServletTokenUtil.getToken(otherLogoId)));
 	}
 
+	private void _testGetImageIdWithoutImageToken() throws Exception {
+		Assert.assertEquals(0, _getImageId(_addPrivateLayoutSetLogoId(_group)));
+	}
+
 	private void _testGetImageIdWithScreenNamePortrait() throws Exception {
 		User user = _addPortraitUser();
 
@@ -900,10 +904,6 @@ public class WebServerServletTest {
 		Assert.assertEquals(
 			logoId,
 			_getImageId(logoId, WebServerServletTokenUtil.getToken(logoId)));
-	}
-
-	private void _testGetImageIdWithoutImageToken() throws Exception {
-		Assert.assertEquals(0, _getImageId(_addPrivateLayoutSetLogoId(_group)));
 	}
 
 	private void _testGetImageWithPrivateLayoutIconWithoutViewPermission()
