@@ -116,6 +116,7 @@ import com.liferay.portal.kernel.webdav.WebDAVUtil;
 import com.liferay.portal.kernel.webserver.WebServerServletTokenUtil;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.portal.model.impl.ImageImpl;
+import com.liferay.portal.util.BrowserExecutableContentTypeUtil;
 import com.liferay.portal.util.PortalInstances;
 import com.liferay.users.admin.kernel.file.uploads.UserFileUploadsSettings;
 
@@ -1057,7 +1058,7 @@ public class WebServerServlet extends HttpServlet {
 
 		String contentDispositionType = null;
 
-		if (ServletResponseUtil.isBrowserExecutableContentType(
+		if (BrowserExecutableContentTypeUtil.isBrowserExecutableContentType(
 				fileEntry.getMimeType(), fileEntry.getTitle())) {
 
 			contentDispositionType = HttpHeaders.CONTENT_DISPOSITION_ATTACHMENT;
@@ -1277,7 +1278,7 @@ public class WebServerServlet extends HttpServlet {
 		String cacheControlValue = HttpHeaders.CACHE_CONTROL_PRIVATE_VALUE;
 
 		boolean browserExecutable =
-			ServletResponseUtil.isBrowserExecutableContentType(
+			BrowserExecutableContentTypeUtil.isBrowserExecutableContentType(
 				contentType, fileName);
 
 		boolean download = ParamUtil.getBoolean(httpServletRequest, "download");
@@ -1413,7 +1414,7 @@ public class WebServerServlet extends HttpServlet {
 		String mimeType = fileEntry.getMimeType();
 
 		if (download || !mimeType.startsWith("image/") ||
-			ServletResponseUtil.isBrowserExecutableContentType(
+			BrowserExecutableContentTypeUtil.isBrowserExecutableContentType(
 				mimeType, fileName)) {
 
 			ServletResponseUtil.sendFile(
@@ -1455,7 +1456,7 @@ public class WebServerServlet extends HttpServlet {
 		String contentDispositionType = null;
 
 		if ((groupId > 0) && Validator.isNotNull(uuid) &&
-			ServletResponseUtil.isBrowserExecutableContentType(
+			BrowserExecutableContentTypeUtil.isBrowserExecutableContentType(
 				contentType, fileName)) {
 
 			contentDispositionType = HttpHeaders.CONTENT_DISPOSITION_ATTACHMENT;

@@ -14,6 +14,7 @@ import com.liferay.portal.kernel.webdav.WebDAVException;
 import com.liferay.portal.kernel.webdav.WebDAVRequest;
 import com.liferay.portal.kernel.webdav.WebDAVStorage;
 import com.liferay.portal.kernel.webdav.methods.Method;
+import com.liferay.portal.util.BrowserExecutableContentTypeUtil;
 
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -47,8 +48,9 @@ public class GetMethodImpl implements Method {
 
 			if (inputStream != null) {
 				try {
-					if (ServletResponseUtil.isBrowserExecutableContentType(
-							resource.getContentType())) {
+					if (BrowserExecutableContentTypeUtil.
+							isBrowserExecutableContentType(
+								resource.getContentType())) {
 
 						ServletResponseUtil.sendFile(
 							webDAVRequest.getHttpServletRequest(),

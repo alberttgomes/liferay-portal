@@ -30,6 +30,7 @@ import com.liferay.portal.kernel.util.HttpComponentsUtil;
 import com.liferay.portal.kernel.util.MimeTypesUtil;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.repository.liferayrepository.model.LiferayFileEntry;
@@ -221,15 +222,46 @@ public class GetFileActionHelper {
 
 		String contentDispositionType = null;
 
-		if (ServletResponseUtil.isBrowserExecutableContentType(
-				contentType, fileName)) {
-
+		if (_isBrowserExecutableContentType(contentType, fileName)) {
 			contentDispositionType = HttpHeaders.CONTENT_DISPOSITION_ATTACHMENT;
 		}
 
 		ServletResponseUtil.sendFile(
 			httpServletRequest, httpServletResponse, fileName, inputStream,
 			contentLength, contentType, contentDispositionType);
+	}
+
+	private boolean _isBrowserExecutableContentType(String contentType) {
+		if (contentType == null) {
+			return false;
+		}
+
+		String lowerCaseContentType = StringUtil.toLowerCase(contentType);
+
+		if (lowerCaseContentType.startsWith("application/javascript") ||
+			lowerCaseContentType.startsWith("application/xhtml+xml") ||
+			lowerCaseContentType.startsWith("image/svg+xml") ||
+			lowerCaseContentType.startsWith("text/html") ||
+			lowerCaseContentType.startsWith("text/javascript")) {
+
+			return true;
+		}
+
+		return false;
+	}
+
+	private boolean _isBrowserExecutableContentType(
+		String contentType, String fileName) {
+
+		if (_isBrowserExecutableContentType(contentType) ||
+			_isBrowserExecutableContentType(
+				MimeTypesUtil.getExtensionContentType(
+					FileUtil.getExtension(fileName)))) {
+
+			return true;
+		}
+
+		return false;
 	}
 
 	private void _processPrincipalException(
