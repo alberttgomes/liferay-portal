@@ -97,7 +97,7 @@ public abstract class BaseSiteResourceImpl
 		value = {
 			@io.swagger.v3.oas.annotations.Parameter(
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
-				name = "siteExternalReferenceCode"
+				name = "siteExternalReferenceCode", required = true
 			)
 		}
 	)
@@ -172,7 +172,7 @@ public abstract class BaseSiteResourceImpl
 		value = {
 			@io.swagger.v3.oas.annotations.Parameter(
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
-				name = "siteExternalReferenceCode"
+				name = "siteExternalReferenceCode", required = true
 			)
 		}
 	)
@@ -218,7 +218,7 @@ public abstract class BaseSiteResourceImpl
 		value = {
 			@io.swagger.v3.oas.annotations.Parameter(
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
-				name = "siteExternalReferenceCode"
+				name = "siteExternalReferenceCode", required = true
 			),
 			@io.swagger.v3.oas.annotations.Parameter(
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
@@ -284,7 +284,7 @@ public abstract class BaseSiteResourceImpl
 		value = {
 			@io.swagger.v3.oas.annotations.Parameter(
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
-				name = "siteExternalReferenceCode"
+				name = "siteExternalReferenceCode", required = true
 			)
 		}
 	)
@@ -591,7 +591,7 @@ public abstract class BaseSiteResourceImpl
 		value = {
 			@io.swagger.v3.oas.annotations.Parameter(
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
-				name = "siteExternalReferenceCode"
+				name = "siteExternalReferenceCode", required = true
 			)
 		}
 	)
@@ -644,7 +644,7 @@ public abstract class BaseSiteResourceImpl
 		value = {
 			@io.swagger.v3.oas.annotations.Parameter(
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
-				name = "siteExternalReferenceCode"
+				name = "siteExternalReferenceCode", required = true
 			)
 		}
 	)
@@ -719,7 +719,7 @@ public abstract class BaseSiteResourceImpl
 		value = {
 			@io.swagger.v3.oas.annotations.Parameter(
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
-				name = "siteExternalReferenceCode"
+				name = "siteExternalReferenceCode", required = true
 			)
 		}
 	)
@@ -747,7 +747,7 @@ public abstract class BaseSiteResourceImpl
 		value = {
 			@io.swagger.v3.oas.annotations.Parameter(
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
-				name = "siteExternalReferenceCode"
+				name = "siteExternalReferenceCode", required = true
 			)
 		}
 	)
@@ -841,7 +841,7 @@ public abstract class BaseSiteResourceImpl
 		value = {
 			@io.swagger.v3.oas.annotations.Parameter(
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
-				name = "siteExternalReferenceCode"
+				name = "siteExternalReferenceCode", required = true
 			)
 		}
 	)
@@ -1774,4 +1774,4 @@ public abstract class BaseSiteResourceImpl
 	}
 
 }
-// LIFERAY-REST-BUILDER-HASH:-998732090
+// LIFERAY-REST-BUILDER-HASH:-1246980088

@@ -75,7 +75,7 @@ public abstract class BaseCrawlHitResourceImpl
 		value = {
 			@io.swagger.v3.oas.annotations.Parameter(
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
-				name = "seoStudioDomainId"
+				name = "seoStudioDomainId", required = true
 			),
 			@io.swagger.v3.oas.annotations.Parameter(
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
@@ -769,4 +769,4 @@ public abstract class BaseCrawlHitResourceImpl
 		LogFactoryUtil.getLog(BaseCrawlHitResourceImpl.class);
 
 }
-// LIFERAY-REST-BUILDER-HASH:1990214289
+// LIFERAY-REST-BUILDER-HASH:1479664593

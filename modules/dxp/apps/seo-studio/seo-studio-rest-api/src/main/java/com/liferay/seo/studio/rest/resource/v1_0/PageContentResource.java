@@ -131,4 +131,4 @@ public interface PageContentResource {
 	}
 
 }
-// LIFERAY-REST-BUILDER-HASH:-219837595
+// LIFERAY-REST-BUILDER-HASH:-1993062653

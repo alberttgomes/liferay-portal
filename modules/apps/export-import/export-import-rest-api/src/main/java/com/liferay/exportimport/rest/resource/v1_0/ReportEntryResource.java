@@ -158,4 +158,4 @@ public interface ReportEntryResource {
 	}
 
 }
-// LIFERAY-REST-BUILDER-HASH:-2119237320
+// LIFERAY-REST-BUILDER-HASH:709850328

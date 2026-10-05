@@ -10,6 +10,7 @@ import com.liferay.seo.studio.rest.client.json.BaseJSONParser;
 
 import jakarta.annotation.Generated;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
@@ -260,6 +261,12 @@ public class CrawlHitSerDes {
 			return "null";
 		}
 
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -292,4 +299,4 @@ public class CrawlHitSerDes {
 	}
 
 }
-// LIFERAY-REST-BUILDER-HASH:751220138
+// LIFERAY-REST-BUILDER-HASH:-328063190

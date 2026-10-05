@@ -252,4 +252,4 @@ public interface ExportProcessResource {
 	}
 
 }
-// LIFERAY-REST-BUILDER-HASH:1845212112
+// LIFERAY-REST-BUILDER-HASH:950641900

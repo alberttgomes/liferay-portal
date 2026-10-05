@@ -136,4 +136,4 @@ public interface CommerceChannelResource {
 	}
 
 }
-// LIFERAY-REST-BUILDER-HASH:1335589876
+// LIFERAY-REST-BUILDER-HASH:174510204

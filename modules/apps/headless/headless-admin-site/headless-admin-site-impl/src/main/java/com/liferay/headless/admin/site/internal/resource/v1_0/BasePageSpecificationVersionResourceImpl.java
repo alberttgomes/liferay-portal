@@ -78,15 +78,16 @@ public abstract class BasePageSpecificationVersionResourceImpl
 		value = {
 			@io.swagger.v3.oas.annotations.Parameter(
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
-				name = "siteExternalReferenceCode"
+				name = "siteExternalReferenceCode", required = true
 			),
 			@io.swagger.v3.oas.annotations.Parameter(
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
-				name = "sitePageExternalReferenceCode"
+				name = "sitePageExternalReferenceCode", required = true
 			),
 			@io.swagger.v3.oas.annotations.Parameter(
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
-				name = "pageSpecificationVersionExternalReferenceCode"
+				name = "pageSpecificationVersionExternalReferenceCode",
+				required = true
 			),
 			@io.swagger.v3.oas.annotations.Parameter(
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
@@ -147,11 +148,11 @@ public abstract class BasePageSpecificationVersionResourceImpl
 		value = {
 			@io.swagger.v3.oas.annotations.Parameter(
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
-				name = "siteExternalReferenceCode"
+				name = "siteExternalReferenceCode", required = true
 			),
 			@io.swagger.v3.oas.annotations.Parameter(
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
-				name = "sitePageExternalReferenceCode"
+				name = "sitePageExternalReferenceCode", required = true
 			),
 			@io.swagger.v3.oas.annotations.Parameter(
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
@@ -859,4 +860,4 @@ public abstract class BasePageSpecificationVersionResourceImpl
 		LogFactoryUtil.getLog(BasePageSpecificationVersionResourceImpl.class);
 
 }
-// LIFERAY-REST-BUILDER-HASH:932884300
+// LIFERAY-REST-BUILDER-HASH:-1004484138

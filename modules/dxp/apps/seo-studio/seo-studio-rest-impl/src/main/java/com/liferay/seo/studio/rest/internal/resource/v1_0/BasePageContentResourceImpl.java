@@ -51,7 +51,7 @@ public abstract class BasePageContentResourceImpl
 		value = {
 			@io.swagger.v3.oas.annotations.Parameter(
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
-				name = "pageURL"
+				name = "pageURL", required = true
 			)
 		}
 	)
@@ -517,4 +517,4 @@ public abstract class BasePageContentResourceImpl
 		LogFactoryUtil.getLog(BasePageContentResourceImpl.class);
 
 }
-// LIFERAY-REST-BUILDER-HASH:2140012259
+// LIFERAY-REST-BUILDER-HASH:-2047605775

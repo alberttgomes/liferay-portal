@@ -182,4 +182,4 @@ public interface CurrencyResource {
 	}
 
 }
-// LIFERAY-REST-BUILDER-HASH:-1463154472
+// LIFERAY-REST-BUILDER-HASH:-723257082
