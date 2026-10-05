@@ -81,10 +81,7 @@ public class AICreatorOpenAIUploadFileEntryHandlerTest {
 
 	@Test
 	public void testUpload() throws Exception {
-		String urlPath = _getURLPath();
-
 		DLAppService dlAppService = Mockito.mock(DLAppService.class);
-
 		FileEntry fileEntry = Mockito.mock(FileEntry.class);
 
 		Mockito.when(
@@ -103,6 +100,7 @@ public class AICreatorOpenAIUploadFileEntryHandlerTest {
 		AICreatorOpenAIUploadFileEntryHandler
 			aiCreatorOpenAIUploadFileEntryHandler =
 				new AICreatorOpenAIUploadFileEntryHandler(dlAppService);
+		String urlPath = _getURLPath();
 
 		Assert.assertSame(
 			fileEntry,
@@ -113,9 +111,9 @@ public class AICreatorOpenAIUploadFileEntryHandlerTest {
 
 	@Test
 	public void testUploadWithInvalidURLPath() throws Exception {
-		_testUploadWithInvalidURLPath(null);
 		_testUploadWithInvalidURLPath(
 			SetUtil.fromArray(RandomTestUtil.randomString()));
+		_testUploadWithInvalidURLPath(null);
 	}
 
 	private String _getURLPath() throws Exception {
