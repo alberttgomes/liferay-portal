@@ -175,7 +175,6 @@ import {config as portalSecurityLdapConfig} from './tests/portal-security-ldap/m
 import {config as portalSecurityScriptManagementWebConfig} from './tests/portal-security-script-management-web/main/config';
 import {config as portalSecurityServiceAccessPolicyService} from './tests/portal-security-service-access-policy-service/main/config';
 import {config as portalSettingsAuthenticationOpenSSOWebConfig} from './tests/portal-settings-authentication-opensso-web/main/config';
-import {config as portalToolsRestBuilderTestImpl} from './tests/portal-tools-rest-builder-test-impl/main/config';
 import {config as portalUserLocaleOptionsConfig} from './tests/portal-user-locale-options-web/main/config';
 import {config as portalWebCDNConfig} from './tests/portal-web/cdn/config';
 import {config as portalWebConfig} from './tests/portal-web/main/config';
@@ -427,7 +426,6 @@ export default defineConfig({
 		portalSecurityScriptManagementWebConfig,
 		portalSecurityServiceAccessPolicyService,
 		portalSettingsAuthenticationOpenSSOWebConfig,
-		portalToolsRestBuilderTestImpl,
 		portalUserLocaleOptionsConfig,
 		portalWebCDNConfig,
 		portalWebConfig,

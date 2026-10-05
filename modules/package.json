@@ -50,8 +50,7 @@
 			"dxp/apps/*/*",
 			"dxp/apps/osb/osb-patcher/*",
 			"frontend-sdk/*",
-			"test/playwright",
-			"util/portal-tools-rest-builder-test-client-js"
+			"test/playwright"
 		]
 	}
 }

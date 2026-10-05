@@ -255,7 +255,6 @@ module.exports = {
 		'@liferay/portal-search-similar-results-web': [],
 		'@liferay/portal-security-script-management-web': [],
 		'@liferay/portal-settings-web': [],
-		'@liferay/portal-tools-rest-builder-test-client-js': [],
 		'@liferay/portal-url-builder-impl': [],
 		'@liferay/portal-workflow-instance-tracker-web': [],
 		'@liferay/portal-workflow-taglib': [],
