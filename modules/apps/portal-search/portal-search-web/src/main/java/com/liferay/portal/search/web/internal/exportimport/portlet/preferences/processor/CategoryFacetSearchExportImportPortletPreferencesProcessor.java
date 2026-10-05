@@ -92,8 +92,8 @@ public class CategoryFacetSearchExportImportPortletPreferencesProcessor
 		}
 		catch (Exception exception) {
 			throw new PortletDataException(
-				"Unable to update asset categories navigation portlet " +
-					"preferences during export",
+				"Unable to update category facet portlet preferences during " +
+					"export",
 				exception);
 		}
 	}
@@ -138,8 +138,8 @@ public class CategoryFacetSearchExportImportPortletPreferencesProcessor
 		}
 		catch (Exception exception) {
 			throw new PortletDataException(
-				"Unable to update asset categories navigation portlet " +
-					"preferences during import",
+				"Unable to update category facet portlet preferences during " +
+					"import",
 				exception);
 		}
 	}
