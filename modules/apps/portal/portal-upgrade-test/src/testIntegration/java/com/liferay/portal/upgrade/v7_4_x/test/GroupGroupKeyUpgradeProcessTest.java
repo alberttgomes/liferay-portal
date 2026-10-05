@@ -21,7 +21,7 @@ import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.upgrade.UpgradeProcess;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.upgrade.v7_4_x.GroupCompanyGroupKeyUpgradeProcess;
+import com.liferay.portal.upgrade.v7_4_x.GroupGroupKeyUpgradeProcess;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -34,7 +34,7 @@ import org.junit.runner.RunWith;
  * @author Cheryl Tang
  */
 @RunWith(Arquillian.class)
-public class GroupCompanyGroupKeyUpgradeProcessTest {
+public class GroupGroupKeyUpgradeProcessTest {
 
 	@ClassRule
 	@Rule
@@ -53,8 +53,7 @@ public class GroupCompanyGroupKeyUpgradeProcessTest {
 
 		_group = GroupTestUtil.addGroup();
 
-		UpgradeProcess upgradeProcess =
-			new GroupCompanyGroupKeyUpgradeProcess();
+		UpgradeProcess upgradeProcess = new GroupGroupKeyUpgradeProcess();
 
 		upgradeProcess.upgrade();
 

@@ -823,7 +823,7 @@ public class PortalUpgradeProcessRegistryImpl
 		upgradeVersionTreeMap.put(new Version(38, 7, 8), new UpgradeDB2());
 
 		upgradeVersionTreeMap.put(
-			new Version(38, 7, 9), new GroupCompanyGroupKeyUpgradeProcess());
+			new Version(38, 7, 9), new GroupGroupKeyUpgradeProcess());
 	}
 
 }

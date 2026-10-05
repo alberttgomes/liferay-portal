@@ -18,7 +18,7 @@ import java.util.Objects;
 /**
  * @author Cheryl Tang
  */
-public class GroupCompanyGroupKeyUpgradeProcess extends UpgradeProcess {
+public class GroupGroupKeyUpgradeProcess extends UpgradeProcess {
 
 	@Override
 	protected void doUpgrade() throws Exception {
