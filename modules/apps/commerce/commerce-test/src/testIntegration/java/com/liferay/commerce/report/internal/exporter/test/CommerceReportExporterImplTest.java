@@ -71,8 +71,9 @@ public class CommerceReportExporterImplTest {
 
 	@Before
 	public void setUp() throws Exception {
-		Group group = GroupTestUtil.addGroup();
 		_user = UserTestUtil.addUser();
+
+		Group group = GroupTestUtil.addGroup();
 
 		_commerceCurrency = CommerceCurrencyTestUtil.addCommerceCurrency(
 			group.getCompanyId());

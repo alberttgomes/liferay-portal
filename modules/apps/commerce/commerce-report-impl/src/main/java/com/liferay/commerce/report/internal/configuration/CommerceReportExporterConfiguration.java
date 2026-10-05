@@ -22,10 +22,6 @@ import com.liferay.portal.configuration.metatype.annotations.ExtendedObjectClass
 )
 public interface CommerceReportExporterConfiguration {
 
-	/**
-	 * Sets the fully qualified names of the additional classes print order
-	 * templates can use.
-	 */
 	@Meta.AD(
 		deflt = "",
 		description = "print-order-template-allowed-class-names-description",
