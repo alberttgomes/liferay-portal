@@ -495,6 +495,26 @@ public class LayoutServiceTest {
 			typeSettings, typeSettings.contains(FragmentPortletKeys.FRAGMENT));
 	}
 
+	@Test
+	@TestInfo("LPD-108338")
+	public void testUpdateTypeSettingsWithPortletCategory() throws Exception {
+		Layout layout = _addTypePortletLayout(
+			RandomTestUtil.randomString(), false, StringPool.BLANK);
+
+		String panelSelectedPortlets =
+			"root--category-collaboration," + FragmentPortletKeys.FRAGMENT;
+
+		layout = _layoutService.updateTypeSettings(
+			layout.getGroupId(), layout.isPrivateLayout(), layout.getLayoutId(),
+			LayoutTypePortletConstants.PANEL_SELECTED_PORTLETS +
+				StringPool.EQUAL + panelSelectedPortlets);
+
+		Assert.assertEquals(
+			panelSelectedPortlets,
+			layout.getTypeSettingsProperty(
+				LayoutTypePortletConstants.PANEL_SELECTED_PORTLETS));
+	}
+
 	private String[] _addPortletsToLayout(
 			int columnIndex, long plid, String[] portletNames)
 		throws Exception {
