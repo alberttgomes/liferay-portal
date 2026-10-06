@@ -49,6 +49,7 @@ import com.liferay.list.type.model.ListTypeDefinition;
 import com.liferay.list.type.model.ListTypeEntry;
 import com.liferay.list.type.service.ListTypeDefinitionLocalService;
 import com.liferay.list.type.service.ListTypeEntryLocalService;
+import com.liferay.object.configuration.ObjectConfiguration;
 import com.liferay.object.constants.ObjectActionExecutorConstants;
 import com.liferay.object.constants.ObjectActionKeys;
 import com.liferay.object.constants.ObjectActionTriggerConstants;
@@ -17646,6 +17647,21 @@ public class ObjectEntryResourceTest {
 			PermissionCheckerFactoryUtil.create(user));
 	}
 
+	private CompanyConfigurationTemporarySwapper _swapObjectConfiguration(
+			String[] attachmentFileURLHostsAllowed,
+			boolean attachmentFileURLLocalNetworkAccessEnabled)
+		throws Exception {
+
+		return new CompanyConfigurationTemporarySwapper(
+			TestPropsValues.getCompanyId(), ObjectConfiguration.class.getName(),
+			HashMapDictionaryBuilder.<String, Object>put(
+				"attachmentFileURLHostsAllowed", attachmentFileURLHostsAllowed
+			).put(
+				"attachmentFileURLLocalNetworkAccessEnabled",
+				attachmentFileURLLocalNetworkAccessEnabled
+			).build());
+	}
+
 	private void _testDeleteObjectEntryWithComments(
 			long groupId, ObjectDefinition objectDefinition)
 		throws Exception {
@@ -19120,48 +19136,80 @@ public class ObjectEntryResourceTest {
 		Company company = _companyLocalService.getCompany(
 			TestPropsValues.getCompanyId());
 
-		_testPatchPutCustomObjectEntryWithAttachmentField(
-			fileEntry -> JSONUtil.put(
-				_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE,
-				_getFileEntryJSONObject(
-					null, fileEntry, objectDefinition,
-					_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE)),
-			_toFileEntry(
-				RandomTestUtil.randomString() + ".txt",
-				StringBundler.concat(
-					"http://", company.getVirtualHostname(), ":",
-					PortalUtil.getPortalServerPort(false),
-					_dlURLHelper.getPreviewURL(
-						customFileEntry1, customFileEntry1.getFileVersion(),
-						null, "", false, true)),
-				null, null, customFileEntry1.getMimeType()),
-			httpMethod, null, objectDefinition,
-			_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE,
-			useExternalReferenceCode);
+		String previewFileURL = StringBundler.concat(
+			"http://", company.getVirtualHostname(), ":",
+			PortalUtil.getPortalServerPort(false),
+			_dlURLHelper.getPreviewURL(
+				customFileEntry1, customFileEntry1.getFileVersion(), null, "",
+				false, true));
 
-		// Documents and media source, file from URL and host down
-
-		try (LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
-				"com.liferay.object.rest.internal.manager.v1_0." +
-					"DefaultObjectEntryManagerImpl",
-				LoggerTestUtil.ERROR)) {
-
-			String url = StringBundler.concat(
-				"http://", company.getVirtualHostname(), ":",
-				PortalUtil.getPortalServerPort(false) + 1);
+		try (CompanyConfigurationTemporarySwapper
+				companyConfigurationTemporarySwapper = _swapObjectConfiguration(
+					new String[0], true)) {
 
 			_testPatchPutCustomObjectEntryWithAttachmentField(
 				fileEntry -> JSONUtil.put(
-					"status", "BAD_REQUEST"
-				).put(
-					"title", "Unable to download file from " + url
-				),
+					_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE,
+					_getFileEntryJSONObject(
+						null, fileEntry, objectDefinition,
+						_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE)),
 				_toFileEntry(
-					RandomTestUtil.randomString() + ".txt", url, null, null,
-					customFileEntry1.getMimeType()),
+					RandomTestUtil.randomString() + ".txt", previewFileURL,
+					null, null, customFileEntry1.getMimeType()),
 				httpMethod, null, objectDefinition,
 				_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE,
 				useExternalReferenceCode);
+
+			// Documents and media source, file from URL and host down
+
+			try (LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
+					"com.liferay.object.rest.internal.manager.v1_0." +
+						"DefaultObjectEntryManagerImpl",
+					LoggerTestUtil.ERROR)) {
+
+				String url = StringBundler.concat(
+					"http://", company.getVirtualHostname(), ":",
+					PortalUtil.getPortalServerPort(false) + 1);
+
+				_testPatchPutCustomObjectEntryWithInvalidFileURL(
+					"Unable to download file from " + url, url, httpMethod,
+					objectDefinition, useExternalReferenceCode);
+			}
+
+			// Documents and media source, file from URL not found
+
+			String notFoundPath = "/" + RandomTestUtil.randomString();
+
+			String httpCode404URL = StringBundler.concat(
+				"http://", company.getVirtualHostname(), ":",
+				PortalUtil.getPortalServerPort(false), notFoundPath);
+
+			try (LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
+					"portal_web.docroot.errors.code_jsp",
+					LoggerTestUtil.WARN)) {
+
+				_testPatchPutCustomObjectEntryWithInvalidFileURL(
+					"Unable to download file from " + httpCode404URL +
+						" because of unexpected HTTP response code 404",
+					httpCode404URL, httpMethod, objectDefinition,
+					useExternalReferenceCode);
+
+				List<LogEntry> logEntries = logCapture.getLogEntries();
+
+				Assert.assertEquals(
+					logEntries.toString(), 1, logEntries.size());
+
+				LogEntry logEntry = logEntries.get(0);
+
+				Assert.assertEquals(
+					LoggerTestUtil.WARN, logEntry.getPriority());
+
+				String message = logEntry.getMessage();
+
+				Assert.assertTrue(message, message.contains("code=\"404\""));
+				Assert.assertTrue(
+					message, message.contains("uri=" + notFoundPath));
+			}
 		}
 
 		// Documents and media source, file from URL malformed
@@ -19176,62 +19224,88 @@ public class ObjectEntryResourceTest {
 				PortalUtil.getPortalServerPort(false), "/",
 				RandomTestUtil.randomString());
 
+			_testPatchPutCustomObjectEntryWithInvalidFileURL(
+				"Unable to download file from " + url, url, httpMethod,
+				objectDefinition, useExternalReferenceCode);
+		}
+
+		// Documents and media source, file from local URL with local network
+		// access disabled
+
+		String hostNotAllowedMessage = StringBundler.concat(
+			"Unable to download file from ", previewFileURL, " because host ",
+			company.getVirtualHostname(), " is not allowed");
+
+		_testPatchPutCustomObjectEntryWithInvalidFileURL(
+			hostNotAllowedMessage, previewFileURL, httpMethod, objectDefinition,
+			useExternalReferenceCode);
+
+		// Documents and media source, file from local URL with host allowed
+		// and local network access disabled
+
+		try (CompanyConfigurationTemporarySwapper
+				companyConfigurationTemporarySwapper = _swapObjectConfiguration(
+					new String[] {company.getVirtualHostname()}, false)) {
+
+			_testPatchPutCustomObjectEntryWithInvalidFileURL(
+				hostNotAllowedMessage, previewFileURL, httpMethod,
+				objectDefinition, useExternalReferenceCode);
+		}
+
+		// Documents and media source, file from URL with host allowed and
+		// local network access enabled
+
+		try (CompanyConfigurationTemporarySwapper
+				companyConfigurationTemporarySwapper = _swapObjectConfiguration(
+					new String[] {
+						StringUtil.toUpperCase(company.getVirtualHostname())
+					},
+					true)) {
+
 			_testPatchPutCustomObjectEntryWithAttachmentField(
 				fileEntry -> JSONUtil.put(
-					"status", "BAD_REQUEST"
-				).put(
-					"title", "Unable to download file from " + url
-				),
+					_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE,
+					_getFileEntryJSONObject(
+						null, fileEntry, objectDefinition,
+						_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE)),
 				_toFileEntry(
-					RandomTestUtil.randomString() + ".txt", url, null, null,
-					customFileEntry1.getMimeType()),
+					RandomTestUtil.randomString() + ".txt", previewFileURL,
+					null, null, customFileEntry1.getMimeType()),
 				httpMethod, null, objectDefinition,
 				_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE,
 				useExternalReferenceCode);
 		}
 
-		// Documents and media source, file from URL not found
+		// Documents and media source, file from URL with host not allowed
 
-		String httpCode404URL = StringBundler.concat(
-			"http://", company.getVirtualHostname(), ":",
-			PortalUtil.getPortalServerPort(false), "/",
-			RandomTestUtil.randomString());
+		try (CompanyConfigurationTemporarySwapper
+				companyConfigurationTemporarySwapper = _swapObjectConfiguration(
+					new String[] {"www.able.com"}, true)) {
 
-		_testPatchPutCustomObjectEntryWithAttachmentField(
-			fileEntry -> JSONUtil.put(
-				"status", "BAD_REQUEST"
-			).put(
-				"title",
-				"Unable to download file from " + httpCode404URL +
-					", unexpected HTTP code: 404"
-			),
-			_toFileEntry(
-				RandomTestUtil.randomString() + ".txt", httpCode404URL, null,
-				null, customFileEntry1.getMimeType()),
-			httpMethod, null, objectDefinition,
-			_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE,
-			useExternalReferenceCode);
+			_testPatchPutCustomObjectEntryWithInvalidFileURL(
+				hostNotAllowedMessage, previewFileURL, httpMethod,
+				objectDefinition, useExternalReferenceCode);
+		}
 
 		// Documents and media source, file from URL with unsupported protocol
+
+		String jarFileURL = StringBundler.concat(
+			"jar:file:///", RandomTestUtil.randomString(),
+			".jar!/META-INF/MANIFEST.MF");
+
+		_testPatchPutCustomObjectEntryWithInvalidFileURL(
+			"Unable to download file from " + jarFileURL +
+				" because protocol jar is not supported",
+			jarFileURL, httpMethod, objectDefinition, useExternalReferenceCode);
 
 		String unsupportedProtocolFileURL = StringBundler.concat(
 			"file://", company.getVirtualHostname(), ":",
 			PortalUtil.getPortalServerPort(false));
 
-		_testPatchPutCustomObjectEntryWithAttachmentField(
-			fileEntry -> JSONUtil.put(
-				"status", "BAD_REQUEST"
-			).put(
-				"title",
-				"Unable to download file from " + unsupportedProtocolFileURL +
-					", unsupported protocol: file"
-			),
-			_toFileEntry(
-				RandomTestUtil.randomString() + ".txt",
-				unsupportedProtocolFileURL, null, null,
-				customFileEntry1.getMimeType()),
-			httpMethod, null, objectDefinition,
-			_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE,
+		_testPatchPutCustomObjectEntryWithInvalidFileURL(
+			"Unable to download file from " + unsupportedProtocolFileURL +
+				" because protocol file is not supported",
+			unsupportedProtocolFileURL, httpMethod, objectDefinition,
 			useExternalReferenceCode);
 
 		// User computer to CMS basic document source, file from Base64
@@ -19596,6 +19670,25 @@ public class ObjectEntryResourceTest {
 					"externalReferenceCode", externalReferenceCode2
 				).toString(),
 				endpoint2 + externalReferenceCode1, httpMethod));
+	}
+
+	private void _testPatchPutCustomObjectEntryWithInvalidFileURL(
+			String expectedTitle, String fileURL, Http.Method httpMethod,
+			ObjectDefinition objectDefinition, boolean useExternalReferenceCode)
+		throws Exception {
+
+		_testPatchPutCustomObjectEntryWithAttachmentField(
+			fileEntry -> JSONUtil.put(
+				"status", "BAD_REQUEST"
+			).put(
+				"title", expectedTitle
+			),
+			_toFileEntry(
+				RandomTestUtil.randomString() + ".txt", fileURL, null, null,
+				ContentTypes.TEXT_PLAIN),
+			httpMethod, null, objectDefinition,
+			_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE,
+			useExternalReferenceCode);
 	}
 
 	private void _testPatchPutObjectEntryWithComments(
@@ -20097,46 +20190,78 @@ public class ObjectEntryResourceTest {
 		Company company = _companyLocalService.getCompany(
 			TestPropsValues.getCompanyId());
 
-		_testPostCustomObjectEntryWithAttachmentObjectField(
-			fileEntry -> JSONUtil.put(
-				_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE,
-				_getFileEntryJSONObject(
-					null, fileEntry, objectDefinition,
-					_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE)),
-			_toFileEntry(
-				customFileEntry1.getTitle(),
-				StringBundler.concat(
-					"http://", company.getVirtualHostname(), ":",
-					PortalUtil.getPortalServerPort(false),
-					_dlURLHelper.getPreviewURL(
-						customFileEntry1, customFileEntry1.getFileVersion(),
-						null, "", false, true)),
-				null, _group.getGroupId(), customFileEntry1.getMimeType()),
-			null, objectDefinition,
-			_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE);
+		String previewFileURL = StringBundler.concat(
+			"http://", company.getVirtualHostname(), ":",
+			PortalUtil.getPortalServerPort(false),
+			_dlURLHelper.getPreviewURL(
+				customFileEntry1, customFileEntry1.getFileVersion(), null, "",
+				false, true));
 
-		// Documents and media source, file from URL and host down
-
-		try (LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
-				"com.liferay.object.rest.internal.manager.v1_0." +
-					"DefaultObjectEntryManagerImpl",
-				LoggerTestUtil.ERROR)) {
-
-			String hostDownFileURL = StringBundler.concat(
-				"http://", company.getVirtualHostname(), ":",
-				PortalUtil.getPortalServerPort(false) + 1);
+		try (CompanyConfigurationTemporarySwapper
+				companyConfigurationTemporarySwapper = _swapObjectConfiguration(
+					new String[0], true)) {
 
 			_testPostCustomObjectEntryWithAttachmentObjectField(
 				fileEntry -> JSONUtil.put(
-					"status", "BAD_REQUEST"
-				).put(
-					"title", "Unable to download file from " + hostDownFileURL
-				),
+					_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE,
+					_getFileEntryJSONObject(
+						null, fileEntry, objectDefinition,
+						_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE)),
 				_toFileEntry(
-					RandomTestUtil.randomString() + ".txt", hostDownFileURL,
-					null, null, customFileEntry1.getMimeType()),
+					customFileEntry1.getTitle(), previewFileURL, null,
+					_group.getGroupId(), customFileEntry1.getMimeType()),
 				null, objectDefinition,
 				_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE);
+
+			// Documents and media source, file from URL and host down
+
+			try (LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
+					"com.liferay.object.rest.internal.manager.v1_0." +
+						"DefaultObjectEntryManagerImpl",
+					LoggerTestUtil.ERROR)) {
+
+				String hostDownFileURL = StringBundler.concat(
+					"http://", company.getVirtualHostname(), ":",
+					PortalUtil.getPortalServerPort(false) + 1);
+
+				_testPostCustomObjectEntryWithInvalidFileURL(
+					"Unable to download file from " + hostDownFileURL,
+					hostDownFileURL, objectDefinition);
+			}
+
+			// Documents and media source, file from URL not found
+
+			String notFoundPath = "/" + RandomTestUtil.randomString();
+
+			String resourceNotFoundFileURL = StringBundler.concat(
+				"http://", company.getVirtualHostname(), ":",
+				PortalUtil.getPortalServerPort(false), notFoundPath);
+
+			try (LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
+					"portal_web.docroot.errors.code_jsp",
+					LoggerTestUtil.WARN)) {
+
+				_testPostCustomObjectEntryWithInvalidFileURL(
+					"Unable to download file from " + resourceNotFoundFileURL +
+						" because of unexpected HTTP response code 404",
+					resourceNotFoundFileURL, objectDefinition);
+
+				List<LogEntry> logEntries = logCapture.getLogEntries();
+
+				Assert.assertEquals(
+					logEntries.toString(), 1, logEntries.size());
+
+				LogEntry logEntry = logEntries.get(0);
+
+				Assert.assertEquals(
+					LoggerTestUtil.WARN, logEntry.getPriority());
+
+				String message = logEntry.getMessage();
+
+				Assert.assertTrue(message, message.contains("code=\"404\""));
+				Assert.assertTrue(
+					message, message.contains("uri=" + notFoundPath));
+			}
 		}
 
 		// Documents and media source, file from URL malformed
@@ -20151,59 +20276,84 @@ public class ObjectEntryResourceTest {
 					"DefaultObjectEntryManagerImpl",
 				LoggerTestUtil.ERROR)) {
 
+			_testPostCustomObjectEntryWithInvalidFileURL(
+				"Unable to download file from " + malformedFileURL,
+				malformedFileURL, objectDefinition);
+		}
+
+		// Documents and media source, file from local URL with local network
+		// access disabled
+
+		String hostNotAllowedMessage = StringBundler.concat(
+			"Unable to download file from ", previewFileURL, " because host ",
+			company.getVirtualHostname(), " is not allowed");
+
+		_testPostCustomObjectEntryWithInvalidFileURL(
+			hostNotAllowedMessage, previewFileURL, objectDefinition);
+
+		// Documents and media source, file from local URL with host allowed
+		// and local network access disabled
+
+		try (CompanyConfigurationTemporarySwapper
+				companyConfigurationTemporarySwapper = _swapObjectConfiguration(
+					new String[] {company.getVirtualHostname()}, false)) {
+
+			_testPostCustomObjectEntryWithInvalidFileURL(
+				hostNotAllowedMessage, previewFileURL, objectDefinition);
+		}
+
+		// Documents and media source, file from local URL with host allowed and
+		// local network access enabled
+
+		try (CompanyConfigurationTemporarySwapper
+				companyConfigurationTemporarySwapper = _swapObjectConfiguration(
+					new String[] {
+						StringUtil.toUpperCase(company.getVirtualHostname())
+					},
+					true)) {
+
 			_testPostCustomObjectEntryWithAttachmentObjectField(
 				fileEntry -> JSONUtil.put(
-					"status", "BAD_REQUEST"
-				).put(
-					"title", "Unable to download file from " + malformedFileURL
-				),
+					_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE,
+					_getFileEntryJSONObject(
+						null, fileEntry, objectDefinition,
+						_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE)),
 				_toFileEntry(
-					RandomTestUtil.randomString() + ".txt", malformedFileURL,
+					RandomTestUtil.randomString() + ".txt", previewFileURL,
 					null, _group.getGroupId(), customFileEntry1.getMimeType()),
 				null, objectDefinition,
 				_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE);
 		}
 
-		// Documents and media source, file from URL not found
+		// Documents and media source, file from URL with host not allowed
 
-		String resourceNotFoundFileURL = StringBundler.concat(
-			"http://", company.getVirtualHostname(), ":",
-			PortalUtil.getPortalServerPort(false), "/",
-			RandomTestUtil.randomString());
+		try (CompanyConfigurationTemporarySwapper
+				companyConfigurationTemporarySwapper = _swapObjectConfiguration(
+					new String[] {"www.able.com"}, true)) {
 
-		_testPostCustomObjectEntryWithAttachmentObjectField(
-			fileEntry -> JSONUtil.put(
-				"status", "BAD_REQUEST"
-			).put(
-				"title",
-				"Unable to download file from " + resourceNotFoundFileURL +
-					", unexpected HTTP code: 404"
-			),
-			_toFileEntry(
-				RandomTestUtil.randomString() + ".txt", resourceNotFoundFileURL,
-				null, _group.getGroupId(), customFileEntry1.getMimeType()),
-			null, objectDefinition,
-			_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE);
+			_testPostCustomObjectEntryWithInvalidFileURL(
+				hostNotAllowedMessage, previewFileURL, objectDefinition);
+		}
 
 		// Documents and media source, file from URL with unsupported protocol
+
+		String jarFileURL = StringBundler.concat(
+			"jar:file:///", RandomTestUtil.randomString(),
+			".jar!/META-INF/MANIFEST.MF");
+
+		_testPostCustomObjectEntryWithInvalidFileURL(
+			"Unable to download file from " + jarFileURL +
+				" because protocol jar is not supported",
+			jarFileURL, objectDefinition);
 
 		String unsupportedProtocolURL = StringBundler.concat(
 			"file://", company.getVirtualHostname(), ":",
 			PortalUtil.getPortalServerPort(false));
 
-		_testPostCustomObjectEntryWithAttachmentObjectField(
-			fileEntry -> JSONUtil.put(
-				"status", "BAD_REQUEST"
-			).put(
-				"title",
-				"Unable to download file from " + unsupportedProtocolURL +
-					", unsupported protocol: file"
-			),
-			_toFileEntry(
-				RandomTestUtil.randomString() + ".txt", unsupportedProtocolURL,
-				null, _group.getGroupId(), customFileEntry1.getMimeType()),
-			null, objectDefinition,
-			_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE);
+		_testPostCustomObjectEntryWithInvalidFileURL(
+			"Unable to download file from " + unsupportedProtocolURL +
+				" because protocol file is not supported",
+			unsupportedProtocolURL, objectDefinition);
 
 		// User computer to CMS basic document source, file from Base64
 
@@ -20553,6 +20703,24 @@ public class ObjectEntryResourceTest {
 		_assertJSONObjectWithAttachmentField(
 			expectedJSONObjectUnsafeFunction.apply(fileEntry), jsonObject,
 			objectFieldName);
+	}
+
+	private void _testPostCustomObjectEntryWithInvalidFileURL(
+			String expectedTitle, String fileURL,
+			ObjectDefinition objectDefinition)
+		throws Exception {
+
+		_testPostCustomObjectEntryWithAttachmentObjectField(
+			fileEntry -> JSONUtil.put(
+				"status", "BAD_REQUEST"
+			).put(
+				"title", expectedTitle
+			),
+			_toFileEntry(
+				RandomTestUtil.randomString() + ".txt", fileURL, null,
+				_group.getGroupId(), ContentTypes.TEXT_PLAIN),
+			null, objectDefinition,
+			_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE);
 	}
 
 	private void
