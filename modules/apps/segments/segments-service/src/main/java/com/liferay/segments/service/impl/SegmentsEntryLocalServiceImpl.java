@@ -44,6 +44,7 @@ import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
+import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.odata.filter.FilterParser;
 import com.liferay.portal.odata.filter.FilterParserProvider;
 import com.liferay.portal.odata.filter.expression.ExpressionVisitException;
@@ -60,6 +61,7 @@ import com.liferay.segments.exception.SegmentsEntryKeyException;
 import com.liferay.segments.exception.SegmentsEntryNameException;
 import com.liferay.segments.internal.constants.SegmentsDestinationNames;
 import com.liferay.segments.internal.criteria.contributor.SegmentsEntrySegmentsCriteriaContributor;
+import com.liferay.segments.internal.odata.entity.BaseExpandoEntityModel;
 import com.liferay.segments.model.SegmentsEntry;
 import com.liferay.segments.model.SegmentsExperiment;
 import com.liferay.segments.service.SegmentsEntryRelLocalService;
@@ -675,14 +677,26 @@ public class SegmentsEntryLocalServiceImpl
 			SegmentsCriteriaContributor segmentsCriteriaContributor =
 				_getSegmentsCriteriaContributor(entry.getKey());
 
-			if ((segmentsCriteriaContributor == null) ||
-				(segmentsCriteriaContributor.getEntityModel() == null)) {
-
+			if (segmentsCriteriaContributor == null) {
 				continue;
 			}
 
+			EntityModel entityModel =
+				segmentsCriteriaContributor.getEntityModel();
+
+			if (entityModel == null) {
+				continue;
+			}
+
+			if (entityModel instanceof BaseExpandoEntityModel) {
+				BaseExpandoEntityModel baseExpandoEntityModel =
+					(BaseExpandoEntityModel)entityModel;
+
+				entityModel = baseExpandoEntityModel.getEntityModel(false);
+			}
+
 			FilterParser filterParser = _filterParserProvider.provide(
-				segmentsCriteriaContributor.getEntityModel());
+				entityModel);
 
 			try {
 				filterParser.parse(filterString);
