@@ -98,7 +98,6 @@ public class CartItemResourceTest extends BaseCartItemResourceTestCase {
 		_commerceInventoryWarehouse =
 			CommerceInventoryTestUtil.addCommerceInventoryWarehouse(
 				serviceContext);
-
 		_commerceOrder = _commerceOrderLocalService.addCommerceOrder(
 			_user.getUserId(), _commerceChannel.getGroupId(),
 			_accountEntry.getAccountEntryId(), _commerceCurrency.getCode(), 0);
