@@ -46,6 +46,7 @@ import com.liferay.segments.criteria.CriteriaSerializer;
 import com.liferay.segments.criteria.contributor.SegmentsCriteriaContributor;
 import com.liferay.segments.model.SegmentsEntry;
 import com.liferay.segments.provider.SegmentsEntryProvider;
+import com.liferay.segments.service.SegmentsEntryLocalService;
 import com.liferay.segments.service.SegmentsEntryRelLocalService;
 import com.liferay.segments.test.util.SegmentsTestUtil;
 
@@ -490,8 +491,12 @@ public class DefaultSegmentsEntryProviderTest {
 		_userSegmentsCriteriaContributor.contribute(
 			criteria, "('a'.equals('a'))", Criteria.Conjunction.AND);
 
-		SegmentsTestUtil.addSegmentsEntry(
-			_group.getGroupId(), CriteriaSerializer.serialize(criteria));
+		SegmentsEntry segmentsEntry = SegmentsTestUtil.addSegmentsEntry(
+			_group.getGroupId());
+
+		segmentsEntry.setCriteria(CriteriaSerializer.serialize(criteria));
+
+		_segmentsEntryLocalService.updateSegmentsEntry(segmentsEntry);
 
 		Assert.assertArrayEquals(
 			new long[0],
@@ -1089,6 +1094,9 @@ public class DefaultSegmentsEntryProviderTest {
 
 	@Inject
 	private Portal _portal;
+
+	@Inject
+	private SegmentsEntryLocalService _segmentsEntryLocalService;
 
 	@Inject(
 		filter = "segments.entry.provider.source=" + SegmentsEntryConstants.SOURCE_DEFAULT,
