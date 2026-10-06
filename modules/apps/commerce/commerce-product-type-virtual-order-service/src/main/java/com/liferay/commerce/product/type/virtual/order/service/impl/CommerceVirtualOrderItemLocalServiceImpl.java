@@ -30,6 +30,7 @@ import com.liferay.portal.kernel.service.UserLocalService;
 import com.liferay.portal.kernel.util.CalendarFactoryUtil;
 import com.liferay.portal.kernel.util.MimeTypesUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
+import com.liferay.portal.kernel.util.Validator;
 
 import java.io.File;
 import java.io.IOException;
@@ -271,12 +272,17 @@ public class CommerceVirtualOrderItemLocalServiceImpl
 		CommerceOrderItem commerceOrderItem =
 			commerceVirtualOrderItem.getCommerceOrderItem();
 
-		File tempFile = _file.createTempFile(contentInputStream);
-
-		File file = new File(
-			tempFile.getParent(),
+		String fileName = _file.getShortFileName(
 			commerceOrderItem.getNameCurrentValue() + StringPool.PERIOD +
 				extension);
+
+		File tempFile = _file.createTempFile(contentInputStream);
+
+		if (!Validator.isFileName(fileName)) {
+			return tempFile;
+		}
+
+		File file = new File(tempFile.getParent(), fileName);
 
 		if (file.exists() && !file.delete()) {
 			throw new IOException();
