@@ -511,8 +511,8 @@ public class SegmentsEntryLocalServiceTest {
 			"user", Criteria.Type.MODEL, "''.getClass()",
 			Criteria.Conjunction.AND);
 
-		AssertUtils.assertFailure(
-			SegmentsEntryCriteriaException.class, null,
+		Assert.assertThrows(
+			SegmentsEntryCriteriaException.class,
 			() -> SegmentsTestUtil.addSegmentsEntry(
 				_group.getGroupId(), RandomTestUtil.randomString(),
 				RandomTestUtil.randomString(), RandomTestUtil.randomString(),
