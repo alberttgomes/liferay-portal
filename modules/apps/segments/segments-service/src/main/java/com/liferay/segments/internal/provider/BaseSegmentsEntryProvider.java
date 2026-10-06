@@ -44,6 +44,7 @@ import com.liferay.segments.criteria.Criteria;
 import com.liferay.segments.criteria.contributor.SegmentsCriteriaContributor;
 import com.liferay.segments.criteria.contributor.SegmentsCriteriaContributorRegistry;
 import com.liferay.segments.internal.checker.UserSegmentsEntryMembershipChecker;
+import com.liferay.segments.internal.odata.entity.BaseExpandoEntityModel;
 import com.liferay.segments.internal.odata.entity.EntityModelFieldMapper;
 import com.liferay.segments.internal.odata.entity.UserEntityModel;
 import com.liferay.segments.model.SegmentsEntry;
@@ -529,9 +530,18 @@ public abstract class BaseSegmentsEntryProvider
 	}
 
 	private boolean _isValidModelFilterString(String modelFilterString) {
+		EntityModel entityModel = userEntityModel;
+
+		if (entityModel instanceof BaseExpandoEntityModel) {
+			BaseExpandoEntityModel baseExpandoEntityModel =
+				(BaseExpandoEntityModel)entityModel;
+
+			entityModel = baseExpandoEntityModel.getEntityModel(false);
+		}
+
 		try {
 			FilterParser filterParser = filterParserProvider.provide(
-				userEntityModel);
+				entityModel);
 
 			filterParser.parse(modelFilterString);
 
