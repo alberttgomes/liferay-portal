@@ -62,7 +62,7 @@ public class TemplateRestrictedMethodsTest {
 		try {
 			template.processTemplate(new UnsyncStringWriter());
 
-			Assert.fail(templateContent);
+			Assert.fail();
 		}
 		catch (TemplateException templateException) {
 			Throwable throwable = templateException;
