@@ -130,7 +130,9 @@ public class SafeLdapReferralUtilTest {
 				new SearchControls());
 
 		Assert.assertTrue(resultEnumeration.hasMore());
+
 		Assert.assertSame(searchResult, resultEnumeration.next());
+
 		Assert.assertFalse(resultEnumeration.hasMore());
 	}
 
@@ -283,7 +285,9 @@ public class SafeLdapReferralUtilTest {
 				_mockRootDirContext(referralException), new SearchControls());
 
 		Assert.assertTrue(resultEnumeration.hasMore());
+
 		Assert.assertSame(searchResult, resultEnumeration.next());
+
 		Assert.assertFalse(resultEnumeration.hasMore());
 
 		Mockito.verify(
