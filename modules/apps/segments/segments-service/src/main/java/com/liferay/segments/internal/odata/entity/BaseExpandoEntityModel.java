@@ -280,15 +280,6 @@ public abstract class BaseExpandoEntityModel implements EntityModel {
 			});
 	}
 
-	private void _resetEntityModel() {
-		TransactionCallbackUtil.registerCommitCallback(
-			() -> {
-				_entityModelDCLSingleton.destroy(null);
-
-				return null;
-			});
-	}
-
 	private BundleContext _bundleContext;
 	private Map<String, EntityField> _entityFieldsMap;
 	private final DCLSingleton<Map<String, EntityField>>
@@ -304,15 +295,8 @@ public abstract class BaseExpandoEntityModel implements EntityModel {
 		public void onAfterCreate(ExpandoColumn expandoColumn)
 			throws ModelListenerException {
 
-			if (!_isTargetTable(expandoColumn)) {
-				return;
-			}
-
-			if (_isIndexType(expandoColumn)) {
+			if (_isTargetTable(expandoColumn)) {
 				_refresh();
-			}
-			else {
-				_resetEntityModel();
 			}
 		}
 
@@ -320,15 +304,8 @@ public abstract class BaseExpandoEntityModel implements EntityModel {
 		public void onAfterRemove(ExpandoColumn expandoColumn)
 			throws ModelListenerException {
 
-			if (!_isTargetTable(expandoColumn)) {
-				return;
-			}
-
-			if (_isIndexType(expandoColumn)) {
+			if (_isTargetTable(expandoColumn)) {
 				_refresh();
-			}
-			else {
-				_resetEntityModel();
 			}
 		}
 
@@ -338,17 +315,8 @@ public abstract class BaseExpandoEntityModel implements EntityModel {
 				ExpandoColumn expandoColumn)
 			throws ModelListenerException {
 
-			if (!_isTargetTable(expandoColumn)) {
-				return;
-			}
-
-			if (_isIndexType(originalExpandoColumn) ||
-				_isIndexType(expandoColumn)) {
-
+			if (_isTargetTable(expandoColumn)) {
 				_refresh();
-			}
-			else {
-				_resetEntityModel();
 			}
 		}
 
