@@ -85,9 +85,9 @@ public class DefaultPropertyValidatorTest {
 			PropertyDefinition.PropertyType.DATE_TIME, defaultPropertyValidator,
 			RandomTestUtil.randomBoolean());
 
+		defaultPropertyValidator.validate(propertyDefinition, StringPool.BLANK);
 		defaultPropertyValidator.validate(
 			propertyDefinition, _dateFormat.format(RandomTestUtil.nextDate()));
-		defaultPropertyValidator.validate(propertyDefinition, StringPool.BLANK);
 	}
 
 	@Test
