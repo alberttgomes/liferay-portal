@@ -5,6 +5,7 @@
 
 package com.liferay.portal.vulcan.extension.validation;
 
+import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.test.rule.LiferayUnitTestRule;
@@ -86,6 +87,7 @@ public class DefaultPropertyValidatorTest {
 
 		defaultPropertyValidator.validate(
 			propertyDefinition, _dateFormat.format(RandomTestUtil.nextDate()));
+		defaultPropertyValidator.validate(propertyDefinition, StringPool.BLANK);
 	}
 
 	@Test
