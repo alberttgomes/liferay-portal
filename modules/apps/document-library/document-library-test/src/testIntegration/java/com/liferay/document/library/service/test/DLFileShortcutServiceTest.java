@@ -158,12 +158,13 @@ public class DLFileShortcutServiceTest {
 
 	private void _testUpdateFileShortcuts() throws Exception {
 		FileEntry fileEntry1 = DLAppTestUtil.addFileEntry(_group.getGroupId());
-		FileEntry fileEntry2 = DLAppTestUtil.addFileEntry(_group.getGroupId());
 
 		DLFileShortcut dlFileShortcut1 = _addDLFileShortcut(
 			true, fileEntry1.getFileEntryId());
 		DLFileShortcut dlFileShortcut2 = _addDLFileShortcut(
 			true, fileEntry1.getFileEntryId());
+
+		FileEntry fileEntry2 = DLAppTestUtil.addFileEntry(_group.getGroupId());
 
 		DLFileShortcutServiceUtil.updateFileShortcuts(
 			fileEntry1.getFileEntryId(), fileEntry2.getFileEntryId());
@@ -179,12 +180,13 @@ public class DLFileShortcutServiceTest {
 		throws Exception {
 
 		FileEntry fileEntry1 = DLAppTestUtil.addFileEntry(_group.getGroupId());
-		FileEntry fileEntry2 = DLAppTestUtil.addFileEntry(_group.getGroupId());
 
 		DLFileShortcut dlFileShortcut1 = _addDLFileShortcut(
 			true, fileEntry1.getFileEntryId());
 		DLFileShortcut dlFileShortcut2 = _addDLFileShortcut(
 			true, fileEntry1.getFileEntryId());
+
+		FileEntry fileEntry2 = DLAppTestUtil.addFileEntry(_group.getGroupId());
 
 		try (ContextUserReplace contextUserReplace = new ContextUserReplace(
 				UserTestUtil.addGroupUser(_group, RoleConstants.SITE_MEMBER))) {
