@@ -18,8 +18,10 @@ import com.liferay.portal.kernel.servlet.HttpMethods;
 import com.liferay.portal.kernel.test.TestInfo;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
+import com.liferay.portal.kernel.util.JavaConstants;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.test.rule.Inject;
@@ -60,7 +62,9 @@ public class LayoutServiceContextHelperTest {
 			PermissionCheckerMethodTestRule.INSTANCE);
 
 	@Test
-	@TestInfo({"LPD-79722", "LPD-99386", "LPD-102690", "LPD-105885"})
+	@TestInfo(
+		{"LPD-79722", "LPD-99386", "LPD-102690", "LPD-103742", "LPD-105885"}
+	)
 	public void testGetServiceContextAutoCloseable() throws Exception {
 		_testGetServiceContextAutoCloseable();
 		_testGetServiceContextAutoCloseableWithConcurrentSwaps();
@@ -82,19 +86,35 @@ public class LayoutServiceContextHelperTest {
 							_layoutServiceContextHelper.
 								getServiceContextAutoCloseable(layout)) {
 
+						ServiceContext currentServiceContext =
+							ServiceContextThreadLocal.getServiceContext();
+
+						HttpServletRequest currentHttpServletRequest =
+							currentServiceContext.getRequest();
+
+						String includeServletPath =
+							RandomTestUtil.randomString();
+
+						currentHttpServletRequest.setAttribute(
+							JavaConstants.JAKARTA_SERVLET_INCLUDE_SERVLET_PATH,
+							includeServletPath);
+
 						openCountDownLatch.countDown();
 
 						Assert.assertTrue(
 							otherOpenCountDownLatch.await(1, TimeUnit.MINUTES));
-
-						ServiceContext currentServiceContext =
-							ServiceContextThreadLocal.getServiceContext();
 
 						ThemeDisplay themeDisplay =
 							currentServiceContext.getThemeDisplay();
 
 						Assert.assertEquals(
 							layout.getPlid(), themeDisplay.getPlid());
+
+						Assert.assertEquals(
+							includeServletPath,
+							currentHttpServletRequest.getAttribute(
+								JavaConstants.
+									JAKARTA_SERVLET_INCLUDE_SERVLET_PATH));
 					}
 					finally {
 						openCountDownLatch.countDown();
