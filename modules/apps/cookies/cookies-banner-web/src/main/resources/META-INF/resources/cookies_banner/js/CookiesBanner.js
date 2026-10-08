@@ -128,15 +128,13 @@ export default function ({
 
 		optionalConsentCookieTypeNames.forEach(
 			(optionalConsentCookieTypeName) => {
-				cookiePreferences[optionalConsentCookieTypeName] =
-					getCookie(optionalConsentCookieTypeName) || 'false';
+				cookiePreferences[optionalConsentCookieTypeName] = 'false';
 			}
 		);
 
 		requiredConsentCookieTypeNames.forEach(
 			(requiredConsentCookieTypeName) => {
-				cookiePreferences[requiredConsentCookieTypeName] =
-					getCookie(requiredConsentCookieTypeName) || 'true';
+				cookiePreferences[requiredConsentCookieTypeName] = 'true';
 			}
 		);
 
