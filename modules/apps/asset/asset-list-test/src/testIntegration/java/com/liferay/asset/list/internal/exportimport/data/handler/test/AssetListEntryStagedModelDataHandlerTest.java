@@ -8,24 +8,34 @@ package com.liferay.asset.list.internal.exportimport.data.handler.test;
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
 import com.liferay.asset.list.constants.AssetListEntryTypeConstants;
 import com.liferay.asset.list.model.AssetListEntry;
+import com.liferay.asset.list.model.AssetListEntrySegmentsEntryRel;
 import com.liferay.asset.list.service.AssetListEntryLocalService;
 import com.liferay.asset.list.service.AssetListEntrySegmentsEntryRelLocalService;
 import com.liferay.asset.list.test.util.AssetListTestUtil;
+import com.liferay.dynamic.data.mapping.model.DDMStructure;
+import com.liferay.dynamic.data.mapping.test.util.DDMStructureTestUtil;
 import com.liferay.exportimport.kernel.lar.ExportImportThreadLocal;
 import com.liferay.exportimport.kernel.lar.StagedModelDataHandlerUtil;
 import com.liferay.exportimport.test.util.lar.BaseStagedModelDataHandlerTestCase;
+import com.liferay.journal.model.JournalArticle;
 import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.StagedModel;
 import com.liferay.portal.kernel.model.User;
+import com.liferay.portal.kernel.service.ClassNameLocalService;
+import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.test.TestInfo;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
+import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.UnicodeProperties;
+import com.liferay.portal.kernel.util.UnicodePropertiesBuilder;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
+import com.liferay.segments.constants.SegmentsEntryConstants;
 import com.liferay.segments.criteria.Criteria;
 import com.liferay.segments.criteria.CriteriaSerializer;
 import com.liferay.segments.criteria.contributor.SegmentsCriteriaContributor;
@@ -93,6 +103,81 @@ public class AssetListEntryStagedModelDataHandlerTest
 			_segmentsEntryLocalService.getSegmentsEntryByExternalReferenceCode(
 				segmentsEntry.getExternalReferenceCode(),
 				liveGroup.getGroupId()));
+	}
+
+	@Test
+	@TestInfo("LPD-106967")
+	public void testExportImportAssetListEntryWithAnyClassType()
+		throws Exception {
+
+		DDMStructure ddmStructure = DDMStructureTestUtil.addStructure(
+			stagingGroup.getGroupId(), JournalArticle.class.getName());
+
+		ServiceContext serviceContext =
+			ServiceContextTestUtil.getServiceContext(liveGroup.getGroupId());
+
+		serviceContext.setUuid(ddmStructure.getUuid());
+
+		DDMStructure importedDDMStructure = DDMStructureTestUtil.addStructure(
+			liveGroup.getGroupId(), JournalArticle.class.getName(), 0,
+			ddmStructure.getDDMForm(), LocaleUtil.getSiteDefault(),
+			serviceContext);
+
+		Assert.assertNotEquals(
+			ddmStructure.getStructureId(),
+			importedDDMStructure.getStructureId());
+
+		AssetListEntry assetListEntry = (AssetListEntry)addStagedModel(
+			stagingGroup, Collections.emptyMap());
+
+		_assetListEntrySegmentsEntryRelLocalService.
+			updateAssetListEntrySegmentsEntryRelTypeSettings(
+				assetListEntry.getAssetListEntryId(),
+				SegmentsEntryConstants.ID_DEFAULT,
+				UnicodePropertiesBuilder.put(
+					"anyAssetType",
+					String.valueOf(
+						_classNameLocalService.getClassNameId(
+							JournalArticle.class.getName()))
+				).put(
+					"anyClassTypeJournalArticleAssetRendererFactory",
+					String.valueOf(ddmStructure.getStructureId())
+				).buildString());
+
+		exportStagedModel(assetListEntry);
+
+		try (SafeCloseable safeCloseable = initImportWithSafeCloseable(
+				stagingGroup, liveGroup)) {
+
+			Map<Long, Long> ddmStructureIds =
+				(Map<Long, Long>)portletDataContext.getNewPrimaryKeysMap(
+					DDMStructure.class);
+
+			ddmStructureIds.put(
+				ddmStructure.getStructureId(),
+				importedDDMStructure.getStructureId());
+
+			StagedModelDataHandlerUtil.importStagedModel(
+				portletDataContext, readExportedStagedModel(assetListEntry));
+		}
+
+		AssetListEntry importedAssetListEntry = (AssetListEntry)getStagedModel(
+			assetListEntry.getUuid(), liveGroup);
+
+		AssetListEntrySegmentsEntryRel assetListEntrySegmentsEntryRel =
+			_assetListEntrySegmentsEntryRelLocalService.
+				fetchAssetListEntrySegmentsEntryRel(
+					importedAssetListEntry.getAssetListEntryId(),
+					SegmentsEntryConstants.ID_DEFAULT);
+
+		UnicodeProperties unicodeProperties = UnicodePropertiesBuilder.load(
+			assetListEntrySegmentsEntryRel.getTypeSettings()
+		).build();
+
+		Assert.assertEquals(
+			String.valueOf(importedDDMStructure.getStructureId()),
+			unicodeProperties.getProperty(
+				"anyClassTypeJournalArticleAssetRendererFactory"));
 	}
 
 	@Override
@@ -201,6 +286,9 @@ public class AssetListEntryStagedModelDataHandlerTest
 	@Inject
 	private AssetListEntrySegmentsEntryRelLocalService
 		_assetListEntrySegmentsEntryRelLocalService;
+
+	@Inject
+	private ClassNameLocalService _classNameLocalService;
 
 	@Inject(
 		filter = "segments.criteria.contributor.key=user",
