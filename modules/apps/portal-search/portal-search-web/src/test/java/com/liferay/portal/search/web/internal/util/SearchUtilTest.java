@@ -118,6 +118,8 @@ public class SearchUtilTest {
 	}
 
 	private void _setUpPortalUtil() {
+		PortalUtil portalUtil = new PortalUtil();
+
 		Portal portal = Mockito.mock(Portal.class);
 
 		Mockito.doReturn(
@@ -135,8 +137,6 @@ public class SearchUtilTest {
 		).getLiferayPortletResponse(
 			_renderResponse
 		);
-
-		PortalUtil portalUtil = new PortalUtil();
 
 		portalUtil.setPortal(portal);
 	}
