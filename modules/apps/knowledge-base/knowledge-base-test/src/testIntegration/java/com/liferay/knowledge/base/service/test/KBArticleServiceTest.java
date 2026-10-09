@@ -81,13 +81,12 @@ public class KBArticleServiceTest {
 		_group2 = GroupTestUtil.addGroup();
 		_kbFolderClassNameId = ClassNameLocalServiceUtil.getClassNameId(
 			KBFolderConstants.getClassName());
+		_role = RoleTestUtil.addRole(RoleConstants.TYPE_SITE);
 		_serviceContext = ServiceContextTestUtil.getServiceContext(
 			_group1, TestPropsValues.getUserId());
 		_siteMemberUser = UserTestUtil.addUser(_group1.getGroupId());
 		_testPortletId = "TEST_PORTLET_" + RandomTestUtil.randomString();
 		_user = UserTestUtil.addUser();
-
-		_role = RoleTestUtil.addRole(RoleConstants.TYPE_SITE);
 
 		RoleTestUtil.addResourcePermission(
 			_role, KBConstants.RESOURCE_NAME_ADMIN,
