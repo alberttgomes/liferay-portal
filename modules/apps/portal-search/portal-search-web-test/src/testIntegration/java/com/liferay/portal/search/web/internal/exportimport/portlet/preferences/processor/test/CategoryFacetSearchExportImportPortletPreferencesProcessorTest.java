@@ -121,35 +121,31 @@ public class CategoryFacetSearchExportImportPortletPreferencesProcessorTest
 
 		ExportImportThreadLocal.setPortletStagingInProcess(true);
 
-		try {
-			Map<String, Object> portletConfiguration =
-				_portletPreferencesPortletConfigurationExporter.
-					getPortletConfiguration(layout.getPlid(), portletId);
+		Map<String, Object> portletConfiguration =
+			_portletPreferencesPortletConfigurationExporter.
+				getPortletConfiguration(layout.getPlid(), portletId);
 
-			Assert.assertEquals(
-				"[$COMPANY_GROUP_EXTERNAL_REFERENCE_CODE$]&&" +
-					_assetVocabulary.getExternalReferenceCode(),
-				portletConfiguration.get(
-					"groupVocabularyExternalReferenceCodes"));
+		Assert.assertEquals(
+			"[$COMPANY_GROUP_EXTERNAL_REFERENCE_CODE$]&&" +
+				_assetVocabulary.getExternalReferenceCode(),
+			portletConfiguration.get("groupVocabularyExternalReferenceCodes"));
 
-			Layout importedLayout = LayoutTestUtil.addTypePortletLayout(_group);
+		Layout importedLayout = LayoutTestUtil.addTypePortletLayout(_group);
 
-			_portletPreferencesPortletConfigurationImporter.
-				importPortletConfiguration(
-					importedLayout.getPlid(), portletId, portletConfiguration);
+		_portletPreferencesPortletConfigurationImporter.
+			importPortletConfiguration(
+				importedLayout.getPlid(), portletId, portletConfiguration);
 
-			PortletPreferences portletPreferences =
-				LayoutTestUtil.getPortletPreferences(importedLayout, portletId);
+		PortletPreferences portletPreferences =
+			LayoutTestUtil.getPortletPreferences(importedLayout, portletId);
 
-			Assert.assertEquals(
-				companyGroup.getExternalReferenceCode() + "&&" +
-					_assetVocabulary.getExternalReferenceCode(),
-				portletPreferences.getValue(
-					"groupVocabularyExternalReferenceCodes", ""));
-		}
-		finally {
-			ExportImportThreadLocal.setPortletStagingInProcess(false);
-		}
+		Assert.assertEquals(
+			companyGroup.getExternalReferenceCode() + "&&" +
+				_assetVocabulary.getExternalReferenceCode(),
+			portletPreferences.getValue(
+				"groupVocabularyExternalReferenceCodes", ""));
+
+		ExportImportThreadLocal.setPortletStagingInProcess(false);
 	}
 
 	@Test
