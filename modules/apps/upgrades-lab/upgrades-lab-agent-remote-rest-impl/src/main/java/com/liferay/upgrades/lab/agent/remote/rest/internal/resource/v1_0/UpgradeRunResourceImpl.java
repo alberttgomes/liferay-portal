@@ -5,6 +5,9 @@
 
 package com.liferay.upgrades.lab.agent.remote.rest.internal.resource.v1_0;
 
+import com.liferay.portal.kernel.security.auth.PrincipalException;
+import com.liferay.portal.kernel.security.permission.PermissionChecker;
+import com.liferay.portal.kernel.security.permission.PermissionThreadLocal;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.upgrades.lab.agent.remote.constants.UpgradeRunConstants;
 import com.liferay.upgrades.lab.agent.remote.rest.dto.v1_0.UpgradeRun;
@@ -30,6 +33,8 @@ public class UpgradeRunResourceImpl extends BaseUpgradeRunResourceImpl {
 			String externalReferenceCode)
 		throws Exception {
 
+		_checkPermission();
+
 		return _toUpgradeRun(
 			_upgradeRunLocalService.refreshUpgradeRun(
 				externalReferenceCode, contextCompany.getCompanyId()));
@@ -37,6 +42,8 @@ public class UpgradeRunResourceImpl extends BaseUpgradeRunResourceImpl {
 
 	@Override
 	public UpgradeRun postUpgradeRun(UpgradeRun upgradeRun) throws Exception {
+		_checkPermission();
+
 		return _toUpgradeRun(
 			_upgradeRunLocalService.addUpgradeRun(
 				contextUser.getUserId(), upgradeRun.getBranch(),
@@ -55,6 +62,8 @@ public class UpgradeRunResourceImpl extends BaseUpgradeRunResourceImpl {
 			String externalReferenceCode)
 		throws Exception {
 
+		_checkPermission();
+
 		return _toUpgradeRun(
 			_upgradeRunLocalService.cancelUpgradeRun(
 				externalReferenceCode, contextCompany.getCompanyId()));
@@ -66,6 +75,8 @@ public class UpgradeRunResourceImpl extends BaseUpgradeRunResourceImpl {
 			UpgradeRunResumption upgradeRunResumption)
 		throws Exception {
 
+		_checkPermission();
+
 		if (upgradeRunResumption == null) {
 			upgradeRunResumption = new UpgradeRunResumption();
 		}
@@ -76,6 +87,15 @@ public class UpgradeRunResourceImpl extends BaseUpgradeRunResourceImpl {
 				contextCompany.getCompanyId(),
 				GetterUtil.getInteger(upgradeRunResumption.getFirstPhase()),
 				upgradeRunResumption.getSettings()));
+	}
+
+	private void _checkPermission() throws Exception {
+		PermissionChecker permissionChecker =
+			PermissionThreadLocal.getPermissionChecker();
+
+		if (!permissionChecker.isOmniadmin()) {
+			throw new PrincipalException.MustBeOmniadmin(permissionChecker);
+		}
 	}
 
 	private UpgradeRun _toUpgradeRun(

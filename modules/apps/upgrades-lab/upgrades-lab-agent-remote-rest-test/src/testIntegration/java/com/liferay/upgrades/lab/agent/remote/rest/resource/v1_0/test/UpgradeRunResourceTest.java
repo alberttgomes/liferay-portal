@@ -6,13 +6,20 @@
 package com.liferay.upgrades.lab.agent.remote.rest.resource.v1_0.test;
 
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
+import com.liferay.petra.function.UnsafeRunnable;
+import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
+import com.liferay.portal.kernel.test.util.UserTestUtil;
+import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.test.log.LogCapture;
 import com.liferay.portal.test.log.LoggerTestUtil;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.upgrades.lab.agent.remote.constants.UpgradeRunConstants;
 import com.liferay.upgrades.lab.agent.remote.rest.client.dto.v1_0.UpgradeRun;
 import com.liferay.upgrades.lab.agent.remote.rest.client.dto.v1_0.UpgradeRunResumption;
+import com.liferay.upgrades.lab.agent.remote.rest.client.problem.Problem;
+import com.liferay.upgrades.lab.agent.remote.rest.client.resource.v1_0.UpgradeRunResource;
 import com.liferay.upgrades.lab.agent.remote.runner.UpgradeRunner;
 import com.liferay.upgrades.lab.agent.remote.runner.UpgradeRunnerState;
 import com.liferay.upgrades.lab.agent.remote.service.UpgradeRunLocalService;
@@ -53,6 +60,8 @@ public class UpgradeRunResourceTest extends BaseUpgradeRunResourceTestCase {
 	public void testGetUpgradeRunByExternalReferenceCode() throws Exception {
 		try (LogCapture logCapture = _captureRunnerErrors()) {
 			super.testGetUpgradeRunByExternalReferenceCode();
+
+			_testGetUpgradeRunWithoutOmniadmin();
 
 			_waitForRunner();
 		}
@@ -118,6 +127,8 @@ public class UpgradeRunResourceTest extends BaseUpgradeRunResourceTestCase {
 		try (LogCapture logCapture = _captureRunnerErrors()) {
 			super.testPostUpgradeRun();
 
+			_testPostUpgradeRunWithoutOmniadmin();
+
 			_waitForRunner();
 		}
 	}
@@ -130,6 +141,8 @@ public class UpgradeRunResourceTest extends BaseUpgradeRunResourceTestCase {
 		try (LogCapture logCapture = _captureRunnerErrors()) {
 			super.testPostUpgradeRunByExternalReferenceCodeCancel();
 
+			_testCancelUpgradeRunWithoutOmniadmin();
+
 			_waitForRunner();
 		}
 	}
@@ -141,6 +154,8 @@ public class UpgradeRunResourceTest extends BaseUpgradeRunResourceTestCase {
 
 		try (LogCapture logCapture = _captureRunnerErrors()) {
 			super.testPostUpgradeRunByExternalReferenceCodeResume();
+
+			_testResumeUpgradeRunWithoutOmniadmin();
 
 			_waitForRunner();
 		}
@@ -217,6 +232,22 @@ public class UpgradeRunResourceTest extends BaseUpgradeRunResourceTestCase {
 				new UpgradeRunResumption()));
 	}
 
+	private void _assertProblemStatus(
+			String status, UnsafeRunnable<Exception> unsafeRunnable)
+		throws Exception {
+
+		try {
+			unsafeRunnable.run();
+
+			Assert.fail();
+		}
+		catch (Problem.ProblemException problemException) {
+			Problem problem = problemException.getProblem();
+
+			Assert.assertEquals(status, problem.getStatus());
+		}
+	}
+
 	private LogCapture _captureRunnerErrors() {
 		return LoggerTestUtil.configureLog4JLogger(
 			"com.liferay.upgrades.lab.agent.remote.runner.local.internal." +
@@ -224,8 +255,74 @@ public class UpgradeRunResourceTest extends BaseUpgradeRunResourceTestCase {
 			LoggerTestUtil.ERROR);
 	}
 
+	private UpgradeRunResource _createUserUpgradeRunResource()
+		throws Exception {
+
+		User user = UserTestUtil.addUser(testCompany, "test");
+
+		return UpgradeRunResource.builder(
+		).authentication(
+			user.getEmailAddress(), "test"
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).locale(
+			LocaleUtil.getDefault()
+		).build();
+	}
+
 	private UpgradeRun _postUpgradeRun(UpgradeRun upgradeRun) throws Exception {
 		return _trackUpgradeRun(upgradeRunResource.postUpgradeRun(upgradeRun));
+	}
+
+	private void _testCancelUpgradeRunWithoutOmniadmin() throws Exception {
+		UpgradeRun upgradeRun = _postUpgradeRun(randomUpgradeRun());
+
+		UpgradeRunResource userUpgradeRunResource =
+			_createUserUpgradeRunResource();
+
+		_assertProblemStatus(
+			"FORBIDDEN",
+			() ->
+				userUpgradeRunResource.
+					postUpgradeRunByExternalReferenceCodeCancel(
+						upgradeRun.getExternalReferenceCode()));
+	}
+
+	private void _testGetUpgradeRunWithoutOmniadmin() throws Exception {
+		UpgradeRun upgradeRun = _postUpgradeRun(randomUpgradeRun());
+
+		UpgradeRunResource userUpgradeRunResource =
+			_createUserUpgradeRunResource();
+
+		_assertProblemStatus(
+			"NOT_FOUND",
+			() -> userUpgradeRunResource.getUpgradeRunByExternalReferenceCode(
+				upgradeRun.getExternalReferenceCode()));
+	}
+
+	private void _testPostUpgradeRunWithoutOmniadmin() throws Exception {
+		UpgradeRunResource userUpgradeRunResource =
+			_createUserUpgradeRunResource();
+
+		_assertProblemStatus(
+			"FORBIDDEN",
+			() -> userUpgradeRunResource.postUpgradeRun(randomUpgradeRun()));
+	}
+
+	private void _testResumeUpgradeRunWithoutOmniadmin() throws Exception {
+		UpgradeRun upgradeRun = _postUpgradeRun(randomUpgradeRun());
+
+		UpgradeRunResource userUpgradeRunResource =
+			_createUserUpgradeRunResource();
+
+		_assertProblemStatus(
+			"FORBIDDEN",
+			() ->
+				userUpgradeRunResource.
+					postUpgradeRunByExternalReferenceCodeResume(
+						upgradeRun.getExternalReferenceCode(),
+						new UpgradeRunResumption()));
 	}
 
 	private UpgradeRun _trackUpgradeRun(UpgradeRun upgradeRun)

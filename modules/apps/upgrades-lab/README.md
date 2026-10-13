@@ -378,7 +378,7 @@ Submit, poll, cancel, and resume work end to end against the local runner. The g
 
 - **JSON web services are off.** The entity is `remote-service="false"`, so the headless REST API is the only remote entry point.
 
-- **No permission checks.** The REST resource acts for the authenticated user without checking a portal permission. Restrict access at the OAuth 2 application or the network until one exists.
+- **Omniadmins only.** A run launches the agent with permission prompts bypassed on the portal host, which every virtual instance shares, so the REST resource rejects any caller who is not an omniadmin. A non-omniadmin gets `403` on submit, cancel, and resume, and `404` on read. Any omniadmin can read, cancel, and resume any run, and can point a run at any repository URL, credential key reference, and license path the host reaches. Resource permissions and per-user run scoping replace this check later.
 
 ## Development
 
