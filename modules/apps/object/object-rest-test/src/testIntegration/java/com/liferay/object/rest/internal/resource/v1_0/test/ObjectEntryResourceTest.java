@@ -19131,8 +19131,6 @@ public class ObjectEntryResourceTest {
 			}
 		);
 
-		// Documents and media source, file from URL
-
 		Company company = _companyLocalService.getCompany(
 			TestPropsValues.getCompanyId());
 
@@ -19142,6 +19140,53 @@ public class ObjectEntryResourceTest {
 			_dlURLHelper.getPreviewURL(
 				customFileEntry1, customFileEntry1.getFileVersion(), null, "",
 				false, true));
+
+		String hostNotAllowedMessage = StringBundler.concat(
+			"Unable to download file from ", previewFileURL, " because host ",
+			company.getVirtualHostname(), " is not allowed");
+
+		// Documents and media source, file from local URL with host allowed
+		// and local network access disabled
+
+		try (CompanyConfigurationTemporarySwapper
+				companyConfigurationTemporarySwapper = _swapObjectConfiguration(
+					new String[] {company.getVirtualHostname()}, false)) {
+
+			_testPatchPutCustomObjectEntryWithInvalidFileURL(
+				hostNotAllowedMessage, previewFileURL, httpMethod,
+				objectDefinition, useExternalReferenceCode);
+		}
+
+		// Documents and media source, file from local URL with host allowed
+		// and local network access enabled
+
+		try (CompanyConfigurationTemporarySwapper
+				companyConfigurationTemporarySwapper = _swapObjectConfiguration(
+					new String[] {
+						StringUtil.toUpperCase(company.getVirtualHostname())
+					},
+					true)) {
+
+			_testPatchPutCustomObjectEntryWithAttachmentField(
+				fileEntry -> JSONUtil.put(
+					_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE,
+					_getFileEntryJSONObject(
+						null, fileEntry, objectDefinition,
+						_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE)),
+				_toFileEntry(
+					RandomTestUtil.randomString() + ".txt", previewFileURL,
+					null, null, customFileEntry1.getMimeType()),
+				httpMethod, null, objectDefinition,
+				_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE,
+				useExternalReferenceCode);
+		}
+
+		// Documents and media source, file from local URL with local network
+		// access disabled
+
+		_testPatchPutCustomObjectEntryWithInvalidFileURL(
+			hostNotAllowedMessage, previewFileURL, httpMethod, objectDefinition,
+			useExternalReferenceCode);
 
 		try (CompanyConfigurationTemporarySwapper
 				companyConfigurationTemporarySwapper = _swapObjectConfiguration(
@@ -19173,6 +19218,23 @@ public class ObjectEntryResourceTest {
 				String url = StringBundler.concat(
 					"http://", company.getVirtualHostname(), ":",
 					PortalUtil.getPortalServerPort(false) + 1);
+
+				_testPatchPutCustomObjectEntryWithInvalidFileURL(
+					"Unable to download file from " + url, url, httpMethod,
+					objectDefinition, useExternalReferenceCode);
+			}
+
+			// Documents and media source, file from URL malformed
+
+			try (LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
+					"com.liferay.object.rest.internal.manager.v1_0." +
+						"DefaultObjectEntryManagerImpl",
+					LoggerTestUtil.ERROR)) {
+
+				String url = StringBundler.concat(
+					"http//", company.getVirtualHostname(), ":",
+					PortalUtil.getPortalServerPort(false), "/",
+					RandomTestUtil.randomString());
 
 				_testPatchPutCustomObjectEntryWithInvalidFileURL(
 					"Unable to download file from " + url, url, httpMethod,
@@ -19213,70 +19275,6 @@ public class ObjectEntryResourceTest {
 				Assert.assertTrue(
 					message, message.contains("uri=" + notFoundPath));
 			}
-		}
-
-		// Documents and media source, file from URL malformed
-
-		try (LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
-				"com.liferay.object.rest.internal.manager.v1_0." +
-					"DefaultObjectEntryManagerImpl",
-				LoggerTestUtil.ERROR)) {
-
-			String url = StringBundler.concat(
-				"http//", company.getVirtualHostname(), ":",
-				PortalUtil.getPortalServerPort(false), "/",
-				RandomTestUtil.randomString());
-
-			_testPatchPutCustomObjectEntryWithInvalidFileURL(
-				"Unable to download file from " + url, url, httpMethod,
-				objectDefinition, useExternalReferenceCode);
-		}
-
-		// Documents and media source, file from local URL with local network
-		// access disabled
-
-		String hostNotAllowedMessage = StringBundler.concat(
-			"Unable to download file from ", previewFileURL, " because host ",
-			company.getVirtualHostname(), " is not allowed");
-
-		_testPatchPutCustomObjectEntryWithInvalidFileURL(
-			hostNotAllowedMessage, previewFileURL, httpMethod, objectDefinition,
-			useExternalReferenceCode);
-
-		// Documents and media source, file from local URL with host allowed
-		// and local network access disabled
-
-		try (CompanyConfigurationTemporarySwapper
-				companyConfigurationTemporarySwapper = _swapObjectConfiguration(
-					new String[] {company.getVirtualHostname()}, false)) {
-
-			_testPatchPutCustomObjectEntryWithInvalidFileURL(
-				hostNotAllowedMessage, previewFileURL, httpMethod,
-				objectDefinition, useExternalReferenceCode);
-		}
-
-		// Documents and media source, file from URL with host allowed and
-		// local network access enabled
-
-		try (CompanyConfigurationTemporarySwapper
-				companyConfigurationTemporarySwapper = _swapObjectConfiguration(
-					new String[] {
-						StringUtil.toUpperCase(company.getVirtualHostname())
-					},
-					true)) {
-
-			_testPatchPutCustomObjectEntryWithAttachmentField(
-				fileEntry -> JSONUtil.put(
-					_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE,
-					_getFileEntryJSONObject(
-						null, fileEntry, objectDefinition,
-						_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE)),
-				_toFileEntry(
-					RandomTestUtil.randomString() + ".txt", previewFileURL,
-					null, null, customFileEntry1.getMimeType()),
-				httpMethod, null, objectDefinition,
-				_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE,
-				useExternalReferenceCode);
 		}
 
 		// Documents and media source, file from URL with host not allowed
@@ -20188,8 +20186,6 @@ public class ObjectEntryResourceTest {
 			"thumbnailURL", objectDefinition,
 			_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE);
 
-		// Documents and media source, file from URL
-
 		Company company = _companyLocalService.getCompany(
 			TestPropsValues.getCompanyId());
 
@@ -20199,6 +20195,50 @@ public class ObjectEntryResourceTest {
 			_dlURLHelper.getPreviewURL(
 				customFileEntry1, customFileEntry1.getFileVersion(), null, "",
 				false, true));
+
+		String hostNotAllowedMessage = StringBundler.concat(
+			"Unable to download file from ", previewFileURL, " because host ",
+			company.getVirtualHostname(), " is not allowed");
+
+		// Documents and media source, file from local URL with host allowed
+		// and local network access disabled
+
+		try (CompanyConfigurationTemporarySwapper
+				companyConfigurationTemporarySwapper = _swapObjectConfiguration(
+					new String[] {company.getVirtualHostname()}, false)) {
+
+			_testPostCustomObjectEntryWithInvalidFileURL(
+				hostNotAllowedMessage, previewFileURL, objectDefinition);
+		}
+
+		// Documents and media source, file from local URL with host allowed
+		// and local network access enabled
+
+		try (CompanyConfigurationTemporarySwapper
+				companyConfigurationTemporarySwapper = _swapObjectConfiguration(
+					new String[] {
+						StringUtil.toUpperCase(company.getVirtualHostname())
+					},
+					true)) {
+
+			_testPostCustomObjectEntryWithAttachmentObjectField(
+				fileEntry -> JSONUtil.put(
+					_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE,
+					_getFileEntryJSONObject(
+						null, fileEntry, objectDefinition,
+						_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE)),
+				_toFileEntry(
+					RandomTestUtil.randomString() + ".txt", previewFileURL,
+					null, _group.getGroupId(), customFileEntry1.getMimeType()),
+				null, objectDefinition,
+				_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE);
+		}
+
+		// Documents and media source, file from local URL with local network
+		// access disabled
+
+		_testPostCustomObjectEntryWithInvalidFileURL(
+			hostNotAllowedMessage, previewFileURL, objectDefinition);
 
 		try (CompanyConfigurationTemporarySwapper
 				companyConfigurationTemporarySwapper = _swapObjectConfiguration(
@@ -20235,6 +20275,23 @@ public class ObjectEntryResourceTest {
 					hostDownFileURL, objectDefinition);
 			}
 
+			// Documents and media source, file from URL malformed
+
+			try (LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
+					"com.liferay.object.rest.internal.manager.v1_0." +
+						"DefaultObjectEntryManagerImpl",
+					LoggerTestUtil.ERROR)) {
+
+				String malformedFileURL = StringBundler.concat(
+					"http//", company.getVirtualHostname(), ":",
+					PortalUtil.getPortalServerPort(false), "/",
+					RandomTestUtil.randomString());
+
+				_testPostCustomObjectEntryWithInvalidFileURL(
+					"Unable to download file from " + malformedFileURL,
+					malformedFileURL, objectDefinition);
+			}
+
 			// Documents and media source, file from URL not found
 
 			String notFoundPath = "/" + RandomTestUtil.randomString();
@@ -20268,67 +20325,6 @@ public class ObjectEntryResourceTest {
 				Assert.assertTrue(
 					message, message.contains("uri=" + notFoundPath));
 			}
-		}
-
-		// Documents and media source, file from URL malformed
-
-		String malformedFileURL = StringBundler.concat(
-			"http//", company.getVirtualHostname(), ":",
-			PortalUtil.getPortalServerPort(false), "/",
-			RandomTestUtil.randomString());
-
-		try (LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
-				"com.liferay.object.rest.internal.manager.v1_0." +
-					"DefaultObjectEntryManagerImpl",
-				LoggerTestUtil.ERROR)) {
-
-			_testPostCustomObjectEntryWithInvalidFileURL(
-				"Unable to download file from " + malformedFileURL,
-				malformedFileURL, objectDefinition);
-		}
-
-		// Documents and media source, file from local URL with local network
-		// access disabled
-
-		String hostNotAllowedMessage = StringBundler.concat(
-			"Unable to download file from ", previewFileURL, " because host ",
-			company.getVirtualHostname(), " is not allowed");
-
-		_testPostCustomObjectEntryWithInvalidFileURL(
-			hostNotAllowedMessage, previewFileURL, objectDefinition);
-
-		// Documents and media source, file from local URL with host allowed
-		// and local network access disabled
-
-		try (CompanyConfigurationTemporarySwapper
-				companyConfigurationTemporarySwapper = _swapObjectConfiguration(
-					new String[] {company.getVirtualHostname()}, false)) {
-
-			_testPostCustomObjectEntryWithInvalidFileURL(
-				hostNotAllowedMessage, previewFileURL, objectDefinition);
-		}
-
-		// Documents and media source, file from local URL with host allowed and
-		// local network access enabled
-
-		try (CompanyConfigurationTemporarySwapper
-				companyConfigurationTemporarySwapper = _swapObjectConfiguration(
-					new String[] {
-						StringUtil.toUpperCase(company.getVirtualHostname())
-					},
-					true)) {
-
-			_testPostCustomObjectEntryWithAttachmentObjectField(
-				fileEntry -> JSONUtil.put(
-					_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE,
-					_getFileEntryJSONObject(
-						null, fileEntry, objectDefinition,
-						_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE)),
-				_toFileEntry(
-					RandomTestUtil.randomString() + ".txt", previewFileURL,
-					null, _group.getGroupId(), customFileEntry1.getMimeType()),
-				null, objectDefinition,
-				_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE);
 		}
 
 		// Documents and media source, file from URL with host not allowed
