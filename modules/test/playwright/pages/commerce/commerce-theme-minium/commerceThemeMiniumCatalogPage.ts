@@ -7,6 +7,8 @@ import {FrameLocator, Locator, Page, expect} from '@playwright/test';
 
 export class CommerceThemeMiniumCatalogPage {
 	readonly accountSelectorAccount: (accountName: string) => Locator;
+	readonly accountSelectorAccounts: Locator;
+	readonly accountSelectorAccountsScroller: Locator;
 	readonly accountSelectorBackButton: Locator;
 	readonly accountSelectorButton: Locator;
 	readonly accountSelectorOrdersList: Locator;
@@ -50,6 +52,12 @@ export class CommerceThemeMiniumCatalogPage {
 			page
 				.locator('.dropdown-menu.show')
 				.getByText(accountName, {exact: false});
+		this.accountSelectorAccounts = page.locator(
+			'.account-selector-dropdown-menu.show .accounts-list .dropdown-item'
+		);
+		this.accountSelectorAccountsScroller = page.locator(
+			'.account-selector-dropdown-menu.show .accounts-list-container .inline-scroller'
+		);
 		this.accountSelectorBackButton = page
 			.locator('.dropdown-menu.show')
 			.getByRole('button', {name: 'Back'});
