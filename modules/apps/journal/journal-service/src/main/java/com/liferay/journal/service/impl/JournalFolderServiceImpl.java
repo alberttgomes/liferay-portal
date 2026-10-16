@@ -403,10 +403,15 @@ public class JournalFolderServiceImpl extends JournalFolderServiceBaseImpl {
 			long folderId, long parentFolderId, ServiceContext serviceContext)
 		throws PortalException {
 
+		JournalFolder folder = journalFolderPersistence.findByPrimaryKey(
+			folderId);
+
 		_journalFolderModelResourcePermission.check(
-			getPermissionChecker(),
-			journalFolderPersistence.findByPrimaryKey(folderId),
-			ActionKeys.UPDATE);
+			getPermissionChecker(), folder, ActionKeys.UPDATE);
+
+		ModelResourcePermissionUtil.check(
+			_journalFolderModelResourcePermission, getPermissionChecker(),
+			folder.getGroupId(), parentFolderId, ActionKeys.ADD_FOLDER);
 
 		return journalFolderLocalService.moveFolder(
 			folderId, parentFolderId, serviceContext);
@@ -417,10 +422,15 @@ public class JournalFolderServiceImpl extends JournalFolderServiceBaseImpl {
 			long folderId, long parentFolderId, ServiceContext serviceContext)
 		throws PortalException {
 
+		JournalFolder folder = journalFolderPersistence.findByPrimaryKey(
+			folderId);
+
 		_journalFolderModelResourcePermission.check(
-			getPermissionChecker(),
-			journalFolderPersistence.findByPrimaryKey(folderId),
-			ActionKeys.UPDATE);
+			getPermissionChecker(), folder, ActionKeys.UPDATE);
+
+		ModelResourcePermissionUtil.check(
+			_journalFolderModelResourcePermission, getPermissionChecker(),
+			folder.getGroupId(), parentFolderId, ActionKeys.ADD_FOLDER);
 
 		return journalFolderLocalService.moveFolderFromTrash(
 			getUserId(), folderId, parentFolderId, serviceContext);
@@ -607,6 +617,12 @@ public class JournalFolderServiceImpl extends JournalFolderServiceBaseImpl {
 				parentFolderId = folder.getParentFolderId();
 				name = folder.getName();
 				description = folder.getDescription();
+			}
+
+			if (parentFolderId != folder.getParentFolderId()) {
+				ModelResourcePermissionUtil.check(
+					_journalFolderModelResourcePermission, permissionChecker,
+					folder.getGroupId(), parentFolderId, ActionKeys.ADD_FOLDER);
 			}
 
 			return journalFolderLocalService.updateFolder(
