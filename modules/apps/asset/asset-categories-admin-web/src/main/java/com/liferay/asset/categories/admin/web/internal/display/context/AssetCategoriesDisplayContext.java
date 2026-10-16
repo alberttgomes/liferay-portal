@@ -89,6 +89,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -869,6 +870,24 @@ public class AssetCategoriesDisplayContext {
 		return false;
 	}
 
+	public boolean isExternalReferenceCodeInputDisabled(
+		AssetVocabulary vocabulary) {
+
+		if (vocabulary == null) {
+			return false;
+		}
+
+		if (vocabulary.isSystem() ||
+			Objects.equals(
+				vocabulary.getExternalReferenceCode(),
+				_EXTERNAL_REFERENCE_CODE_TOPIC)) {
+
+			return true;
+		}
+
+		return false;
+	}
+
 	public boolean isFlattenedNavigationAllowed() {
 		return StringUtil.equals(
 			_assetCategoriesAdminWebConfiguration.
@@ -1104,6 +1123,8 @@ public class AssetCategoriesDisplayContext {
 
 		return _orderByCol;
 	}
+
+	private static final String _EXTERNAL_REFERENCE_CODE_TOPIC = "L_TOPIC";
 
 	private static final Log _log = LogFactoryUtil.getLog(
 		AssetCategoriesDisplayContext.class);

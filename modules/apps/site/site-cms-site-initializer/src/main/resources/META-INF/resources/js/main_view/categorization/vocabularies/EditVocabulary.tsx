@@ -35,6 +35,7 @@ export default function EditVocabulary({
 	backURL,
 	cmsGroupId,
 	defaultLanguageId,
+	defaultVocabulary,
 	externalReferenceCodeMaxLength,
 	locales,
 	spritemap,
@@ -45,6 +46,7 @@ export default function EditVocabulary({
 	backURL: string;
 	cmsGroupId: number;
 	defaultLanguageId: string;
+	defaultVocabulary?: boolean;
 	externalReferenceCodeMaxLength: number;
 	locales: any[];
 	spritemap: string;
@@ -359,6 +361,7 @@ export default function EditVocabulary({
 							<EditGeneralInfo
 								assetLibraries={assetLibraries}
 								defaultLanguageId={defaultLanguageId}
+								defaultVocabulary={defaultVocabulary}
 								externalReferenceCodeInputError={
 									externalReferenceCodeInputError
 								}
