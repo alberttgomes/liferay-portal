@@ -1702,6 +1702,10 @@ public class JournalArticleServiceImpl extends JournalArticleServiceBaseImpl {
 		_journalArticleModelResourcePermission.check(
 			getPermissionChecker(), article, ActionKeys.UPDATE);
 
+		ModelResourcePermissionUtil.check(
+			_journalFolderModelResourcePermission, getPermissionChecker(),
+			article.getGroupId(), newFolderId, ActionKeys.ADD_ARTICLE);
+
 		return journalArticleLocalService.moveArticleFromTrash(
 			getUserId(), groupId, article, newFolderId, serviceContext);
 	}
@@ -1736,6 +1740,10 @@ public class JournalArticleServiceImpl extends JournalArticleServiceBaseImpl {
 
 		_journalArticleModelResourcePermission.check(
 			getPermissionChecker(), article, ActionKeys.UPDATE);
+
+		ModelResourcePermissionUtil.check(
+			_journalFolderModelResourcePermission, getPermissionChecker(),
+			article.getGroupId(), newFolderId, ActionKeys.ADD_ARTICLE);
 
 		return journalArticleLocalService.moveArticleFromTrash(
 			getUserId(), groupId, article, newFolderId, serviceContext);
