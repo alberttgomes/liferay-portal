@@ -1971,6 +1971,12 @@ public class JournalArticleServiceImpl extends JournalArticleServiceBaseImpl {
 		_journalArticleModelResourcePermission.check(
 			getPermissionChecker(), article, ActionKeys.UPDATE);
 
+		if (folderId != article.getFolderId()) {
+			ModelResourcePermissionUtil.check(
+				_journalFolderModelResourcePermission, getPermissionChecker(),
+				groupId, folderId, ActionKeys.ADD_ARTICLE);
+		}
+
 		return journalArticleLocalService.updateArticle(
 			userId, groupId, folderId, articleId, version, titleMap,
 			descriptionMap, content, layoutUuid, serviceContext);
@@ -2079,6 +2085,12 @@ public class JournalArticleServiceImpl extends JournalArticleServiceBaseImpl {
 		_journalArticleModelResourcePermission.check(
 			getPermissionChecker(), article, ActionKeys.UPDATE);
 
+		if (folderId != article.getFolderId()) {
+			ModelResourcePermissionUtil.check(
+				_journalFolderModelResourcePermission, getPermissionChecker(),
+				groupId, folderId, ActionKeys.ADD_ARTICLE);
+		}
+
 		return journalArticleLocalService.updateArticle(
 			getUserId(), groupId, folderId, articleId, version, titleMap,
 			descriptionMap, friendlyURLMap, content, ddmTemplateKey, layoutUuid,
@@ -2141,6 +2153,12 @@ public class JournalArticleServiceImpl extends JournalArticleServiceBaseImpl {
 
 		_journalArticleModelResourcePermission.check(
 			getPermissionChecker(), article, ActionKeys.UPDATE);
+
+		if (folderId != article.getFolderId()) {
+			ModelResourcePermissionUtil.check(
+				_journalFolderModelResourcePermission, getPermissionChecker(),
+				groupId, folderId, ActionKeys.ADD_ARTICLE);
+		}
 
 		return journalArticleLocalService.updateArticle(
 			getUserId(), groupId, folderId, articleId, version, content,
