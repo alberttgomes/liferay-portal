@@ -19,6 +19,7 @@ import com.liferay.portal.aop.AopService;
 import com.liferay.portal.kernel.dao.orm.QueryDefinition;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.portlet.PortletRequestModel;
+import com.liferay.portal.kernel.security.auth.PrincipalException;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
 import com.liferay.portal.kernel.security.permission.resource.ModelResourcePermission;
 import com.liferay.portal.kernel.security.permission.resource.ModelResourcePermissionUtil;
@@ -1898,6 +1899,8 @@ public class JournalArticleServiceImpl extends JournalArticleServiceBaseImpl {
 		_portletResourcePermission.check(
 			getPermissionChecker(), groupId, ActionKeys.SUBSCRIBE);
 
+		_checkUserId(userId);
+
 		journalArticleLocalService.subscribeStructure(
 			groupId, userId, ddmStructureId);
 	}
@@ -1930,6 +1933,8 @@ public class JournalArticleServiceImpl extends JournalArticleServiceBaseImpl {
 
 		_portletResourcePermission.check(
 			getPermissionChecker(), groupId, ActionKeys.SUBSCRIBE);
+
+		_checkUserId(userId);
 
 		journalArticleLocalService.unsubscribeStructure(
 			groupId, userId, ddmStructureId);
@@ -1984,6 +1989,8 @@ public class JournalArticleServiceImpl extends JournalArticleServiceBaseImpl {
 				_journalFolderModelResourcePermission, getPermissionChecker(),
 				groupId, folderId, ActionKeys.ADD_ARTICLE);
 		}
+
+		_checkUserId(userId);
 
 		return journalArticleLocalService.updateArticle(
 			userId, groupId, folderId, articleId, version, titleMap,
@@ -2277,6 +2284,12 @@ public class JournalArticleServiceImpl extends JournalArticleServiceBaseImpl {
 		return journalArticleLocalService.updateStatus(
 			getUserId(), article, status, articleURL, serviceContext,
 			new HashMap<String, Serializable>());
+	}
+
+	private void _checkUserId(long userId) throws PortalException {
+		if (userId != getUserId()) {
+			throw new PrincipalException();
+		}
 	}
 
 	@Reference(
