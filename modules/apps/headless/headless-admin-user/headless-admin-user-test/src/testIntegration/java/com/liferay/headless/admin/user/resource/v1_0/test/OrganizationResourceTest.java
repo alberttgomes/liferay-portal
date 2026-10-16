@@ -1515,6 +1515,9 @@ public class OrganizationResourceTest extends BaseOrganizationResourceTestCase {
 	}
 
 	private void _testPatchOrganizationWithRoleBriefs() throws Exception {
+		Role role1 = _roleLocalService.getRole(
+			TestPropsValues.getCompanyId(), RoleConstants.ADMINISTRATOR);
+
 		com.liferay.portal.kernel.model.Organization
 			serviceBuilderOrganization = OrganizationTestUtil.addOrganization();
 
@@ -1523,9 +1526,6 @@ public class OrganizationResourceTest extends BaseOrganizationResourceTestCase {
 
 		_userLocalService.updatePassword(
 			user.getUserId(), _PASSWORD, _PASSWORD, false, true);
-
-		Role role1 = _roleLocalService.getRole(
-			TestPropsValues.getCompanyId(), RoleConstants.ADMINISTRATOR);
 
 		_patchOrganizationBatch(
 			"FAILED", serviceBuilderOrganization.getOrganizationId(), role1,

@@ -624,6 +624,9 @@ public class UserGroupResourceTest extends BaseUserGroupResourceTestCase {
 	}
 
 	private void _testPatchUserGroupWithRoleBriefs() throws Exception {
+		Role role1 = _roleLocalService.getRole(
+			TestPropsValues.getCompanyId(), RoleConstants.ADMINISTRATOR);
+
 		com.liferay.portal.kernel.model.UserGroup serviceBuilderUserGroup =
 			_userGroupLocalService.addUserGroup(
 				StringPool.BLANK, TestPropsValues.getUserId(),
@@ -639,9 +642,6 @@ public class UserGroupResourceTest extends BaseUserGroupResourceTestCase {
 
 		_userLocalService.updatePassword(
 			user.getUserId(), _PASSWORD, _PASSWORD, false, true);
-
-		Role role1 = _roleLocalService.getRole(
-			TestPropsValues.getCompanyId(), RoleConstants.ADMINISTRATOR);
 
 		_patchUserGroupBatch(
 			"FAILED", role1, user, serviceBuilderUserGroup.getUserGroupId());
