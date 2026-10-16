@@ -65,6 +65,18 @@ public class AssetVocabularyLocalServiceTest {
 	}
 
 	@Test
+	@TestInfo("LPD-110362")
+	public void testAddDefaultVocabulary() throws Exception {
+		AssetVocabulary vocabulary =
+			_assetVocabularyLocalService.addDefaultVocabulary(
+				_group.getGroupId());
+
+		Assert.assertEquals(
+			_EXTERNAL_REFERENCE_CODE_TOPIC,
+			vocabulary.getExternalReferenceCode());
+	}
+
+	@Test
 	@TestInfo("LPD-88752")
 	public void testAddVocabulary() throws Exception {
 		_testAddVocabularyWithInvalidVisibilityType();
@@ -85,6 +97,7 @@ public class AssetVocabularyLocalServiceTest {
 
 	@Test
 	public void testUpdateVocabulary() throws Exception {
+		_testUpdateVocabularyDefaultExternalReferenceCode();
 		_testUpdateVocabularySystemAssetTypes();
 		_testUpdateVocabularySystemDescription();
 		_testUpdateVocabularySystemMultiValued();
@@ -92,6 +105,7 @@ public class AssetVocabularyLocalServiceTest {
 		_testUpdateVocabularySystemVisibilityType();
 		_testUpdateVocabularySystemWhenImporting();
 		_testUpdateVocabularySystemWithNullDescription();
+		_testUpdateVocabularyWithDefaultExternalReferenceCode();
 		_testUpdateVocabularyWithInvalidVisibilityType();
 		_testUpdateVocabularyWithLazyReferencingEnabled();
 	}
@@ -209,6 +223,44 @@ public class AssetVocabularyLocalServiceTest {
 			Assert.assertEquals(
 				WorkflowConstants.STATUS_EMPTY, vocabulary.getStatus());
 		}
+	}
+
+	private void _testUpdateVocabularyDefaultExternalReferenceCode()
+		throws Exception {
+
+		AssetVocabulary vocabulary =
+			_assetVocabularyLocalService.addDefaultVocabulary(
+				_group.getGroupId());
+
+		AssertUtils.assertFailure(
+			VocabularyExternalReferenceCodeException.class,
+			StringBundler.concat(
+				"External reference code of default vocabulary ",
+				vocabulary.getVocabularyId(), " cannot be changed"),
+			() -> _assetVocabularyLocalService.updateVocabulary(
+				RandomTestUtil.randomString(), vocabulary.getVocabularyId(),
+				vocabulary.getTitleMap(), vocabulary.getDescriptionMap(),
+				vocabulary.getSettings(), vocabulary.getVisibilityType()));
+
+		String title = RandomTestUtil.randomString();
+
+		AssetVocabulary updatedVocabulary =
+			_assetVocabularyLocalService.updateVocabulary(
+				vocabulary.getExternalReferenceCode(),
+				vocabulary.getVocabularyId(),
+				HashMapBuilder.put(
+					LocaleUtil.getSiteDefault(), title
+				).build(),
+				vocabulary.getDescriptionMap(), vocabulary.getSettings(),
+				vocabulary.getVisibilityType());
+
+		Assert.assertEquals(
+			_EXTERNAL_REFERENCE_CODE_TOPIC,
+			updatedVocabulary.getExternalReferenceCode());
+		Assert.assertEquals(
+			title, updatedVocabulary.getTitle(LocaleUtil.getSiteDefault()));
+
+		_assetVocabularyLocalService.deleteVocabulary(vocabulary);
 	}
 
 	private void _testUpdateVocabularySystemAssetTypes() throws Exception {
@@ -339,6 +391,24 @@ public class AssetVocabularyLocalServiceTest {
 			vocabulary.getVisibilityType());
 	}
 
+	private void _testUpdateVocabularyWithDefaultExternalReferenceCode()
+		throws Exception {
+
+		AssetVocabulary vocabulary = AssetTestUtil.addVocabulary(
+			_group.getGroupId());
+
+		vocabulary = _assetVocabularyLocalService.updateVocabulary(
+			_EXTERNAL_REFERENCE_CODE_TOPIC, vocabulary.getVocabularyId(),
+			vocabulary.getTitleMap(), vocabulary.getDescriptionMap(),
+			vocabulary.getSettings(), vocabulary.getVisibilityType());
+
+		Assert.assertEquals(
+			_EXTERNAL_REFERENCE_CODE_TOPIC,
+			vocabulary.getExternalReferenceCode());
+
+		_assetVocabularyLocalService.deleteVocabulary(vocabulary);
+	}
+
 	private void _testUpdateVocabularyWithInvalidVisibilityType()
 		throws Exception {
 
@@ -395,6 +465,8 @@ public class AssetVocabularyLocalServiceTest {
 				WorkflowConstants.STATUS_APPROVED, vocabulary.getStatus());
 		}
 	}
+
+	private static final String _EXTERNAL_REFERENCE_CODE_TOPIC = "L_TOPIC";
 
 	@Inject
 	private AssetVocabularyLocalService _assetVocabularyLocalService;
