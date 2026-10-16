@@ -106,8 +106,10 @@ public class AssetVocabularyLocalServiceImpl
 		serviceContext.setScopeGroupId(groupId);
 
 		return assetVocabularyLocalService.addVocabulary(
-			guestUserId, groupId, StringPool.BLANK, titleMap, null,
-			StringPool.BLANK, serviceContext);
+			_EXTERNAL_REFERENCE_CODE_TOPIC, guestUserId, groupId,
+			titleMap.get(LocaleUtil.getSiteDefault()), StringPool.BLANK,
+			titleMap, null, StringPool.BLANK,
+			AssetVocabularyConstants.VISIBILITY_TYPE_PUBLIC, serviceContext);
 	}
 
 	@Override
@@ -845,6 +847,8 @@ public class AssetVocabularyLocalServiceImpl
 			throw new VocabularyVisibilityTypeException();
 		}
 	}
+
+	private static final String _EXTERNAL_REFERENCE_CODE_TOPIC = "L_TOPIC";
 
 	private static final int[] _VISIBILITY_TYPES = {
 		AssetVocabularyConstants.VISIBILITY_TYPE_EMPTY,
