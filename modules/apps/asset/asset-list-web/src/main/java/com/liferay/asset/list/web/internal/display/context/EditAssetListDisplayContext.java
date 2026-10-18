@@ -163,10 +163,7 @@ public class EditAssetListDisplayContext {
 			classNameIds = _getDefaultClassNameIds();
 		}
 
-		long[] groupIds =
-			SiteConnectedGroupGroupProviderUtil.
-				getCurrentAndAncestorSiteAndDepotGroupIds(
-					new long[] {_themeDisplay.getScopeGroupId()});
+		Map<Long, JSONArray> groupIdsJSONArrays = new HashMap<>();
 
 		return JSONUtil.toJSONArray(
 			ArrayUtil.toArray(classNameIds),
@@ -197,8 +194,9 @@ public class EditAssetListDisplayContext {
 					"classNameId", classNameId
 				).put(
 					"groupIds",
-					_getStagedPortletGroupIdsJSONArray(
-						groupIds, assetRendererFactory.getPortletId())
+					_getGroupIdsJSONArray(
+						_themeDisplay.getScopeGroupId(), groupIdsJSONArrays,
+						assetRendererFactory.getPortletId())
 				).put(
 					"label",
 					assetRendererFactory.getTypeName(_themeDisplay.getLocale())
@@ -1385,19 +1383,34 @@ public class EditAssetListDisplayContext {
 		).buildString();
 	}
 
-	private JSONArray _getStagedPortletGroupIdsJSONArray(
-		long[] groupIds, String portletId) {
+	private JSONArray _getGroupIdsJSONArray(
+			long groupId, Map<Long, JSONArray> groupIdsJSONArrays,
+			String portletId)
+		throws PortalException {
 
 		StagingGroupHelper stagingGroupHelper =
 			StagingGroupHelperUtil.getStagingGroupHelper();
 
-		long[] stagedPortletGroupIds = TransformUtil.transformToLongArray(
-			ArrayUtil.toArray(groupIds),
-			groupId -> stagingGroupHelper.getStagedPortletGroupId(
-				groupId, portletId));
+		long stagedPortletGroupId = stagingGroupHelper.getStagedPortletGroupId(
+			groupId, portletId);
 
-		return JSONUtil.putAll(
-			ArrayUtil.toArray(ArrayUtil.unique(stagedPortletGroupIds)));
+		JSONArray groupIdsJSONArray = groupIdsJSONArrays.get(
+			stagedPortletGroupId);
+
+		if (groupIdsJSONArray != null) {
+			return groupIdsJSONArray;
+		}
+
+		long[] groupIds =
+			SiteConnectedGroupGroupProviderUtil.
+				getCurrentAndAncestorSiteAndDepotGroupIds(
+					new long[] {stagedPortletGroupId});
+
+		groupIdsJSONArray = JSONUtil.putAll(ArrayUtil.toArray(groupIds));
+
+		groupIdsJSONArrays.put(stagedPortletGroupId, groupIdsJSONArray);
+
+		return groupIdsJSONArray;
 	}
 
 	private String _getTypeSettings() {
