@@ -289,6 +289,8 @@ public class AssetTagServiceImpl extends AssetTagServiceBaseImpl {
 		AssetTagsPermission.check(
 			getPermissionChecker(), groupId, ActionKeys.SUBSCRIBE);
 
+		_checkUserId(userId);
+
 		assetTagLocalService.subscribeTag(userId, groupId, tagId);
 	}
 
@@ -298,6 +300,8 @@ public class AssetTagServiceImpl extends AssetTagServiceBaseImpl {
 
 		AssetTagsPermission.check(
 			getPermissionChecker(), tag.getGroupId(), ActionKeys.SUBSCRIBE);
+
+		_checkUserId(userId);
 
 		assetTagLocalService.unsubscribeTag(userId, tagId);
 	}
@@ -348,6 +352,12 @@ public class AssetTagServiceImpl extends AssetTagServiceBaseImpl {
 		}
 
 		return tags;
+	}
+
+	private void _checkUserId(long userId) throws PortalException {
+		if (userId != getUserId()) {
+			throw new PrincipalException();
+		}
 	}
 
 	private static final Log _log = LogFactoryUtil.getLog(
