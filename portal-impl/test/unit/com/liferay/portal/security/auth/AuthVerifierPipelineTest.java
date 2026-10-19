@@ -8,14 +8,18 @@ package com.liferay.portal.security.auth;
 import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.exception.PortalException;
+import com.liferay.portal.kernel.model.Company;
 import com.liferay.portal.kernel.model.User;
+import com.liferay.portal.kernel.model.UserConstants;
 import com.liferay.portal.kernel.module.util.SystemBundleUtil;
 import com.liferay.portal.kernel.security.auth.AccessControlContext;
 import com.liferay.portal.kernel.security.auth.verifier.AuthVerifier;
 import com.liferay.portal.kernel.security.auth.verifier.AuthVerifierConfiguration;
 import com.liferay.portal.kernel.security.auth.verifier.AuthVerifierResult;
+import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
 import com.liferay.portal.kernel.service.UserLocalServiceUtil;
 import com.liferay.portal.kernel.test.util.PropsValuesTestUtil;
+import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.util.MapUtil;
 import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.ProxyUtil;
@@ -63,6 +67,7 @@ public class AuthVerifierPipelineTest {
 		_setUpAuthVerifier();
 		_setUpAuthVerifierConfiguration();
 		_setUpAuthVerifierRegistry();
+		_setUpCompanyLocalServiceUtil();
 		_setUpPortalUtil();
 		_setUpUserLocalServiceUtil();
 	}
@@ -70,6 +75,7 @@ public class AuthVerifierPipelineTest {
 	@After
 	public void tearDown() {
 		_authVerifierRegistryMockedStatic.close();
+		_companyLocalServiceUtilMockedStatic.close();
 		_userLocalServiceUtilMockedStatic.close();
 	}
 
@@ -131,6 +137,33 @@ public class AuthVerifierPipelineTest {
 	}
 
 	@Test
+	public void testVerifyRequestWithInactiveUser() throws PortalException {
+		_user.setType(UserConstants.TYPE_REGULAR);
+		_user.setStatus(WorkflowConstants.STATUS_INACTIVE);
+
+		_assertAuthVerifierResultForUser(
+			AuthVerifierResult.State.UNSUCCESSFUL, _GUEST_USER_ID);
+	}
+
+	@Test
+	public void testVerifyRequestWithIncompleteSetupUser()
+		throws PortalException {
+
+		_user.setPasswordReset(false);
+		_user.setEmailAddressVerified(false);
+		_user.setType(UserConstants.TYPE_REGULAR);
+
+		_assertAuthVerifierResultForUser(
+			AuthVerifierResult.State.UNSUCCESSFUL, _GUEST_USER_ID);
+
+		_user.setPasswordReset(true);
+		_user.setEmailAddressVerified(true);
+
+		_assertAuthVerifierResultForUser(
+			AuthVerifierResult.State.UNSUCCESSFUL, _GUEST_USER_ID);
+	}
+
+	@Test
 	public void testVerifyRequestWithNonmatchingRequestURI()
 		throws PortalException {
 
@@ -158,11 +191,23 @@ public class AuthVerifierPipelineTest {
 		Assert.assertSame(expectedState, authVerifierResult.getState());
 	}
 
+	private void _assertAuthVerifierResultForUser(
+			AuthVerifierResult.State expectedState, long expectedUserId)
+		throws PortalException {
+
+		AuthVerifierResult authVerifierResult = _verifyRequest(
+			"", _BASE_URL + "/regular/*", _BASE_URL + "/regular/Hello");
+
+		Assert.assertSame(expectedState, authVerifierResult.getState());
+		Assert.assertEquals(expectedUserId, authVerifierResult.getUserId());
+	}
+
 	private void _setUpAuthVerifier() {
 		AuthVerifierResult authVerifierResult = new AuthVerifierResult();
 
 		authVerifierResult.setSettings(new HashMap<>());
 		authVerifierResult.setState(AuthVerifierResult.State.SUCCESS);
+		authVerifierResult.setUserId(_USER_ID);
 
 		_authVerifier = (AuthVerifier)ProxyUtil.newProxyInstance(
 			AuthVerifier.class.getClassLoader(),
@@ -193,6 +238,22 @@ public class AuthVerifierPipelineTest {
 		);
 	}
 
+	private void _setUpCompanyLocalServiceUtil() throws Exception {
+		Company company = Mockito.mock(Company.class);
+
+		Mockito.when(
+			company.isStrangersVerify()
+		).thenReturn(
+			true
+		);
+
+		Mockito.when(
+			CompanyLocalServiceUtil.getCompany(Mockito.anyLong())
+		).thenReturn(
+			company
+		);
+	}
+
 	private void _setUpPortalUtil() {
 		PortalUtil portalUtil = new PortalUtil();
 
@@ -210,20 +271,21 @@ public class AuthVerifierPipelineTest {
 	}
 
 	private void _setUpUserLocalServiceUtil() throws Exception {
-		User user = new UserImpl();
+		_user = new UserImpl();
 
-		user.setStatus(WorkflowConstants.STATUS_APPROVED);
+		_user.setUserId(_USER_ID);
+		_user.setStatus(WorkflowConstants.STATUS_APPROVED);
 
 		Mockito.when(
 			UserLocalServiceUtil.fetchUser(Mockito.anyLong())
 		).thenReturn(
-			user
+			_user
 		);
 
 		Mockito.when(
 			UserLocalServiceUtil.getGuestUserId(Mockito.anyLong())
 		).thenReturn(
-			user.getUserId()
+			_GUEST_USER_ID
 		);
 	}
 
@@ -269,11 +331,19 @@ public class AuthVerifierPipelineTest {
 
 	private static final String _BASE_URL = "/TestAuthVerifier";
 
+	private static final long _USER_ID = RandomTestUtil.randomLong();
+
+	private static final long _GUEST_USER_ID = _USER_ID + 1;
+
 	private AuthVerifier _authVerifier;
 	private AuthVerifierConfiguration _authVerifierConfiguration;
 	private final MockedStatic<AuthVerifierRegistry>
 		_authVerifierRegistryMockedStatic = Mockito.mockStatic(
 			AuthVerifierRegistry.class);
+	private final MockedStatic<CompanyLocalServiceUtil>
+		_companyLocalServiceUtilMockedStatic = Mockito.mockStatic(
+			CompanyLocalServiceUtil.class);
+	private User _user;
 	private final MockedStatic<UserLocalServiceUtil>
 		_userLocalServiceUtilMockedStatic = Mockito.mockStatic(
 			UserLocalServiceUtil.class);
