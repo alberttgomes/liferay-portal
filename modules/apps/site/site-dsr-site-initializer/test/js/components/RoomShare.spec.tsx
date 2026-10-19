@@ -61,9 +61,17 @@ const mockUsers = [
 	},
 ];
 
-const renderComponent = ({canAssignAllRoles, roomId}: IRoomShareProps) => {
+const renderComponent = ({
+	canAssignAllRoles,
+	canEditSiteAdministrators,
+	roomId,
+}: IRoomShareProps) => {
 	return render(
-		<RoomShare canAssignAllRoles={canAssignAllRoles} roomId={roomId} />
+		<RoomShare
+			canAssignAllRoles={canAssignAllRoles}
+			canEditSiteAdministrators={canEditSiteAdministrators}
+			roomId={roomId}
+		/>
 	);
 };
 
@@ -985,6 +993,57 @@ describe('RoomShare', () => {
 		).toBeInTheDocument();
 		expect(
 			document.querySelector('[data-testid="roleKeyItem_viewer"]')
+		).toBeInTheDocument();
+	});
+
+	it('does not allow a site administrator to edit another site administrator', async () => {
+		(RoomService.getRoomUserAccounts as jest.Mock).mockResolvedValue([
+			...mockUsers,
+			{
+				emailAddress: 'tom.doe@liferay.com',
+				id: 5,
+				name: 'Tom Doe',
+				roleKey: 'Site Administrator',
+			},
+		]);
+
+		const {container} = renderComponent({
+			canAssignAllRoles: true,
+			roomId: 10,
+		});
+
+		await waitFor(() => {
+			expect(screen.getByText('Tom Doe')).toBeInTheDocument();
+		});
+
+		expect(
+			container.querySelector('[data-testid="editExpiration_5"]')
+		).toBeNull();
+	});
+
+	it('allows an owner to edit a site administrator', async () => {
+		(RoomService.getRoomUserAccounts as jest.Mock).mockResolvedValue([
+			...mockUsers,
+			{
+				emailAddress: 'tom.doe@liferay.com',
+				id: 5,
+				name: 'Tom Doe',
+				roleKey: 'Site Administrator',
+			},
+		]);
+
+		const {container} = renderComponent({
+			canAssignAllRoles: true,
+			canEditSiteAdministrators: true,
+			roomId: 10,
+		});
+
+		await waitFor(() => {
+			expect(screen.getByText('Tom Doe')).toBeInTheDocument();
+		});
+
+		expect(
+			container.querySelector('[data-testid="editExpiration_5"]')
 		).toBeInTheDocument();
 	});
 });
