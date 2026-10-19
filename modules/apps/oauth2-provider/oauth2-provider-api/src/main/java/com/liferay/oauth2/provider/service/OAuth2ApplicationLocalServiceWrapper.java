@@ -183,6 +183,15 @@ public class OAuth2ApplicationLocalServiceWrapper
 			primaryKeyObj);
 	}
 
+	@Override
+	public com.liferay.oauth2.provider.model.OAuth2Application
+			deleteClientCredentialsGrant(long oAuth2ApplicationId)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _oAuth2ApplicationLocalService.deleteClientCredentialsGrant(
+			oAuth2ApplicationId);
+	}
+
 	/**
 	 * Deletes the o auth2 application with the primary key from the database. Also notifies the appropriate model listeners.
 	 *
@@ -242,6 +251,15 @@ public class OAuth2ApplicationLocalServiceWrapper
 
 		return _oAuth2ApplicationLocalService.deletePersistedModel(
 			persistedModel);
+	}
+
+	@Override
+	public com.liferay.oauth2.provider.model.OAuth2Application
+			deleteScopeAliases(long oAuth2ApplicationId)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _oAuth2ApplicationLocalService.deleteScopeAliases(
+			oAuth2ApplicationId);
 	}
 
 	@Override
@@ -637,4 +655,4 @@ public class OAuth2ApplicationLocalServiceWrapper
 	private OAuth2ApplicationLocalService _oAuth2ApplicationLocalService;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:682669637
+// LIFERAY-SERVICE-BUILDER-HASH:-1709251721
