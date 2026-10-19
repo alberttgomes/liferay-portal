@@ -6,15 +6,23 @@
 package com.liferay.asset.tags.service.test;
 
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
+import com.liferay.asset.kernel.model.AssetTag;
 import com.liferay.asset.kernel.service.AssetTagLocalServiceUtil;
+import com.liferay.asset.kernel.service.AssetTagServiceUtil;
 import com.liferay.portal.kernel.model.Group;
+import com.liferay.portal.kernel.model.User;
+import com.liferay.portal.kernel.security.auth.PrincipalException;
+import com.liferay.portal.kernel.security.permission.ActionKeys;
 import com.liferay.portal.kernel.service.ServiceContext;
+import com.liferay.portal.kernel.service.UserLocalServiceUtil;
+import com.liferay.portal.kernel.test.TestInfo;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
+import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 
 import org.junit.Assert;
@@ -64,6 +72,64 @@ public class AssetTagServiceTest {
 		Assert.assertEquals(
 			initialTagsCount,
 			AssetTagLocalServiceUtil.getGroupTagsCount(_group.getGroupId()));
+	}
+
+	@Test
+	@TestInfo("LPD-110148")
+	public void testMergeTags() throws Exception {
+		AssetTag fromAssetTag = _addTag(_group);
+		AssetTag toAssetTag = _addTag(_group);
+
+		User user = UserTestUtil.addGroupAdminUser(_group);
+
+		UserTestUtil.setUser(user);
+
+		AssetTagServiceUtil.mergeTags(
+			fromAssetTag.getTagId(), toAssetTag.getTagId());
+
+		Assert.assertNull(
+			AssetTagLocalServiceUtil.fetchAssetTag(fromAssetTag.getTagId()));
+
+		UserLocalServiceUtil.deleteUser(user);
+	}
+
+	@Test
+	@TestInfo("LPD-110148")
+	public void testMergeTagsWithoutManageTagPermission() throws Exception {
+		AssetTag fromAssetTag = _addTag(_group);
+
+		Group group = GroupTestUtil.addGroup();
+
+		AssetTag toAssetTag = _addTag(group);
+
+		User user = UserTestUtil.addGroupAdminUser(_group);
+
+		UserTestUtil.setUser(user);
+
+		PrincipalException.MustHavePermission mustHavePermission =
+			Assert.assertThrows(
+				PrincipalException.MustHavePermission.class,
+				() -> AssetTagServiceUtil.mergeTags(
+					fromAssetTag.getTagId(), toAssetTag.getTagId()));
+
+		Assert.assertEquals(
+			"com.liferay.asset.tags", mustHavePermission.resourceName);
+		Assert.assertEquals(group.getGroupId(), mustHavePermission.resourceId);
+		Assert.assertArrayEquals(
+			new String[] {ActionKeys.MANAGE_TAG}, mustHavePermission.actionId);
+
+		Assert.assertNotNull(
+			AssetTagLocalServiceUtil.fetchAssetTag(fromAssetTag.getTagId()));
+
+		GroupTestUtil.deleteGroup(group);
+		UserLocalServiceUtil.deleteUser(user);
+	}
+
+	private AssetTag _addTag(Group group) throws Exception {
+		return AssetTagLocalServiceUtil.addTag(
+			null, TestPropsValues.getUserId(), group.getGroupId(),
+			RandomTestUtil.randomString(),
+			ServiceContextTestUtil.getServiceContext(group.getGroupId()));
 	}
 
 	@DeleteAfterTestRun
