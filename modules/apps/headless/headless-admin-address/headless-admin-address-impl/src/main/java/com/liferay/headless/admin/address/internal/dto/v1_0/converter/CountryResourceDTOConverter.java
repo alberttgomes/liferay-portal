@@ -96,15 +96,13 @@ public class CountryResourceDTOConverter
 					() -> Integer.valueOf(serviceBuilderCountry.getNumber()));
 				setPosition(serviceBuilderCountry::getPosition);
 				setRegions(
-					() -> NestedFieldsSupplier.supply(
-						"regions",
-						fieldName -> TransformUtil.transformToArray(
-							_regionService.getRegions(
-								serviceBuilderCountry.getCountryId()),
-							serviceBuilderRegion ->
-								_regionResourceDTOConverter.toDTO(
-									serviceBuilderRegion),
-							Region.class)));
+					() -> TransformUtil.transformToArray(
+						_regionService.getRegions(
+							serviceBuilderCountry.getCountryId()),
+						serviceBuilderRegion ->
+							_regionResourceDTOConverter.toDTO(
+								serviceBuilderRegion),
+						Region.class));
 				setShippingAllowed(serviceBuilderCountry::isShippingAllowed);
 				setSubjectToVAT(serviceBuilderCountry::isSubjectToVAT);
 				setTitle_i18n(

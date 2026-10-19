@@ -189,7 +189,7 @@ public class CountryResourceImpl
 
 			@Override
 			public List<String> getNestedFields() {
-				return List.of("creator", "regions");
+				return List.of("creator");
 			}
 
 			@Override
