@@ -34,6 +34,7 @@ import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.model.role.RoleConstants;
 import com.liferay.portal.kernel.portlet.PortletURLFactoryUtil;
 import com.liferay.portal.kernel.portlet.url.builder.PortletURLBuilder;
+import com.liferay.portal.kernel.security.auth.PrincipalException;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
 import com.liferay.portal.kernel.security.permission.PermissionChecker;
 import com.liferay.portal.kernel.security.permission.PermissionThreadLocal;
@@ -55,6 +56,7 @@ import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.liveusers.LiveUsers;
+import com.liferay.portal.security.membershippolicy.SiteMembershipPolicyUtil;
 import com.liferay.portal.vulcan.dto.converter.DTOConverter;
 import com.liferay.portal.vulcan.dto.converter.DTOConverterRegistry;
 import com.liferay.portal.vulcan.pagination.Page;
@@ -95,6 +97,8 @@ public class UserAccountResourceImpl extends BaseUserAccountResourceImpl {
 		throws Exception {
 
 		Group group = _getGroup(roomId);
+
+		_checkAssignMembersPermission(group, userAccountId);
 
 		LiveUsers.leaveGroup(
 			contextCompany.getCompanyId(), group.getGroupId(), userAccountId);
@@ -140,6 +144,8 @@ public class UserAccountResourceImpl extends BaseUserAccountResourceImpl {
 		_validate(userAccount.getMembershipExpirationDate());
 
 		User user = _userLocalService.getUser(userAccountId);
+
+		_checkAssignMembersPermission(group, user.getUserId());
 
 		_userGroupRoleLocalService.deleteUserGroupRoles(
 			new long[] {user.getUserId()}, group.getGroupId());
@@ -367,6 +373,39 @@ public class UserAccountResourceImpl extends BaseUserAccountResourceImpl {
 				"userId", userId
 			).toString(),
 			membershipExpirationDate, new ServiceContext());
+	}
+
+	private void _checkAssignMembersPermission(Group group, long userId)
+		throws Exception {
+
+		PermissionChecker permissionChecker =
+			PermissionThreadLocal.getPermissionChecker();
+
+		if (permissionChecker.isGroupOwner(group.getGroupId())) {
+			return;
+		}
+
+		if (permissionChecker.isGroupAdmin(group.getGroupId())) {
+			if (!SiteMembershipPolicyUtil.isMembershipProtected(
+					permissionChecker, userId, group.getGroupId())) {
+
+				return;
+			}
+		}
+		else {
+			int rolePriority = DSRRoleAssignmentPermissionUtil.getRolePriority(
+				group.getGroupId(), contextUser.getUserId());
+
+			if (rolePriority > DSRRoleAssignmentPermissionUtil.getRolePriority(
+					group.getGroupId(), userId)) {
+
+				return;
+			}
+		}
+
+		throw new PrincipalException.MustHavePermission(
+			permissionChecker, Group.class.getName(), group.getGroupId(),
+			ActionKeys.ASSIGN_MEMBERS);
 	}
 
 	private void _checkPermission(Group group, String roleKey)

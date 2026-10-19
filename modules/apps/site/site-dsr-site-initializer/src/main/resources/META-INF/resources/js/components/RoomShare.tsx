@@ -47,6 +47,7 @@ const ASSIGNABLE_ROLE_KEYS_BY_ROLE_KEY: Record<string, string[]> = {
 };
 const EXPIRATION_WARNING_DAYS = 7;
 const OWNER_ROLE_KEY = 'Site Owner';
+const SITE_ADMINISTRATOR_ROLE_KEY = 'Site Administrator';
 
 function getDateInputValue(membershipExpirationDate?: string): string {
 	if (!membershipExpirationDate) {
@@ -141,6 +142,7 @@ function isPastDate(date: string): boolean {
 
 function RoomShare({
 	canAssignAllRoles = false,
+	canEditSiteAdministrators = false,
 	closeModal,
 	readOnly = false,
 	roomId,
@@ -402,7 +404,12 @@ function RoomShare({
 	}, [loadUsers]);
 
 	const canEditMember = (user: IUserAccount): boolean => {
-		if (readOnly || user.roleKey === OWNER_ROLE_KEY) {
+		if (
+			readOnly ||
+			user.roleKey === OWNER_ROLE_KEY ||
+			(user.roleKey === SITE_ADMINISTRATOR_ROLE_KEY &&
+				!canEditSiteAdministrators)
+		) {
 			return false;
 		}
 
