@@ -70,7 +70,6 @@ public class CPDAvailabilityEstimateServiceTest {
 		CommerceAvailabilityEstimate commerceAvailabilityEstimate =
 			_commerceAvailabilityEstimateLocalService.
 				addCommerceAvailabilityEstimate(
-					RandomTestUtil.randomString(),
 					RandomTestUtil.randomLocaleStringMap(),
 					RandomTestUtil.nextDouble(),
 					ServiceContextTestUtil.getServiceContext(
@@ -97,7 +96,6 @@ public class CPDAvailabilityEstimateServiceTest {
 		CommerceAvailabilityEstimate commerceAvailabilityEstimate =
 			_commerceAvailabilityEstimateLocalService.
 				addCommerceAvailabilityEstimate(
-					RandomTestUtil.randomString(),
 					RandomTestUtil.randomLocaleStringMap(),
 					RandomTestUtil.nextDouble(),
 					ServiceContextTestUtil.getServiceContext(
