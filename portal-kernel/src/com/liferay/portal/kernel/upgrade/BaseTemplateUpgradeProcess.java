@@ -6,12 +6,26 @@
 package com.liferay.portal.kernel.upgrade;
 
 import com.liferay.petra.string.StringBundler;
-import com.liferay.petra.string.StringPool;
+import com.liferay.portal.kernel.dao.db.DBInspector;
+import com.liferay.portal.kernel.json.JSONArray;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
+import com.liferay.portal.kernel.json.JSONObject;
+import com.liferay.portal.kernel.json.JSONUtil;
+import com.liferay.portal.kernel.log.Log;
+import com.liferay.portal.kernel.log.LogFactoryUtil;
+import com.liferay.portal.kernel.upgrade.util.TemplateReplacement;
+import com.liferay.portal.kernel.upgrade.util.TemplateUpgradeProcessUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * @author Albert Gomes Cabral
@@ -19,73 +33,263 @@ import java.util.regex.Pattern;
  */
 public abstract class BaseTemplateUpgradeProcess extends UpgradeProcess {
 
-	protected abstract String getContextVariable();
+	@Override
+	protected void doUpgrade() throws Exception {
+		List<TemplateReplacement> templateReplacements =
+			_getTemplateReplacements();
 
-	protected abstract String getDeprecatedClass();
-
-	protected Pattern getDeprecatedClassPattern() {
-		String deprecatedClass = getDeprecatedClass();
-
-		if (deprecatedClass == null) {
-			return null;
+		if (templateReplacements.isEmpty()) {
+			return;
 		}
 
-		StringBundler sb = new StringBundler(3);
+		for (String[] tableAndColumnNames : getTableAndColumnNames()) {
+			DBInspector dbInspector = new DBInspector(connection);
 
-		sb.append("\\w+\\s*\\=\\s*.+");
-		sb.append(StringUtil.replace(deprecatedClass, '.', "\\."));
-		sb.append("\\\"\\)");
+			String tableName = dbInspector.normalizeName(
+				tableAndColumnNames[0]);
 
-		return Pattern.compile(sb.toString());
+			if (!dbInspector.hasTable(tableName)) {
+				if (_log.isInfoEnabled()) {
+					_log.info("Table " + tableName + " does not exist");
+				}
+
+				continue;
+			}
+
+			String columnName = dbInspector.normalizeName(
+				tableAndColumnNames[1]);
+
+			if (!dbInspector.hasColumn(tableName, columnName)) {
+				if (_log.isInfoEnabled()) {
+					_log.info(
+						StringBundler.concat(
+							"Table ", tableName, " does not have column ",
+							columnName));
+				}
+
+				continue;
+			}
+
+			String[] primaryKeyColumnNames = getPrimaryKeyColumnNames(
+				connection, tableName);
+
+			if (primaryKeyColumnNames.length == 0) {
+				throw new Exception(
+					"Table " + tableName + " has no primary key");
+			}
+
+			Queue<String> modifiedKeys = new ConcurrentLinkedQueue<>();
+
+			String whereClause = null;
+
+			if (tableAndColumnNames.length > 2) {
+				whereClause = tableAndColumnNames[2];
+			}
+
+			processConcurrently(
+				_getSelectSQL(
+					columnName, primaryKeyColumnNames, tableName, whereClause),
+				_getUpdateSQL(columnName, primaryKeyColumnNames, tableName),
+				resultSet -> _getValues(
+					columnName, primaryKeyColumnNames, resultSet),
+				(values, preparedStatement) -> {
+					String modifiedKey = _updateValue(
+						columnName, preparedStatement, primaryKeyColumnNames,
+						tableName, templateReplacements, values);
+
+					if (modifiedKey == null) {
+						return;
+					}
+
+					modifiedKeys.add(modifiedKey);
+				},
+				StringBundler.concat(
+					"Unable to upgrade templates in table ", tableName,
+					" column ", columnName));
+
+			if (!_log.isInfoEnabled()) {
+				continue;
+			}
+
+			if (modifiedKeys.isEmpty()) {
+				_log.info(
+					StringBundler.concat(
+						"Table ", tableName, " column ", columnName,
+						" was not updated"));
+
+				continue;
+			}
+
+			_log.info(
+				StringBundler.concat(
+					"Table ", tableName, " column ", columnName,
+					" was updated for records with primary keys (",
+					StringUtil.merge(primaryKeyColumnNames, ", "), "): ",
+					StringUtil.merge(modifiedKeys, ", ")));
+		}
 	}
 
-	protected abstract String getDeprecatedClassReplacement();
-
-	protected String getVariableName(Matcher matcher) {
-		String matcherGroup = matcher.group();
-
-		String variableName = matcherGroup.substring(
-			0, matcherGroup.indexOf(StringPool.EQUAL));
-
-		return variableName.trim();
+	protected String[] getKernelReplacementsFileNames() {
+		return new String[0];
 	}
 
-	protected String replaceDeprecatedClass(
-		Pattern emptyAssignPattern, String template) {
+	protected abstract String[][] getTableAndColumnNames();
 
-		if (template == null) {
-			return StringPool.BLANK;
+	protected boolean isSquareBracketSyntax() {
+		return false;
+	}
+
+	private String _getKey(String[] primaryKeyColumnNames, Object[] values) {
+		StringBundler sb = new StringBundler(
+			(primaryKeyColumnNames.length * 2) + 1);
+
+		sb.append("(");
+
+		for (int i = 0; i < primaryKeyColumnNames.length; i++) {
+			sb.append(values[i]);
+			sb.append(", ");
 		}
 
-		Pattern deprecatedClassPattern = getDeprecatedClassPattern();
+		sb.setIndex(sb.index() - 1);
 
-		if (deprecatedClassPattern != null) {
-			Matcher deprecatedClassMatcher = deprecatedClassPattern.matcher(
-				template);
+		sb.append(")");
 
-			while (deprecatedClassMatcher.find()) {
-				template = StringUtil.replace(
-					template, deprecatedClassMatcher.group(),
-					getDeprecatedClassReplacement());
+		return sb.toString();
+	}
 
-				if (Validator.isNotNull(getContextVariable())) {
-					template = StringUtil.replace(
-						template, getVariableName(deprecatedClassMatcher),
-						getContextVariable());
-				}
+	private String _getSelectSQL(
+		String columnName, String[] primaryKeyColumnNames, String tableName,
+		String whereClause) {
 
-				Matcher emptyAssignMatcher = emptyAssignPattern.matcher(
-					template);
+		String selectSQL = StringBundler.concat(
+			"select ", StringUtil.merge(primaryKeyColumnNames, ", "), ", ",
+			columnName, " from ", tableName, " where ", columnName,
+			" is not null");
 
-				if (!emptyAssignMatcher.find()) {
-					continue;
-				}
+		if (Validator.isNull(whereClause)) {
+			return selectSQL;
+		}
 
-				template = emptyAssignMatcher.replaceAll(StringPool.BLANK);
+		return StringBundler.concat(selectSQL, " and ", whereClause);
+	}
+
+	private List<TemplateReplacement> _getTemplateReplacements()
+		throws Exception {
+
+		List<TemplateReplacement> templateReplacements = new ArrayList<>();
+
+		for (String kernelReplacementsFileName :
+				getKernelReplacementsFileNames()) {
+
+			_readTemplateReplacements(
+				BaseTemplateUpgradeProcess.class,
+				"dependencies/" + kernelReplacementsFileName,
+				templateReplacements);
+		}
+
+		_readTemplateReplacements(
+			getClass(), "dependencies/template-replacements.json",
+			templateReplacements);
+
+		return templateReplacements;
+	}
+
+	private String _getUpdateSQL(
+		String columnName, String[] primaryKeyColumnNames, String tableName) {
+
+		return StringBundler.concat(
+			"update ", tableName, " set ", columnName, " = ? where ",
+			StringUtil.merge(primaryKeyColumnNames, " = ? and "), " = ?");
+	}
+
+	private Object[] _getValues(
+			String columnName, String[] primaryKeyColumnNames,
+			ResultSet resultSet)
+		throws SQLException {
+
+		Object[] values = new Object[primaryKeyColumnNames.length + 1];
+
+		for (int i = 0; i < primaryKeyColumnNames.length; i++) {
+			values[i] = resultSet.getObject(primaryKeyColumnNames[i]);
+		}
+
+		values[primaryKeyColumnNames.length] = resultSet.getString(columnName);
+
+		return values;
+	}
+
+	private void _readTemplateReplacements(
+			Class<?> clazz, String name,
+			List<TemplateReplacement> templateReplacements)
+		throws Exception {
+
+		if (clazz.getResource(name) == null) {
+			return;
+		}
+
+		JSONArray jsonArray = JSONFactoryUtil.createJSONArray(
+			StringUtil.read(clazz, name));
+
+		for (int i = 0; i < jsonArray.length(); i++) {
+			JSONObject jsonObject = jsonArray.getJSONObject(i);
+
+			templateReplacements.add(
+				new TemplateReplacement(
+					jsonObject.getString("contextVariable"),
+					jsonObject.getString("deprecatedClassName"),
+					jsonObject.getString("from"),
+					jsonObject.getBoolean("hasMessage"),
+					jsonObject.getString("id"),
+					JSONUtil.toStringArray(
+						jsonObject.getJSONArray("methodNames")),
+					JSONUtil.toStringArray(
+						jsonObject.getJSONArray("newAssigns")),
+					jsonObject.getString("to")));
+		}
+	}
+
+	private String _updateValue(
+			String columnName, PreparedStatement preparedStatement,
+			String[] primaryKeyColumnNames, String tableName,
+			List<TemplateReplacement> templateReplacements, Object[] values)
+		throws SQLException {
+
+		String template = (String)values[values.length - 1];
+
+		if (_log.isWarnEnabled()) {
+			List<String> messageIds = TemplateUpgradeProcessUtil.getMessageIds(
+				template, templateReplacements);
+
+			if (!messageIds.isEmpty()) {
+				_log.warn(
+					StringBundler.concat(
+						"Table ", tableName, " column ", columnName,
+						" record with primary keys ",
+						_getKey(primaryKeyColumnNames, values),
+						" requires a manual fix for patterns ",
+						StringUtil.merge(messageIds, ", ")));
 			}
 		}
 
-		return template;
+		String newTemplate = TemplateUpgradeProcessUtil.replace(
+			isSquareBracketSyntax(), template, templateReplacements);
+
+		if (template.equals(newTemplate)) {
+			return null;
+		}
+
+		preparedStatement.setString(1, newTemplate);
+
+		for (int i = 0; i < primaryKeyColumnNames.length; i++) {
+			preparedStatement.setObject(i + 2, values[i]);
+		}
+
+		preparedStatement.addBatch();
+
+		return _getKey(primaryKeyColumnNames, values);
 	}
+
+	private static final Log _log = LogFactoryUtil.getLog(
+		BaseTemplateUpgradeProcess.class);
 
 }
