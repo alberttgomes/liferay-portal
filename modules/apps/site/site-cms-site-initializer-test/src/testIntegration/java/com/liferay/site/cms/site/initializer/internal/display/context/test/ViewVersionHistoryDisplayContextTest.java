@@ -22,6 +22,7 @@ import com.liferay.object.service.ObjectEntryLocalService;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.test.ReflectionTestUtil;
+import com.liferay.portal.kernel.test.TestInfo;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.rule.Sync;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
@@ -38,6 +39,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.io.Serializable;
 
 import java.util.Collections;
+import java.util.Map;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -117,6 +119,20 @@ public class ViewVersionHistoryDisplayContextTest
 				"getAPIURL", new Class<?>[0]));
 	}
 
+	@Test
+	@TestInfo("LPD-110617")
+	public void testGetProps() throws Exception {
+		String backURL = RandomTestUtil.randomString();
+
+		Map<String, Object> props = _getProps(backURL);
+
+		Assert.assertEquals(backURL, props.get("backURL"));
+
+		props = _getProps("javascript:alert(document.cookie)");
+
+		Assert.assertNull(props.get("backURL"));
+	}
+
 	private MockHttpServletRequest _getMockHttpServletRequest(
 			ObjectEntry objectEntry)
 		throws Exception {
@@ -128,6 +144,17 @@ public class ViewVersionHistoryDisplayContextTest
 			"objectEntryId", String.valueOf(objectEntry.getObjectEntryId()));
 
 		return mockHttpServletRequest;
+	}
+
+	private Map<String, Object> _getProps(String backURL) throws Exception {
+		MockHttpServletRequest mockHttpServletRequest =
+			_getMockHttpServletRequest(_objectEntry);
+
+		mockHttpServletRequest.setParameter("backURL", backURL);
+
+		return ReflectionTestUtil.invoke(
+			_getViewVersionHistoryDisplayContext(mockHttpServletRequest),
+			"getProps", new Class<?>[0]);
 	}
 
 	private Object _getViewVersionHistoryDisplayContext(
