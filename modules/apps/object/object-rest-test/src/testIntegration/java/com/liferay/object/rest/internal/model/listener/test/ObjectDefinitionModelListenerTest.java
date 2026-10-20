@@ -248,13 +248,13 @@ public class ObjectDefinitionModelListenerTest {
 	@Inject
 	private OAuth2ApplicationLocalService _oAuth2ApplicationLocalService;
 
-	@Inject
-	private OAuth2ApplicationScopeAliasesLocalService
-		_oAuth2ApplicationScopeAliasesLocalService;
-
 	@DeleteAfterTestRun
 	private final List<OAuth2Application> _oAuth2Applications =
 		new ArrayList<>();
+
+	@Inject
+	private OAuth2ApplicationScopeAliasesLocalService
+		_oAuth2ApplicationScopeAliasesLocalService;
 
 	@Inject
 	private OAuth2AuthorizationLocalService _oAuth2AuthorizationLocalService;
