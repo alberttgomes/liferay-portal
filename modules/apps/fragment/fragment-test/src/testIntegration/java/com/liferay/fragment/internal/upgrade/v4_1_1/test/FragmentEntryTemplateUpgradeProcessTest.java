@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-package com.liferay.fragment.internal.upgrade.v3_0_1.test;
+package com.liferay.fragment.internal.upgrade.v4_1_1.test;
 
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
 import com.liferay.change.tracking.conflict.ConflictInfo;
@@ -13,10 +13,14 @@ import com.liferay.change.tracking.service.CTProcessLocalService;
 import com.liferay.fragment.constants.FragmentConstants;
 import com.liferay.fragment.model.FragmentCollection;
 import com.liferay.fragment.model.FragmentEntry;
+import com.liferay.fragment.model.FragmentEntryLink;
 import com.liferay.fragment.model.FragmentEntryVersion;
 import com.liferay.fragment.service.FragmentCollectionService;
+import com.liferay.fragment.service.FragmentEntryLinkLocalService;
 import com.liferay.fragment.service.FragmentEntryLocalService;
 import com.liferay.fragment.service.FragmentEntryService;
+import com.liferay.fragment.test.util.FragmentTestUtil;
+import com.liferay.layout.test.util.LayoutTestUtil;
 import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.petra.string.StringPool;
 import com.liferay.petra.string.StringUtil;
@@ -24,6 +28,7 @@ import com.liferay.portal.kernel.cache.MultiVMPool;
 import com.liferay.portal.kernel.change.tracking.CTCollectionThreadLocal;
 import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.model.Group;
+import com.liferay.portal.kernel.model.Layout;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
@@ -32,7 +37,6 @@ import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.upgrade.UpgradeProcess;
-import com.liferay.portal.kernel.version.Version;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
@@ -51,10 +55,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 /**
+ * @author Albert Gomes Cabral
  * @author Saurasish Basak
  */
 @RunWith(Arquillian.class)
-public class BrowserSnifferFragmentEntryTemplateUpgradeProcessTest {
+public class FragmentEntryTemplateUpgradeProcessTest {
 
 	@ClassRule
 	@Rule
@@ -72,107 +77,159 @@ public class BrowserSnifferFragmentEntryTemplateUpgradeProcessTest {
 	}
 
 	@Test
-	public void testUpgradeFragmentEntryPreventsHtmlOverwriting()
-		throws Exception {
+	public void testUpgrade() throws Exception {
+		FragmentEntry fragmentEntry = _addFragmentEntry("<div></div>");
 
-		_ctCollection = _ctCollectionLocalService.addCTCollection(
+		fragmentEntry = _updateHTML(
+			"fragment-entry-content.html", fragmentEntry);
+
+		Layout layout = LayoutTestUtil.addTypeContentLayout(_group);
+
+		FragmentEntryLink fragmentEntryLink =
+			FragmentTestUtil.addFragmentEntryLink(
+				fragmentEntry, layout.getPlid());
+
+		fragmentEntryLink.setHtml(fragmentEntry.getHtml());
+
+		fragmentEntryLink =
+			_fragmentEntryLinkLocalService.updateFragmentEntryLink(
+				fragmentEntryLink);
+
+		_runUpgrade();
+
+		String expectedHTML = _read("expected-fragment-entry-content.html");
+
+		_assertHTML(expectedHTML, fragmentEntry, fragmentEntryLink);
+
+		_runUpgrade();
+
+		_assertHTML(expectedHTML, fragmentEntry, fragmentEntryLink);
+	}
+
+	@Test
+	public void testUpgradeWithBrowserSnifferUtil() throws Exception {
+		FragmentEntry fragmentEntry = _addFragmentEntry("<div></div>");
+
+		fragmentEntry = _updateHTML(
+			"fragment-entry-browser-sniffer-content.html", fragmentEntry);
+
+		_runUpgrade();
+
+		fragmentEntry = _fragmentEntryLocalService.getFragmentEntry(
+			fragmentEntry.getFragmentEntryId());
+
+		Assert.assertEquals(
+			_read("expected-fragment-entry-browser-sniffer-content.html"),
+			fragmentEntry.getHtml());
+	}
+
+	@Test
+	public void testUpgradeWithCTCollection() throws Exception {
+		CTCollection ctCollection = _ctCollectionLocalService.addCTCollection(
 			null, TestPropsValues.getCompanyId(), TestPropsValues.getUserId(),
 			0, RandomTestUtil.randomString(), null);
 
-		_addFragmentEntry(".v3_0_1/fragment-entry.html");
+		FragmentEntry fragmentEntry = _addFragmentEntry(
+			_read("fragment-entry.html"));
 
 		try (SafeCloseable safeCloseable =
 				CTCollectionThreadLocal.setCTCollectionIdWithSafeCloseable(
-					_ctCollection.getCtCollectionId())) {
+					ctCollection.getCtCollectionId())) {
 
-			_fragmentEntry.setHtml(
-				_read(".v3_0_1/updated-fragment-entry.html"));
+			fragmentEntry.setHtml(_read("updated-fragment-entry.html"));
 
-			_fragmentEntry = _fragmentEntryLocalService.updateFragmentEntry(
-				_fragmentEntry);
+			fragmentEntry = _fragmentEntryLocalService.updateFragmentEntry(
+				fragmentEntry);
 		}
 
 		Map<Long, List<ConflictInfo>> conflictsMap =
-			_ctCollectionLocalService.checkConflicts(_ctCollection);
+			_ctCollectionLocalService.checkConflicts(ctCollection);
 
 		Assert.assertTrue(conflictsMap.isEmpty());
 
 		_ctProcessLocalService.addCTProcess(
-			TestPropsValues.getUserId(), _ctCollection.getCtCollectionId());
+			TestPropsValues.getUserId(), ctCollection.getCtCollectionId());
 
 		FragmentEntryVersion fragmentEntryVersion =
-			_fragmentEntryLocalService.fetchLatestVersion(_fragmentEntry);
+			_fragmentEntryLocalService.fetchLatestVersion(fragmentEntry);
 
 		Assert.assertEquals(2, fragmentEntryVersion.getVersion());
 
-		_runTemplateUpgrade();
+		_runUpgrade();
 
 		try (SafeCloseable safeCloseable =
 				CTCollectionThreadLocal.setCTCollectionIdWithSafeCloseable(
-					_ctCollection.getCtCollectionId())) {
+					ctCollection.getCtCollectionId())) {
 
-			FragmentEntry fragmentEntry =
+			FragmentEntry ctFragmentEntry =
 				_fragmentEntryLocalService.getFragmentEntry(
-					_fragmentEntry.getFragmentEntryId());
+					fragmentEntry.getFragmentEntryId());
 
 			Assert.assertNotEquals(
-				fragmentEntry.getHtml(), _fragmentEntry.getHtml());
+				ctFragmentEntry.getHtml(), fragmentEntry.getHtml());
 		}
 	}
 
-	@Test
-	public void testUpgradeFragmentRemoveBrowserSniffer() throws Exception {
-		_addFragmentEntry(
-			".v3_0_1/fragment-entry-browser-sniffer-content.html");
-
-		_runTemplateUpgrade();
-
-		Assert.assertEquals(
-			_read(
-				".v3_0_1/expected-fragment-entry-browser-sniffer-content.html"),
-			_getFragmentEntry().getHtml());
-	}
-
-	private void _addFragmentEntry(String filePath) throws Exception {
+	private FragmentEntry _addFragmentEntry(String html) throws Exception {
 		FragmentCollection fragmentCollection =
 			_fragmentCollectionService.addFragmentCollection(
 				null, _group.getGroupId(), "Fragment Collection",
 				StringPool.BLANK, _serviceContext);
 
-		_fragmentEntry = _fragmentEntryService.addFragmentEntry(
+		return _fragmentEntryService.addFragmentEntry(
 			null, _group.getGroupId(),
 			fragmentCollection.getFragmentCollectionId(), null,
-			"FragmentEntry Name", null, _read(filePath), null, false, null,
-			null, 0, false, false, FragmentConstants.TYPE_COMPONENT, null,
+			"FragmentEntry Name", null, html, null, false, null, null, 0, false,
+			false, FragmentConstants.TYPE_COMPONENT, null,
 			WorkflowConstants.STATUS_APPROVED, _serviceContext);
 	}
 
-	private FragmentEntry _getFragmentEntry() throws Exception {
-		return _fragmentEntryService.fetchFragmentEntry(
-			_fragmentEntry.getFragmentEntryId());
+	private void _assertHTML(
+			String expectedHTML, FragmentEntry fragmentEntry,
+			FragmentEntryLink fragmentEntryLink)
+		throws Exception {
+
+		fragmentEntry = _fragmentEntryLocalService.getFragmentEntry(
+			fragmentEntry.getFragmentEntryId());
+
+		Assert.assertEquals(expectedHTML, fragmentEntry.getHtml());
+
+		fragmentEntryLink = _fragmentEntryLinkLocalService.getFragmentEntryLink(
+			fragmentEntryLink.getFragmentEntryLinkId());
+
+		Assert.assertEquals(expectedHTML, fragmentEntryLink.getHtml());
 	}
 
-	private String _read(String filePath) throws Exception {
+	private String _read(String fileName) throws Exception {
 		Class<?> clazz = getClass();
 
 		return StringUtil.read(
 			clazz.getClassLoader(),
-			"com/liferay/fragment/dependencies/upgrade" + filePath);
+			"com/liferay/fragment/dependencies/upgrade.v4_1_1/" + fileName);
 	}
 
-	private void _runTemplateUpgrade() throws Exception {
-		UpgradeProcess[] upgradeProcesses = UpgradeTestUtil.getUpgradeSteps(
-			_upgradeStepRegistrator, new Version(3, 0, 1));
+	private void _runUpgrade() throws Exception {
+		UpgradeProcess upgradeProcess = UpgradeTestUtil.getUpgradeStep(
+			_upgradeStepRegistrator, _CLASS_NAME);
 
-		for (UpgradeProcess upgradeProcess : upgradeProcesses) {
-			upgradeProcess.upgrade();
-		}
+		upgradeProcess.upgrade();
 
 		_entityCache.clearCache();
 		_multiVMPool.clear();
 	}
 
-	private CTCollection _ctCollection;
+	private FragmentEntry _updateHTML(
+			String fileName, FragmentEntry fragmentEntry)
+		throws Exception {
+
+		fragmentEntry.setHtml(_read(fileName));
+
+		return _fragmentEntryLocalService.updateFragmentEntry(fragmentEntry);
+	}
+
+	private static final String _CLASS_NAME =
+		"com.liferay.fragment.internal.upgrade.v4_1_1." +
+			"FragmentEntryTemplateUpgradeProcess";
 
 	@Inject
 	private CTCollectionLocalService _ctCollectionLocalService;
@@ -186,7 +243,8 @@ public class BrowserSnifferFragmentEntryTemplateUpgradeProcessTest {
 	@Inject
 	private FragmentCollectionService _fragmentCollectionService;
 
-	private FragmentEntry _fragmentEntry;
+	@Inject
+	private FragmentEntryLinkLocalService _fragmentEntryLinkLocalService;
 
 	@Inject
 	private FragmentEntryLocalService _fragmentEntryLocalService;

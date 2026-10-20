@@ -1,0 +1,12 @@
+[
+	{
+		"from": "regex:(?s)<lfr-editable\\s+id=\"([^\"]+)\"\\s+type=\"image\"\\s*>\\s*<img(\\s[^>]*?)?\\s*/?>\\s*</lfr-editable>",
+		"id": "FTL-012",
+		"to": "<img data-lfr-editable-id=\"$1\" data-lfr-editable-type=\"image\"$2 />"
+	},
+	{
+		"from": "regex:(?s)<lfr-editable\\s+id=\"([^\"]+)\"\\s+type=\"link\"\\s*>\\s*<a(\\s[^>]*)?>(.*?)</a>\\s*</lfr-editable>",
+		"id": "FTL-012",
+		"to": "<a data-lfr-editable-id=\"$1\" data-lfr-editable-type=\"link\"$2>$3</a>"
+	}
+]

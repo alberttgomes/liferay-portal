@@ -1,0 +1,32 @@
+[
+	{
+		"from": "regex:(dynamic-element\\s*\\[\\s*@)name(\\s*=\\s*['\"])",
+		"id": "FTL-008",
+		"to": "$1field-reference$2"
+	},
+	{
+		"from": "regex:(?<!\\w)getDDMFormFieldValuesMap\\s*\\(\\s*\\)",
+		"id": "FTL-009",
+		"to": "getDDMFormFieldValuesReferencesMap(false)"
+	},
+	{
+		"from": "regex:(?<!\\w)getDDMFormFieldValuesMap(\\s*\\((?!\\s*\\)))",
+		"id": "FTL-009",
+		"to": "getDDMFormFieldValuesReferencesMap$1"
+	},
+	{
+		"from": "regex:((?<![\\w.])cpContentHelper\\s*\\.\\s*getImages\\s*\\((?:[^(),]|\\((?:[^()]|\\([^()]*\\))*\\))+,)((?:[^(),]|\\((?:[^()]|\\([^()]*\\))*\\))+\\))",
+		"id": "FTL-018",
+		"to": "$1 false,$2"
+	},
+	{
+		"from": "regex:(\\.\\s*getJson\\s*\\(\\s*\\)\\s*)\\?eval(?!\\w)",
+		"id": "FTL-019",
+		"to": "$1?eval_json"
+	},
+	{
+		"from": "regex:((?<![\\w.])(?:\\.vars\\s*\\[\\s*(?:\"[^\"]*\"|'[^']*')\\s*\\]|[A-Za-z_]\\w*(?:\\s*\\.\\s*[A-Za-z_]\\w*|\\s*\\[\\s*\\d+\\s*\\])*?)\\s*\\.\\s*(?:data|getData\\s*\\(\\s*\\)))\\?eval(?!\\w)",
+		"id": "FTL-020",
+		"to": "(($1?trim?starts_with(\"[\") || $1?trim?starts_with(\"{\"))?then($1?eval_json, [$1]))"
+	}
+]

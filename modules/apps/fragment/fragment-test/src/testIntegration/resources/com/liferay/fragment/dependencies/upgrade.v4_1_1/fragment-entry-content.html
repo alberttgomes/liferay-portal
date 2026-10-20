@@ -1,0 +1,15 @@
+[#assign viewURL = httpUtil.removeParameter(themeDisplay.getURLCurrent(), "redirect") /]
+
+<lfr-editable id="download-link" type="link">
+	<a class="btn btn-primary" href="#">Download</a>
+</lfr-editable>
+
+<lfr-editable id="banner-image" type="image">
+	<img alt="Banner" src="banner.png" />
+</lfr-editable>
+
+<lfr-editable id="title" type="text">
+	Title
+</lfr-editable>
+
+[@liferay_ui["asset-tags-summary"] className="com.liferay.journal.model.JournalArticle" classPK=0 /]

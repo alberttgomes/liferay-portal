@@ -1,0 +1,12 @@
+[#assign httpComponentsUtil = staticUtil["com.liferay.portal.kernel.util.HttpComponentsUtil"] /]
+[#assign viewURL = httpComponentsUtil.removeParameter(themeDisplay.getURLCurrent(), "redirect") /]
+
+<a data-lfr-editable-id="download-link" data-lfr-editable-type="link" class="btn btn-primary" href="#">Download</a>
+
+<img data-lfr-editable-id="banner-image" data-lfr-editable-type="image" alt="Banner" src="banner.png" />
+
+<lfr-editable id="title" type="text">
+	Title
+</lfr-editable>
+
+[@liferay_asset["asset-tags-summary"] className="com.liferay.journal.model.JournalArticle" classPK=0 /]

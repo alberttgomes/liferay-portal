@@ -12,9 +12,9 @@ import com.liferay.fragment.internal.upgrade.v2_0_0.util.FragmentEntryLinkTable;
 import com.liferay.fragment.internal.upgrade.v2_0_0.util.FragmentEntryTable;
 import com.liferay.fragment.internal.upgrade.v2_1_0.SchemaUpgradeProcess;
 import com.liferay.fragment.internal.upgrade.v2_4_0.FragmentEntryLinkUpgradeProcess;
-import com.liferay.fragment.internal.upgrade.v3_0_1.BrowserSnifferFragmentEntryTemplateUpgradeProcess;
 import com.liferay.fragment.internal.upgrade.v4_0_0.FragmentEntryVersionUpgradeProcess;
 import com.liferay.fragment.internal.upgrade.v4_1_0.FragmentEntryLinkConfigurationUpgradeProcess;
+import com.liferay.fragment.internal.upgrade.v4_1_1.FragmentEntryTemplateUpgradeProcess;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.configuration.module.configuration.ConfigurationProvider;
 import com.liferay.portal.kernel.json.JSONFactory;
@@ -273,9 +273,7 @@ public class FragmentServiceUpgradeStepRegistrator
 			new com.liferay.fragment.internal.upgrade.v3_0_0.
 				FragmentEntryLinkUpgradeProcess());
 
-		registry.register(
-			"3.0.0", "3.0.1",
-			new BrowserSnifferFragmentEntryTemplateUpgradeProcess());
+		registry.register("3.0.0", "3.0.1", new DummyUpgradeStep());
 
 		registry.register("3.0.1", "3.0.2", new DummyUpgradeStep());
 
@@ -289,6 +287,9 @@ public class FragmentServiceUpgradeStepRegistrator
 		registry.register(
 			"4.0.0", "4.1.0",
 			new FragmentEntryLinkConfigurationUpgradeProcess());
+
+		registry.register(
+			"4.1.0", "4.1.1", new FragmentEntryTemplateUpgradeProcess());
 	}
 
 	@Reference
