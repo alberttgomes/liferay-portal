@@ -27,6 +27,7 @@ import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.HtmlUtil;
 import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.ParamUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -141,7 +142,9 @@ public class ViewVersionHistoryDisplayContext {
 
 	public Map<String, Object> getProps() throws PortalException {
 		return HashMapBuilder.<String, Object>put(
-			"backURL", ParamUtil.getString(_httpServletRequest, "backURL")
+			"backURL",
+			PortalUtil.escapeRedirect(
+				ParamUtil.getString(_httpServletRequest, "backURL"))
 		).put(
 			"className", ObjectEntry.class.getName()
 		).put(
