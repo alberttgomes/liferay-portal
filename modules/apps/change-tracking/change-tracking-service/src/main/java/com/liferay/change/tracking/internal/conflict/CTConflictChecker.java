@@ -655,7 +655,7 @@ public class CTConflictChecker<T extends CTModel<T>> {
 		sb.append(primaryKey);
 
 		try {
-			CTRowUtil.copyCTRows(ctPersistence, connection, sb.toString());
+			CTRowUtil.copyCTRows(connection, ctPersistence, sb.toString());
 		}
 		catch (SQLException sqlException) {
 			throw new ORMException(sqlException);
@@ -685,8 +685,8 @@ public class CTConflictChecker<T extends CTModel<T>> {
 		}
 
 		String constraintEntriesSQL = CTRowUtil.getConstraintEntitiesSQL(
-			tableName, primaryKeyName, columnNames, _sourceCTCollectionId,
-			verifyPrimaryKeys);
+			_sourceCTCollectionId, primaryKeyName, verifyPrimaryKeys, tableName,
+			columnNames);
 
 		List<Map.Entry<Long, Long>> primaryKeys = new ArrayList<>();
 
@@ -706,9 +706,8 @@ public class CTConflictChecker<T extends CTModel<T>> {
 
 				String constraintConflictsSQL =
 					CTRowUtil.getConstraintConflictsSQL(
-						tableName, primaryKeyName, columnNames,
-						uniqueIndexValues, tableColumnsMap,
-						_targetCTCollectionId);
+						_targetCTCollectionId, primaryKeyName, tableColumnsMap,
+						tableName, columnNames, uniqueIndexValues);
 
 				try (PreparedStatement preparedStatement2 =
 						connection.prepareStatement(constraintConflictsSQL)) {
@@ -721,7 +720,7 @@ public class CTConflictChecker<T extends CTModel<T>> {
 						Object value = uniqueIndexValues[i];
 
 						if (CTRowUtil.isBlank(
-								value, tableColumnsMap.get(columnNames[i]))) {
+								tableColumnsMap.get(columnNames[i]), value)) {
 
 							continue;
 						}
