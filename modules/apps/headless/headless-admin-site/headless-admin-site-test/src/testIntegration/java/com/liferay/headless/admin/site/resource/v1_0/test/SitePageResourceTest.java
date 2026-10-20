@@ -1030,26 +1030,6 @@ public class SitePageResourceTest extends BaseSitePageResourceTestCase {
 		Assert.assertEquals(SitePage.Type.PAGE_SET_PAGE, sitePage.getType());
 	}
 
-	private void _assertPageSpecifications(
-			ContentPageSpecification draftContentPageSpecification,
-			ContentPageSpecification publishedContentPageSpecification,
-			SitePage sitePage)
-		throws Exception {
-
-		Layout layout = _layoutLocalService.getLayoutByExternalReferenceCode(
-			sitePage.getExternalReferenceCode(), testGroup.getGroupId());
-
-		PageSpecification.Status status = PageSpecification.Status.APPROVED;
-
-		if (!layout.isPublished()) {
-			status = PageSpecification.Status.DRAFT;
-		}
-
-		PageSpecificationsTestUtil.assertPageSpecifications(
-			draftContentPageSpecification, publishedContentPageSpecification,
-			sitePage.getPageSpecifications(), layout, status);
-	}
-
 	private void _assertPageSpecificationVersions(
 			Layout layout, PageSpecificationVersion[] pageSpecificationVersions)
 		throws Exception {
@@ -1084,6 +1064,26 @@ public class SitePageResourceTest extends BaseSitePageResourceTestCase {
 		Assert.assertEquals(
 			Arrays.toString(pageSpecificationVersions),
 			layoutContentVersions.size(), pageSpecificationVersions.length);
+	}
+
+	private void _assertPageSpecifications(
+			ContentPageSpecification draftContentPageSpecification,
+			ContentPageSpecification publishedContentPageSpecification,
+			SitePage sitePage)
+		throws Exception {
+
+		Layout layout = _layoutLocalService.getLayoutByExternalReferenceCode(
+			sitePage.getExternalReferenceCode(), testGroup.getGroupId());
+
+		PageSpecification.Status status = PageSpecification.Status.APPROVED;
+
+		if (!layout.isPublished()) {
+			status = PageSpecification.Status.DRAFT;
+		}
+
+		PageSpecificationsTestUtil.assertPageSpecifications(
+			draftContentPageSpecification, publishedContentPageSpecification,
+			sitePage.getPageSpecifications(), layout, status);
 	}
 
 	private void _assertParentAndPriority(
