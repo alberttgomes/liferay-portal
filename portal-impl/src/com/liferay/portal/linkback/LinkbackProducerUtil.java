@@ -15,6 +15,7 @@ import com.liferay.portal.kernel.util.HtmlParserUtil;
 import com.liferay.portal.kernel.util.HtmlUtil;
 import com.liferay.portal.kernel.util.Http;
 import com.liferay.portal.kernel.util.HttpUtil;
+import com.liferay.portal.kernel.util.InetAddressUtil;
 import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.ReleaseInfo;
 import com.liferay.portal.kernel.util.StringUtil;
@@ -24,6 +25,9 @@ import com.liferay.portal.kernel.xml.StAXReaderUtil;
 import com.liferay.portal.kernel.xmlrpc.Response;
 import com.liferay.portal.kernel.xmlrpc.XmlRpcException;
 import com.liferay.portal.xmlrpc.XmlRpcUtil;
+
+import java.net.InetAddress;
+import java.net.URL;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -67,7 +71,7 @@ public class LinkbackProducerUtil {
 
 				String serverUri = _discoverPingbackServer(targetUri);
 
-				if (Validator.isNull(serverUri)) {
+				if (Validator.isNull(serverUri) || !_isAllowedURI(serverUri)) {
 					continue;
 				}
 
@@ -98,6 +102,14 @@ public class LinkbackProducerUtil {
 			String trackback, Map<String, String> parts)
 		throws Exception {
 
+		if (!_isAllowedURI(trackback)) {
+			if (_log.isWarnEnabled()) {
+				_log.warn("Trackback is not allowed: " + trackback);
+			}
+
+			return false;
+		}
+
 		if (_log.isInfoEnabled()) {
 			_log.info("Pinging trackback " + trackback);
 		}
@@ -114,6 +126,7 @@ public class LinkbackProducerUtil {
 				HttpHeaders.USER_AGENT, ReleaseInfo.getServerInfo());
 		}
 
+		options.setFollowRedirects(false);
 		options.setLocation(trackback);
 		options.setParts(parts);
 		options.setPost(true);
@@ -182,6 +195,10 @@ public class LinkbackProducerUtil {
 	}
 
 	private static String _discoverPingbackServer(String targetUri) {
+		if (!_isAllowedURI(targetUri)) {
+			return null;
+		}
+
 		String serverUri = null;
 
 		try {
@@ -198,8 +215,9 @@ public class LinkbackProducerUtil {
 					HttpHeaders.USER_AGENT, ReleaseInfo.getServerInfo());
 			}
 
-			options.setLocation(targetUri);
+			options.setFollowRedirects(false);
 			options.setHead(true);
+			options.setLocation(targetUri);
 
 			HttpUtil.URLtoByteArray(options);
 
@@ -216,18 +234,51 @@ public class LinkbackProducerUtil {
 		}
 
 		try {
+			Http.Options options = new Http.Options();
+
+			options.setFollowRedirects(false);
+			options.setLocation(targetUri);
+
 			serverUri = HtmlParserUtil.findAttributeValue(
 				getAttributeValueFunction -> StringUtil.equalsIgnoreCase(
 					getAttributeValueFunction.apply("rel"), "pingback"),
 				getAttributeValueFunction -> HtmlUtil.escape(
 					getAttributeValueFunction.apply("href")),
-				HttpUtil.URLtoString(targetUri), "link");
+				HttpUtil.URLtoString(options), "link");
 		}
 		catch (Exception exception) {
 			_log.error("Unable to call GET of " + targetUri, exception);
 		}
 
 		return serverUri;
+	}
+
+	private static boolean _isAllowedURI(String uri) {
+		try {
+			URL url = new URL(uri);
+
+			String protocol = url.getProtocol();
+
+			if (!protocol.equals(Http.HTTP) && !protocol.equals(Http.HTTPS)) {
+				return false;
+			}
+
+			InetAddress inetAddress = InetAddressUtil.getInetAddressByName(
+				url.getHost());
+
+			if (inetAddress == null) {
+				return false;
+			}
+
+			return !InetAddressUtil.isLocalInetAddress(inetAddress);
+		}
+		catch (Exception exception) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(exception);
+			}
+
+			return false;
+		}
 	}
 
 	private static final boolean _HTTP_HEADER_VERSION_VERBOSITY_DEFAULT =
