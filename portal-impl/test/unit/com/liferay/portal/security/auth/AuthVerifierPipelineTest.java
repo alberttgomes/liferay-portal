@@ -7,6 +7,7 @@ package com.liferay.portal.security.auth;
 
 import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.model.Company;
 import com.liferay.portal.kernel.model.User;
@@ -105,7 +106,7 @@ public class AuthVerifierPipelineTest {
 		throws PortalException {
 
 		AuthVerifierResult authVerifierResult = _verifyRequest(
-			"", _BASE_URL + "/regular/*",
+			StringPool.BLANK, _BASE_URL + "/regular/*",
 			_BASE_URL + "/regular/" + RandomTestUtil.randomString());
 
 		Assert.assertSame(expectedState, authVerifierResult.getState());
@@ -200,22 +201,21 @@ public class AuthVerifierPipelineTest {
 	}
 
 	private void _testVerifyRequest() throws PortalException {
-		String contextPath = "";
 		String includeURLs = StringBundler.concat(
 			_BASE_URL, "/regular/*,", _BASE_URL, "/legacy*");
 
 		String legacyRequestURI = StringBundler.concat(
-			contextPath, _BASE_URL, "/legacy/", RandomTestUtil.randomString());
+			_BASE_URL, "/legacy/", RandomTestUtil.randomString());
 		String regularRequestURI = StringBundler.concat(
-			contextPath, _BASE_URL, "/regular/", RandomTestUtil.randomString());
+			_BASE_URL, "/regular/", RandomTestUtil.randomString());
 
 		AuthVerifierResult.State expectedState =
 			AuthVerifierResult.State.SUCCESS;
 
 		_assertAuthVerifierResult(
-			contextPath, includeURLs, legacyRequestURI, expectedState);
+			StringPool.BLANK, includeURLs, legacyRequestURI, expectedState);
 		_assertAuthVerifierResult(
-			contextPath, includeURLs, regularRequestURI, expectedState);
+			StringPool.BLANK, includeURLs, regularRequestURI, expectedState);
 	}
 
 	private void _testVerifyRequestWithContextPath() throws PortalException {
@@ -286,18 +286,17 @@ public class AuthVerifierPipelineTest {
 	private void _testVerifyRequestWithNonmatchingRequestURI()
 		throws PortalException {
 
-		String contextPath = "";
 		String includeURLs = StringBundler.concat(
 			_BASE_URL, "/regular/*,", _BASE_URL, "/legacy*");
 
 		String requestURI = StringBundler.concat(
-			contextPath, _BASE_URL, "/", RandomTestUtil.randomString());
+			_BASE_URL, "/", RandomTestUtil.randomString());
 
 		AuthVerifierResult.State expectedState =
 			AuthVerifierResult.State.UNSUCCESSFUL;
 
 		_assertAuthVerifierResult(
-			contextPath, includeURLs, requestURI, expectedState);
+			StringPool.BLANK, includeURLs, requestURI, expectedState);
 	}
 
 	private AuthVerifierResult _verifyRequest(
