@@ -221,13 +221,16 @@ public class ObjectEntryInfoItemFieldValuesUpdater
 					dtoObjectEntry.getExternalReferenceCode(),
 					_objectDefinition, dtoObjectEntry, scopeKey));
 
-			_relateMainObjectEntry(
-				infoItemFieldValues, _objectDefinition, updatedObjectEntry,
-				serviceContext, themeDisplay.getUserId());
+			if (_objectDefinition.isDefaultStorageType()) {
+				_relateMainObjectEntry(
+					infoItemFieldValues, _objectDefinition, updatedObjectEntry,
+					serviceContext, themeDisplay.getUserId());
 
-			_relateNestedObjectEntries(
-				themeDisplay.getCompanyId(), updatedObjectEntry.getGroupId(),
-				infoItemFieldValues, serviceContext, themeDisplay.getUserId());
+				_relateNestedObjectEntries(
+					themeDisplay.getCompanyId(),
+					updatedObjectEntry.getGroupId(), infoItemFieldValues,
+					serviceContext, themeDisplay.getUserId());
+			}
 
 			return updatedObjectEntry;
 		}
@@ -514,6 +517,10 @@ public class ObjectEntryInfoItemFieldValuesUpdater
 
 					objectDefinitionMap.put(
 						objectDefinitionName, objectDefinition);
+				}
+
+				if (!objectDefinition.isDefaultStorageType()) {
+					continue;
 				}
 
 				DefaultObjectEntryManager defaultObjectEntryManager =
