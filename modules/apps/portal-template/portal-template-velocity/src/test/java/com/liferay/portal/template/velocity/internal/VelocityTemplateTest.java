@@ -369,6 +369,20 @@ public class VelocityTemplateTest {
 		Assert.assertEquals(_TEST_VALUE, result);
 	}
 
+	@Test
+	public void testProcessTemplate9() throws Exception {
+		Template template = new VelocityTemplate(
+			new MockTemplateResource(_TEMPLATE_FILE_NAME), null,
+			_velocityEngine, _templateContextHelper, _templateResourceCache,
+			true);
+
+		RestrictedTemplateThreadLocal.setRestricted(true);
+
+		template.processTemplate(new UnsyncStringWriter());
+
+		Assert.assertTrue(RestrictedTemplateThreadLocal.isRestricted());
+	}
+
 	private String[] _filterRestrictedClasses(String[] restrictedClasses) {
 		if (JavaDetector.isJDK21()) {
 
