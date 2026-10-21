@@ -186,7 +186,7 @@ public class Sp implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _clockSkewSupplier;
 
-	@io.swagger.v3.oas.annotations.media.Schema
+	@io.swagger.v3.oas.annotations.media.Schema(format = "password")
 	public String getKeyStoreEncryptionCredentialPassword() {
 		if (_keyStoreEncryptionCredentialPasswordSupplier != null) {
 			keyStoreEncryptionCredentialPassword =

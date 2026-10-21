@@ -182,7 +182,7 @@ public class SamlProvider implements Serializable {
 	@JsonIgnore
 	private Supplier<Idp> _idpSupplier;
 
-	@io.swagger.v3.oas.annotations.media.Schema
+	@io.swagger.v3.oas.annotations.media.Schema(format = "password")
 	public String getKeyStoreCredentialPassword() {
 		if (_keyStoreCredentialPasswordSupplier != null) {
 			keyStoreCredentialPassword =

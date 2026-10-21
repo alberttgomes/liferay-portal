@@ -367,7 +367,8 @@ public class UserAccount implements Serializable {
 	private Supplier<Creator> _creatorSupplier;
 
 	@io.swagger.v3.oas.annotations.media.Schema(
-		description = "The user's current password. Used to authenticate a user when they attempt to update their own password."
+		description = "The user's current password. Used to authenticate a user when they attempt to update their own password.",
+		format = "password"
 	)
 	public String getCurrentPassword() {
 		if (_currentPasswordSupplier != null) {
@@ -1471,7 +1472,7 @@ public class UserAccount implements Serializable {
 	private Supplier<OrganizationBrief[]> _organizationBriefsSupplier;
 
 	@io.swagger.v3.oas.annotations.media.Schema(
-		description = "The user's password."
+		description = "The user's password.", format = "password"
 	)
 	public String getPassword() {
 		if (_passwordSupplier != null) {

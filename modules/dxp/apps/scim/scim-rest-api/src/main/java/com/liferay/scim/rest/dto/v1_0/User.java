@@ -629,7 +629,8 @@ public class User implements Serializable {
 	private Supplier<String> _nickNameSupplier;
 
 	@io.swagger.v3.oas.annotations.media.Schema(
-		description = "This attribute is intended to be used as a means to set, replace, or compare (i.e., filter for equality) a password."
+		description = "This attribute is intended to be used as a means to set, replace, or compare (i.e., filter for equality) a password.",
+		format = "password"
 	)
 	public String getPassword() {
 		if (_passwordSupplier != null) {
