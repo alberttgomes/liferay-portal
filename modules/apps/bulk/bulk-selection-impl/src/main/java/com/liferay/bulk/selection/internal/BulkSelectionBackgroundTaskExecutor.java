@@ -10,6 +10,7 @@ import com.liferay.bulk.selection.BulkSelectionAction;
 import com.liferay.bulk.selection.BulkSelectionFactory;
 import com.liferay.bulk.selection.BulkSelectionInputParameters;
 import com.liferay.bulk.selection.internal.constants.BulkSelectionBackgroundTaskConstants;
+import com.liferay.portal.kernel.audit.AuditRequestThreadLocal;
 import com.liferay.portal.kernel.backgroundtask.BackgroundTask;
 import com.liferay.portal.kernel.backgroundtask.BackgroundTaskExecutor;
 import com.liferay.portal.kernel.backgroundtask.BackgroundTaskResult;
@@ -19,10 +20,13 @@ import com.liferay.portal.kernel.backgroundtask.display.BackgroundTaskDisplay;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.UserLocalService;
+import com.liferay.portal.kernel.util.GetterUtil;
+import com.liferay.portal.kernel.util.HashMapBuilder;
 
 import java.io.Serializable;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -104,9 +108,21 @@ public class BulkSelectionBackgroundTaskExecutor
 				bulkSelection = bulkSelection.toAssetEntryBulkSelection();
 			}
 
-			bulkSelectionAction.execute(
-				_userLocalService.getUser(backgroundTask.getUserId()),
-				(BulkSelection<Object>)bulkSelection, inputMap);
+			Map<String, Serializable> auditRequestMap = _getAuditRequestMap();
+
+			_setAuditRequest(
+				(Map<String, Serializable>)taskContextMap.get(
+					BulkSelectionBackgroundTaskConstants.
+						BULK_SELECTION_AUDIT_REQUEST_CONTEXT_MAP));
+
+			try {
+				bulkSelectionAction.execute(
+					_userLocalService.getUser(backgroundTask.getUserId()),
+					(BulkSelection<Object>)bulkSelection, inputMap);
+			}
+			finally {
+				_setAuditRequest(auditRequestMap);
+			}
 		}
 		catch (Exception exception) {
 			_log.error(exception);
@@ -125,6 +141,28 @@ public class BulkSelectionBackgroundTaskExecutor
 	@Activate
 	protected void activate(BundleContext bundleContext) {
 		_bundleContext = bundleContext;
+	}
+
+	private Map<String, Serializable> _getAuditRequestMap() {
+		AuditRequestThreadLocal auditRequestThreadLocal =
+			AuditRequestThreadLocal.getAuditThreadLocal();
+
+		return HashMapBuilder.<String, Serializable>put(
+			"clientHost", auditRequestThreadLocal.getClientHost()
+		).put(
+			"clientIP", auditRequestThreadLocal.getClientIP()
+		).put(
+			"realUserEmailAddress",
+			auditRequestThreadLocal.getRealUserEmailAddress()
+		).put(
+			"realUserId", auditRequestThreadLocal.getRealUserId()
+		).put(
+			"serverName", auditRequestThreadLocal.getServerName()
+		).put(
+			"serverPort", auditRequestThreadLocal.getServerPort()
+		).put(
+			"sessionID", auditRequestThreadLocal.getSessionID()
+		).build();
 	}
 
 	private <T> T _getService(Class<T> clazz, String concreteClassName) {
@@ -149,6 +187,30 @@ public class BulkSelectionBackgroundTaskExecutor
 
 			return null;
 		}
+	}
+
+	private void _setAuditRequest(Map<String, Serializable> auditRequestMap) {
+		AuditRequestThreadLocal auditRequestThreadLocal =
+			AuditRequestThreadLocal.getAuditThreadLocal();
+
+		if (auditRequestMap == null) {
+			auditRequestMap = new HashMap<>();
+		}
+
+		auditRequestThreadLocal.setClientHost(
+			(String)auditRequestMap.get("clientHost"));
+		auditRequestThreadLocal.setClientIP(
+			(String)auditRequestMap.get("clientIP"));
+		auditRequestThreadLocal.setRealUserEmailAddress(
+			(String)auditRequestMap.get("realUserEmailAddress"));
+		auditRequestThreadLocal.setRealUserId(
+			GetterUtil.getLong(auditRequestMap.get("realUserId")));
+		auditRequestThreadLocal.setServerName(
+			(String)auditRequestMap.get("serverName"));
+		auditRequestThreadLocal.setServerPort(
+			GetterUtil.getInteger(auditRequestMap.get("serverPort")));
+		auditRequestThreadLocal.setSessionID(
+			(String)auditRequestMap.get("sessionID"));
 	}
 
 	private static final Log _log = LogFactoryUtil.getLog(

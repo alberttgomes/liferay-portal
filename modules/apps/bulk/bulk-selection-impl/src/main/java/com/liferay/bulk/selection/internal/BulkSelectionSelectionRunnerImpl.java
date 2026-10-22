@@ -12,6 +12,7 @@ import com.liferay.bulk.selection.BulkSelectionRunner;
 import com.liferay.bulk.selection.internal.constants.BulkSelectionBackgroundTaskConstants;
 import com.liferay.portal.background.task.model.BackgroundTask;
 import com.liferay.portal.background.task.service.BackgroundTaskLocalService;
+import com.liferay.portal.kernel.audit.AuditRequestThreadLocal;
 import com.liferay.portal.kernel.backgroundtask.constants.BackgroundTaskConstants;
 import com.liferay.portal.kernel.backgroundtask.constants.BackgroundTaskContextMapConstants;
 import com.liferay.portal.kernel.exception.PortalException;
@@ -76,6 +77,10 @@ public class BulkSelectionSelectionRunnerImpl implements BulkSelectionRunner {
 				new HashMap<>(inputMap)
 			).put(
 				BulkSelectionBackgroundTaskConstants.
+					BULK_SELECTION_AUDIT_REQUEST_CONTEXT_MAP,
+				_getAuditRequestContextMap()
+			).put(
+				BulkSelectionBackgroundTaskConstants.
 					BULK_SELECTION_FACTORY_CLASS_NAME,
 				() -> {
 					Class<? extends BulkSelectionFactory>
@@ -90,6 +95,28 @@ public class BulkSelectionSelectionRunnerImpl implements BulkSelectionRunner {
 				new HashMap<>(bulkSelection.getParameterMap())
 			).build(),
 			new ServiceContext());
+	}
+
+	private HashMap<String, Serializable> _getAuditRequestContextMap() {
+		AuditRequestThreadLocal auditRequestThreadLocal =
+			AuditRequestThreadLocal.getAuditThreadLocal();
+
+		return HashMapBuilder.<String, Serializable>put(
+			"clientHost", auditRequestThreadLocal.getClientHost()
+		).put(
+			"clientIP", auditRequestThreadLocal.getClientIP()
+		).put(
+			"realUserEmailAddress",
+			auditRequestThreadLocal.getRealUserEmailAddress()
+		).put(
+			"realUserId", auditRequestThreadLocal.getRealUserId()
+		).put(
+			"serverName", auditRequestThreadLocal.getServerName()
+		).put(
+			"serverPort", auditRequestThreadLocal.getServerPort()
+		).put(
+			"sessionID", auditRequestThreadLocal.getSessionID()
+		).build();
 	}
 
 	@Reference
