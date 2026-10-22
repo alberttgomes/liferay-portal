@@ -60,8 +60,7 @@ public class EditVocabularyDisplayContextTest
 		mockHttpServletRequest.setParameter("backURL", backURL);
 
 		_fragmentRenderer.render(
-			fragmentRendererContext, mockHttpServletRequest,
-			new MockHttpServletResponse());
+			null, mockHttpServletRequest, new MockHttpServletResponse());
 
 		return ReflectionTestUtil.invoke(
 			mockHttpServletRequest.getAttribute(
