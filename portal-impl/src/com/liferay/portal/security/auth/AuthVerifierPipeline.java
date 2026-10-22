@@ -113,7 +113,6 @@ public class AuthVerifierPipeline {
 		AuthVerifierResult authVerifierResult = new AuthVerifierResult();
 
 		authVerifierResult.setState(AuthVerifierResult.State.UNSUCCESSFUL);
-
 		authVerifierResult.setUserId(
 			UserLocalServiceUtil.getGuestUserId(
 				PortalUtil.getCompanyId(accessControlContext.getRequest())));
