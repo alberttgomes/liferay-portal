@@ -5,12 +5,12 @@
 
 package com.liferay.portal.security.auth;
 
+import com.liferay.petra.reflect.ReflectionUtil;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.petra.url.pattern.mapper.URLPatternMapper;
 import com.liferay.petra.url.pattern.mapper.URLPatternMapperFactory;
 import com.liferay.portal.kernel.exception.PortalException;
-import com.liferay.portal.kernel.exception.SystemException;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.User;
@@ -385,7 +385,7 @@ public class AuthVerifierPipeline {
 						accessControlContext);
 				}
 				catch (PortalException portalException) {
-					throw new SystemException(portalException);
+					ReflectionUtil.throwException(portalException);
 				}
 			}
 
