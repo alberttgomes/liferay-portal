@@ -10,8 +10,6 @@ import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 
-import java.lang.reflect.Constructor;
-
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -314,12 +312,20 @@ public class MapUtil {
 		return new SingletonDictionary<>(key, value);
 	}
 
+	/**
+	 * @deprecated As of Cavanaugh (7.4.x), with no direct replacement
+	 */
+	@Deprecated
 	public static <T> LinkedHashMap<String, T> toLinkedHashMap(
 		String[] params) {
 
 		return toLinkedHashMap(params, StringPool.COLON);
 	}
 
+	/**
+	 * @deprecated As of Cavanaugh (7.4.x), with no direct replacement
+	 */
+	@Deprecated
 	public static <T> LinkedHashMap<String, T> toLinkedHashMap(
 		String[] params, String delimiter) {
 
@@ -366,17 +372,20 @@ public class MapUtil {
 				else if (type.equals(String.class.getName())) {
 					map.put(kvp[0], kvp[1]);
 				}
-				else {
+				else if (type.equals(Byte.class.getName())) {
 					try {
-						Class<?> clazz = Class.forName(type);
-
-						Constructor<?> constructor = clazz.getConstructor(
-							String.class);
-
-						map.put(kvp[0], constructor.newInstance(kvp[1]));
+						map.put(kvp[0], Byte.valueOf(kvp[1]));
 					}
-					catch (Exception exception) {
-						_log.error(exception);
+					catch (NumberFormatException numberFormatException) {
+						_log.error(numberFormatException);
+					}
+				}
+				else if (type.equals(Float.class.getName())) {
+					try {
+						map.put(kvp[0], Float.valueOf(kvp[1]));
+					}
+					catch (NumberFormatException numberFormatException) {
+						_log.error(numberFormatException);
 					}
 				}
 			}
