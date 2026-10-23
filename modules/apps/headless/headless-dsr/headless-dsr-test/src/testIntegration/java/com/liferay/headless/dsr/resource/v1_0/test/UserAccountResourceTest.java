@@ -318,11 +318,10 @@ public class UserAccountResourceTest extends BaseUserAccountResourceTestCase {
 
 		String password = RandomTestUtil.randomString();
 
-		UserAccountResource userAccountResource = _getUserAccountResource(
-			password, _addUser(password, RoleConstants.SITE_ADMINISTRATOR));
-
 		User user = _addUser(
 			RandomTestUtil.randomString(), RoleConstants.SITE_MEMBER);
+		UserAccountResource userAccountResource = _getUserAccountResource(
+			password, _addUser(password, RoleConstants.SITE_ADMINISTRATOR));
 
 		userAccountResource.deleteRoomUserAccount(
 			_objectEntry.getObjectEntryId(), user.getUserId());
@@ -331,18 +330,13 @@ public class UserAccountResourceTest extends BaseUserAccountResourceTestCase {
 			_groupLocalService.hasUserGroup(
 				user.getUserId(), _getGroupId(_objectEntry)));
 
-		user = _addUser(
+		User siteOwnerUser = _addUser(
 			RandomTestUtil.randomString(), RoleConstants.SITE_OWNER);
 
-		try {
-			userAccountResource.deleteRoomUserAccount(
-				_objectEntry.getObjectEntryId(), user.getUserId());
-
-			Assert.fail();
-		}
-		catch (Problem.ProblemException problemException) {
-			Assert.assertNotNull(problemException);
-		}
+		AssertUtils.assertFailure(
+			Problem.ProblemException.class, "Forbidden",
+			() -> userAccountResource.deleteRoomUserAccount(
+				_objectEntry.getObjectEntryId(), siteOwnerUser.getUserId()));
 	}
 
 	private void _testGetRoomUserAccountsPageWithMembershipExpirationDate()
@@ -515,20 +509,15 @@ public class UserAccountResourceTest extends BaseUserAccountResourceTestCase {
 		User user3 = _addUser(
 			RandomTestUtil.randomString(), RoleConstants.SITE_OWNER);
 
-		try {
-			userAccountResource.patchRoomUserAccount(
+		AssertUtils.assertFailure(
+			Problem.ProblemException.class, "Forbidden",
+			() -> userAccountResource.patchRoomUserAccount(
 				_objectEntry.getObjectEntryId(), user3.getUserId(),
 				new UserAccount() {
 					{
 						membershipExpirationDate = DateUtil.getTomorrowDate();
 					}
-				});
-
-			Assert.fail();
-		}
-		catch (Problem.ProblemException problemException) {
-			Assert.assertNotNull(problemException);
-		}
+				}));
 	}
 
 	private void _testPostRoomUserAccount() throws Exception {
@@ -818,10 +807,9 @@ public class UserAccountResourceTest extends BaseUserAccountResourceTestCase {
 
 		String password = RandomTestUtil.randomString();
 
+		User user1 = UserTestUtil.addUser();
 		UserAccountResource userAccountResource = _getUserAccountResource(
 			password, _addUser(password, RoleConstants.SITE_ADMINISTRATOR));
-
-		User user1 = UserTestUtil.addUser();
 
 		userAccountResource.postRoomUserAccount(
 			_objectEntry.getObjectEntryId(),
