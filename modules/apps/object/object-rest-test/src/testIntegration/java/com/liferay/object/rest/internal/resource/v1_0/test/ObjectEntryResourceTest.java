@@ -9324,7 +9324,7 @@ public class ObjectEntryResourceTest {
 				JSONObject objectEntryJSONObject =
 					HTTPTestUtil.invokeToJSONObject(
 						JSONUtil.put(
-							_OBJECT_FIELD_NAME_1, "value1"
+							_OBJECT_FIELD_NAME_1, RandomTestUtil.randomString()
 						).toString(),
 						_objectDefinition1.getRESTContextPath(),
 						Http.Method.POST);
@@ -9389,7 +9389,6 @@ public class ObjectEntryResourceTest {
 							fileEntry2.getExternalReferenceCode(),
 							_group.getGroupId());
 
-				Assert.assertNotNull(dlFileEntry);
 				Assert.assertEquals(user.getUserId(), dlFileEntry.getUserId());
 
 				_assertAttachmentJSONObject(
