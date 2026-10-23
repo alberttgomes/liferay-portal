@@ -53,18 +53,7 @@ public class MapUtilWhenCreatingALinkedHashMapFromArrayTest {
 
 			List<LogEntry> logEntries = logCapture.getLogEntries();
 
-			Assert.assertEquals(logEntries.toString(), 1, logEntries.size());
-
-			LogEntry logEntry = logEntries.get(0);
-
-			Assert.assertEquals(
-				"java.lang.Object.<init>(java.lang.String)",
-				logEntry.getMessage());
-
-			Throwable throwable = logEntry.getThrowable();
-
-			Assert.assertSame(
-				NoSuchMethodException.class, throwable.getClass());
+			Assert.assertTrue(logEntries.toString(), logEntries.isEmpty());
 		}
 	}
 
