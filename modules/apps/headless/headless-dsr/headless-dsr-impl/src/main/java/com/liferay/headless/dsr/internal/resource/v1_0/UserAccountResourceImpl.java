@@ -196,6 +196,16 @@ public class UserAccountResourceImpl extends BaseUserAccountResourceImpl {
 
 		_checkPermission(group, userAccount.getRoleKey());
 
+		User user = _userLocalService.fetchUserByEmailAddress(
+			group.getCompanyId(), userAccount.getEmailAddress());
+
+		if ((user != null) &&
+			_userLocalService.hasGroupUser(
+				group.getGroupId(), user.getUserId())) {
+
+			_checkAssignMembersPermission(group, user.getUserId());
+		}
+
 		long accountEntryId = GetterUtil.getLong(
 			values.get("r_accountToDSRRooms_accountEntryId"));
 
@@ -205,9 +215,6 @@ public class UserAccountResourceImpl extends BaseUserAccountResourceImpl {
 				values.get("name"),
 				group.getName(contextAcceptLanguage.getPreferredLocale())),
 			userAccount);
-
-		User user = _userLocalService.fetchUserByEmailAddress(
-			ticket.getCompanyId(), userAccount.getEmailAddress());
 
 		if (user == null) {
 			return new UserAccount() {
