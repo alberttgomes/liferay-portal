@@ -12,6 +12,8 @@ import com.liferay.portal.kernel.json.JSONUtil;
 import java.net.URI;
 import java.net.URISyntaxException;
 
+import java.util.UUID;
+
 import org.apache.cxf.rs.security.jose.common.JoseConstants;
 import org.apache.cxf.rs.security.jose.jwa.SignatureAlgorithm;
 import org.apache.cxf.rs.security.jose.jwk.JsonWebKeys;
@@ -35,24 +37,25 @@ public class JWTAssertionUtil {
 	public static String getJWTWithClientId(String clientId)
 		throws URISyntaxException {
 
-		JwsHeaders jwsHeaders = new JwsHeaders(SignatureAlgorithm.RS256);
-
-		jwsHeaders.setHeader(JoseConstants.HEADER_KEY_ID, _KEY_ID);
-		jwsHeaders.setHeader(JoseConstants.HEADER_TYPE, "at+jwt");
-		jwsHeaders.setKeyId(_KEY_ID);
-
 		JwtClaims jwtClaims = _getJWTClaims(
 			new URI("localhost"), "localhost", "none");
 
 		jwtClaims.setProperty("client_id", clientId);
 
-		JwsJwtCompactProducer jwsJwtCompactProducer = new JwsJwtCompactProducer(
-			new JwtToken(jwsHeaders, jwtClaims));
+		return _getJWT(jwtClaims);
+	}
 
-		JsonWebKeys jsonWebKeys = JwkUtils.readJwkSet(JWKS);
+	public static String getJWTWithExternalReferenceCode(
+			String externalReferenceCode, String issuer)
+		throws URISyntaxException {
 
-		return jwsJwtCompactProducer.signWith(
-			jsonWebKeys.getKey(jwsHeaders.getKeyId()));
+		JwtClaims jwtClaims = _getJWTClaims(
+			new URI("localhost"), issuer, "none");
+
+		jwtClaims.setProperty("client_id", String.valueOf(UUID.randomUUID()));
+		jwtClaims.setProperty("external_reference_code", externalReferenceCode);
+
+		return _getJWT(jwtClaims);
 	}
 
 	private static JSONObject _createAsymmetricPrivateKeyJSONObject(
@@ -179,6 +182,22 @@ public class JWTAssertionUtil {
 				"WwPlqKvvMxRamTxlzofXMex52zYyfI-AWJhCW2djpX-wU7ifWyAx7VLiPDfMq",
 				"ljb2eeolRKoywK3zu4EU_OI8doOG3kAyjunNOU96tfy4XbLuUM0Cr_BRlDp4c",
 				"HuA2s"),  "sig");
+	}
+
+	private static String _getJWT(JwtClaims jwtClaims) {
+		JwsHeaders jwsHeaders = new JwsHeaders(SignatureAlgorithm.RS256);
+
+		jwsHeaders.setHeader(JoseConstants.HEADER_KEY_ID, _KEY_ID);
+		jwsHeaders.setHeader(JoseConstants.HEADER_TYPE, "at+jwt");
+		jwsHeaders.setKeyId(_KEY_ID);
+
+		JwsJwtCompactProducer jwsJwtCompactProducer = new JwsJwtCompactProducer(
+			new JwtToken(jwsHeaders, jwtClaims));
+
+		JsonWebKeys jsonWebKeys = JwkUtils.readJwkSet(JWKS);
+
+		return jwsJwtCompactProducer.signWith(
+			jsonWebKeys.getKey(jwsHeaders.getKeyId()));
 	}
 
 	private static JwtClaims _getJWTClaims(
