@@ -202,6 +202,8 @@ public class JournalArticleFinderImpl
 
 			sql = replaceStatusJoin(sql, groupId, queryDefinition);
 
+			sql = _replaceViewableStatus(queryDefinition, sql);
+
 			if (inlineSQLHelper) {
 				sql = InlineSQLHelperUtil.replacePermissionCheck(
 					sql, JournalArticle.class.getName(),
