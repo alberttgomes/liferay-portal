@@ -6,6 +6,7 @@
 package com.liferay.layout.service.test;
 
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
+import com.liferay.change.tracking.constants.CTDestinationNames;
 import com.liferay.change.tracking.model.CTCollection;
 import com.liferay.change.tracking.service.CTCollectionLocalService;
 import com.liferay.document.library.kernel.store.Store;
@@ -20,6 +21,7 @@ import com.liferay.portal.kernel.service.ImageLocalService;
 import com.liferay.portal.kernel.service.LayoutSetLocalService;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
+import com.liferay.portal.kernel.test.rule.Sync;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.util.FileUtil;
@@ -114,6 +116,7 @@ public class LayoutSetLocalServiceTest {
 		_assertImageBytes(bytes, logoId);
 	}
 
+	@Sync(destinationNames = CTDestinationNames.CT_SCORE)
 	@Test
 	public void testUpdateLogoWithUnchangedImageBytesInPublication()
 		throws Exception {
