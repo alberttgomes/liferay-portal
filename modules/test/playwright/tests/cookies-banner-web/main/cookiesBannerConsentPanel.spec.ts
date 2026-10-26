@@ -117,9 +117,7 @@ test(
 
 		await saveOrUpdateConfiguration(page);
 
-		const cookiesBanner = page.locator(
-			'div[role="dialog"][aria-modal="true"]'
-		);
+		const cookiesBanner = page.locator('div[role="region"].cookies-banner');
 
 		await cookiesBanner.waitFor();
 
@@ -204,7 +202,7 @@ test(
 			await page.goto('/');
 
 			const cookiesBanner = page.locator(
-				'div[role="dialog"][aria-modal="true"]'
+				'div[role="region"].cookies-banner'
 			);
 
 			await cookiesBanner.waitFor();
@@ -330,7 +328,7 @@ test(
 			await page.goto('/');
 
 			const cookiesBanner = page.locator(
-				'div[role="dialog"][aria-modal="true"]'
+				'div[role="region"].cookies-banner'
 			);
 
 			await cookiesBanner.waitFor();
@@ -773,9 +771,7 @@ test(
 	async ({page}) => {
 		await page.goto('/');
 
-		const cookiesBanner = page.locator(
-			'div[role="dialog"][aria-modal="true"]'
-		);
+		const cookiesBanner = page.locator('div[role="region"].cookies-banner');
 
 		await cookiesBanner.waitFor();
 
