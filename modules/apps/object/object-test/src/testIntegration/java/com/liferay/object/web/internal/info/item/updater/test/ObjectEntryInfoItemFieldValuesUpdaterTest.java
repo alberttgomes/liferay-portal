@@ -1149,6 +1149,16 @@ public class ObjectEntryInfoItemFieldValuesUpdaterTest
 					).name(
 						"text"
 					).build()));
+
+		String namespace = ObjectEntryInfoItemUtil.getInfoFieldNamespace(
+			childObjectDefinition,
+			ObjectRelationshipTestUtil.addObjectRelationship(
+				_objectRelationshipLocalService, parentObjectDefinition,
+				childObjectDefinition,
+				ObjectRelationshipConstants.DELETION_TYPE_DISASSOCIATE,
+				StringUtil.randomId(),
+				ObjectRelationshipConstants.TYPE_ONE_TO_MANY));
+
 		ObjectDefinition relatedObjectDefinition =
 			ObjectDefinitionTestUtil.publishObjectDefinition(
 				Collections.singletonList(
@@ -1159,14 +1169,6 @@ public class ObjectEntryInfoItemFieldValuesUpdaterTest
 						"text"
 					).build()));
 
-		String namespace = ObjectEntryInfoItemUtil.getInfoFieldNamespace(
-			childObjectDefinition,
-			ObjectRelationshipTestUtil.addObjectRelationship(
-				_objectRelationshipLocalService, parentObjectDefinition,
-				childObjectDefinition,
-				ObjectRelationshipConstants.DELETION_TYPE_DISASSOCIATE,
-				StringUtil.randomId(),
-				ObjectRelationshipConstants.TYPE_ONE_TO_MANY));
 		ObjectRelationship objectRelationship =
 			ObjectRelationshipTestUtil.addObjectRelationship(
 				_objectRelationshipLocalService, childObjectDefinition,
@@ -1174,22 +1176,7 @@ public class ObjectEntryInfoItemFieldValuesUpdaterTest
 				ObjectRelationshipConstants.DELETION_TYPE_DISASSOCIATE,
 				StringUtil.randomId(),
 				ObjectRelationshipConstants.TYPE_MANY_TO_MANY);
-		ObjectEntry parentObjectEntry = ObjectEntryTestUtil.addObjectEntry(
-			0, parentObjectDefinition.getObjectDefinitionId(),
-			HashMapBuilder.<String, Serializable>put(
-				"text", RandomTestUtil.randomString()
-			).build());
-		ObjectEntry relatedObjectEntry = ObjectEntryTestUtil.addObjectEntry(
-			0, relatedObjectDefinition.getObjectDefinitionId(),
-			HashMapBuilder.<String, Serializable>put(
-				"text", RandomTestUtil.randomString()
-			).build());
 
-		RelatedInfoFieldValue.RelatedInfoFieldValueIdentifier
-			relatedInfoFieldValueIdentifier =
-				new RelatedInfoFieldValue.RelatedInfoFieldValueIdentifier(
-					StringUtil.randomId(),
-					parentObjectEntry.getExternalReferenceCode());
 		InfoField<RelationshipInfoFieldType> relationshipInfoField =
 			InfoField.builder(
 			).infoFieldType(
@@ -1203,6 +1190,25 @@ public class ObjectEntryInfoItemFieldValuesUpdaterTest
 			).attribute(
 				RelationshipInfoFieldType.MULTIPLE, true
 			).build();
+
+		ObjectEntry parentObjectEntry = ObjectEntryTestUtil.addObjectEntry(
+			0, parentObjectDefinition.getObjectDefinitionId(),
+			HashMapBuilder.<String, Serializable>put(
+				"text", RandomTestUtil.randomString()
+			).build());
+
+		RelatedInfoFieldValue.RelatedInfoFieldValueIdentifier
+			relatedInfoFieldValueIdentifier =
+				new RelatedInfoFieldValue.RelatedInfoFieldValueIdentifier(
+					StringUtil.randomId(),
+					parentObjectEntry.getExternalReferenceCode());
+
+		ObjectEntry relatedObjectEntry = ObjectEntryTestUtil.addObjectEntry(
+			0, relatedObjectDefinition.getObjectDefinitionId(),
+			HashMapBuilder.<String, Serializable>put(
+				"text", RandomTestUtil.randomString()
+			).build());
+
 		InfoField<TextInfoFieldType> textInfoField = InfoField.builder(
 		).infoFieldType(
 			TextInfoFieldType.INSTANCE
