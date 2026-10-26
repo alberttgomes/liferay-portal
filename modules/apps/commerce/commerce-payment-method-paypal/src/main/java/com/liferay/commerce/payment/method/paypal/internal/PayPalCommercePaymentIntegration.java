@@ -421,7 +421,7 @@ public class PayPalCommercePaymentIntegration
 	}
 
 	@Override
-	public boolean validate(
+	public boolean isValid(
 			HttpServletRequest httpServletRequest,
 			CommercePaymentEntry commercePaymentEntry)
 		throws PortalException {
