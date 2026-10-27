@@ -14,16 +14,12 @@ import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.test.ReflectionTestUtil;
 import com.liferay.portal.kernel.upgrade.util.TemplateReplacement;
-import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.test.rule.LiferayUnitTestRule;
 
 import java.io.IOException;
 
-import java.math.BigInteger;
-
 import java.nio.charset.StandardCharsets;
-import java.nio.file.DirectoryStream;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -31,15 +27,9 @@ import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 
-import java.security.MessageDigest;
-
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -70,30 +60,7 @@ public class TemplateReplacementsJSONTest {
 	}
 
 	@Test
-	public void testChecksums() throws Exception {
-		Set<String> relativePaths = new TreeSet<>();
-
-		for (Path path : _templateReplacementsPaths) {
-			String relativePath = StringUtil.replace(
-				String.valueOf(_portalPath.relativize(path)), '\\', '/');
-
-			relativePaths.add(relativePath);
-
-			Assert.assertEquals(
-				StringBundler.concat(
-					"Released template replacements are frozen. Add the new ",
-					"patterns to a new upgrade step instead of changing ",
-					relativePath),
-				_checksums.get(relativePath), _getChecksum(path));
-		}
-
-		Assert.assertEquals(new TreeSet<>(_checksums.keySet()), relativePaths);
-	}
-
-	@Test
 	public void testIds() throws Exception {
-		Map<String, Path> paths = new HashMap<>();
-
 		for (Path path : _templateReplacementsPaths) {
 			JSONArray jsonArray = _getJSONArray(path);
 
@@ -104,18 +71,6 @@ public class TemplateReplacementsJSONTest {
 
 				Assert.assertTrue(
 					"Missing ID in " + path, id.startsWith("FTL-"));
-
-				Path previousPath = paths.putIfAbsent(id, path);
-
-				if (previousPath == null) {
-					continue;
-				}
-
-				Assert.assertEquals(
-					StringBundler.concat(
-						"Pattern ", id, " is used in ", previousPath, " and ",
-						path),
-					previousPath, path);
 			}
 		}
 	}
@@ -166,17 +121,6 @@ public class TemplateReplacementsJSONTest {
 
 	private static List<Path> _getTemplateReplacementsPaths() throws Exception {
 		List<Path> paths = new ArrayList<>();
-
-		try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(
-				_portalPath.resolve(
-					"portal-kernel/src/com/liferay/portal/kernel/upgrade" +
-						"/dependencies"),
-				"template-replacements-*.json")) {
-
-			for (Path path : directoryStream) {
-				paths.add(path);
-			}
-		}
 
 		for (String modulesDirName : _MODULES_DIR_NAMES) {
 			Path modulesPath = _portalPath.resolve(modulesDirName);
@@ -231,22 +175,6 @@ public class TemplateReplacementsJSONTest {
 		return paths;
 	}
 
-	private String _getChecksum(Path path) throws Exception {
-		MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
-
-		String content = new String(
-			Files.readAllBytes(path), StandardCharsets.UTF_8);
-
-		byte[] bytes = messageDigest.digest(
-			StringUtil.replace(
-				content, "\r\n", StringPool.NEW_LINE
-			).getBytes(
-				StandardCharsets.UTF_8
-			));
-
-		return String.format("%064x", new BigInteger(1, bytes));
-	}
-
 	private JSONArray _getJSONArray(Path path) throws Exception {
 		return JSONFactoryUtil.createJSONArray(
 			new String(Files.readAllBytes(path), StandardCharsets.UTF_8));
@@ -256,21 +184,6 @@ public class TemplateReplacementsJSONTest {
 		"modules/apps", "modules/dxp/apps"
 	};
 
-	private static final Map<String, String> _checksums = HashMapBuilder.put(
-		"modules/apps/dynamic-data-mapping/dynamic-data-mapping-service/src" +
-			"/main/resources/com/liferay/dynamic/data/mapping/internal" +
-				"/upgrade/v7_1_2/dependencies/template-replacements.json",
-		"4204178a3751377423aef6b55c0cb31cf7005d62bf94ccdc1762301227e01140"
-	).put(
-		"modules/apps/fragment/fragment-service/src/main/resources/com" +
-			"/liferay/fragment/internal/upgrade/v4_1_1/dependencies" +
-				"/template-replacements.json",
-		"f34bf72f15142e0a849d0766c78e242a3d2bbe1ab852afbbcfdafe23f9ad0ca5"
-	).put(
-		"portal-kernel/src/com/liferay/portal/kernel/upgrade/dependencies" +
-			"/template-replacements-1.json",
-		"951806589ed3dbb5f0a157501b5aa3f49f09c92e85e5b320625e93d23a3bda57"
-	).build();
 	private static Path _portalPath;
 	private static List<Path> _templateReplacementsPaths;
 

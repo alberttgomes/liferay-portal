@@ -14,11 +14,6 @@ public class FragmentEntryTemplateUpgradeProcess
 	extends BaseTemplateUpgradeProcess {
 
 	@Override
-	protected String[] getKernelReplacementsFileNames() {
-		return new String[] {"template-replacements-1.json"};
-	}
-
-	@Override
 	protected String[][] getTableAndColumnNames() {
 		return new String[][] {
 			{"FragmentEntry", "html"}, {"FragmentEntryLink", "html"},

@@ -129,10 +129,6 @@ public abstract class BaseTemplateUpgradeProcess extends UpgradeProcess {
 		}
 	}
 
-	protected String[] getKernelReplacementsFileNames() {
-		return new String[0];
-	}
-
 	protected abstract String[][] getTableAndColumnNames();
 
 	protected boolean isSquareBracketSyntax() {
@@ -178,18 +174,33 @@ public abstract class BaseTemplateUpgradeProcess extends UpgradeProcess {
 
 		List<TemplateReplacement> templateReplacements = new ArrayList<>();
 
-		for (String kernelReplacementsFileName :
-				getKernelReplacementsFileNames()) {
+		Class<?> clazz = getClass();
 
-			_readTemplateReplacements(
-				BaseTemplateUpgradeProcess.class,
-				"dependencies/" + kernelReplacementsFileName,
-				templateReplacements);
+		String name = "dependencies/template-replacements.json";
+
+		if (clazz.getResource(name) == null) {
+			return templateReplacements;
 		}
 
-		_readTemplateReplacements(
-			getClass(), "dependencies/template-replacements.json",
-			templateReplacements);
+		JSONArray jsonArray = JSONFactoryUtil.createJSONArray(
+			StringUtil.read(clazz, name));
+
+		for (int i = 0; i < jsonArray.length(); i++) {
+			JSONObject jsonObject = jsonArray.getJSONObject(i);
+
+			templateReplacements.add(
+				new TemplateReplacement(
+					jsonObject.getString("contextVariable"),
+					jsonObject.getString("deprecatedClassName"),
+					jsonObject.getString("from"),
+					jsonObject.getBoolean("hasMessage"),
+					jsonObject.getString("id"),
+					JSONUtil.toStringArray(
+						jsonObject.getJSONArray("methodNames")),
+					JSONUtil.toStringArray(
+						jsonObject.getJSONArray("newAssigns")),
+					jsonObject.getString("to")));
+		}
 
 		return templateReplacements;
 	}
@@ -216,36 +227,6 @@ public abstract class BaseTemplateUpgradeProcess extends UpgradeProcess {
 		values[primaryKeyColumnNames.length] = resultSet.getString(columnName);
 
 		return values;
-	}
-
-	private void _readTemplateReplacements(
-			Class<?> clazz, String name,
-			List<TemplateReplacement> templateReplacements)
-		throws Exception {
-
-		if (clazz.getResource(name) == null) {
-			return;
-		}
-
-		JSONArray jsonArray = JSONFactoryUtil.createJSONArray(
-			StringUtil.read(clazz, name));
-
-		for (int i = 0; i < jsonArray.length(); i++) {
-			JSONObject jsonObject = jsonArray.getJSONObject(i);
-
-			templateReplacements.add(
-				new TemplateReplacement(
-					jsonObject.getString("contextVariable"),
-					jsonObject.getString("deprecatedClassName"),
-					jsonObject.getString("from"),
-					jsonObject.getBoolean("hasMessage"),
-					jsonObject.getString("id"),
-					JSONUtil.toStringArray(
-						jsonObject.getJSONArray("methodNames")),
-					JSONUtil.toStringArray(
-						jsonObject.getJSONArray("newAssigns")),
-					jsonObject.getString("to")));
-		}
 	}
 
 	private String _updateValue(

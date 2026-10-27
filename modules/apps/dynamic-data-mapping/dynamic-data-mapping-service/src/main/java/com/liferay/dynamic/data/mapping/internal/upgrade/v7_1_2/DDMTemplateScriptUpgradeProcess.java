@@ -14,11 +14,6 @@ public class DDMTemplateScriptUpgradeProcess
 	extends BaseTemplateUpgradeProcess {
 
 	@Override
-	protected String[] getKernelReplacementsFileNames() {
-		return new String[] {"template-replacements-1.json"};
-	}
-
-	@Override
 	protected String[][] getTableAndColumnNames() {
 		return new String[][] {
 			{"DDMTemplate", "script", "language = 'ftl'"},
