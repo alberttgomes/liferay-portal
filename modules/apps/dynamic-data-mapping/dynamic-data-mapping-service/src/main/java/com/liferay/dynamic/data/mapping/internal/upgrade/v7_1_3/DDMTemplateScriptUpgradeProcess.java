@@ -5,20 +5,11 @@
 
 package com.liferay.dynamic.data.mapping.internal.upgrade.v7_1_3;
 
-import com.liferay.portal.kernel.upgrade.BaseTemplateUpgradeProcess;
+import com.liferay.dynamic.data.mapping.internal.upgrade.BaseDDMTemplateScriptUpgradeProcess;
 
 /**
  * @author Albert Gomes Cabral
  */
 public class DDMTemplateScriptUpgradeProcess
-	extends BaseTemplateUpgradeProcess {
-
-	@Override
-	protected String[][] getTableAndColumnNames() {
-		return new String[][] {
-			{"DDMTemplate", "script", "language = 'ftl'"},
-			{"DDMTemplateVersion", "script", "language = 'ftl'"}
-		};
-	}
-
+	extends BaseDDMTemplateScriptUpgradeProcess {
 }
