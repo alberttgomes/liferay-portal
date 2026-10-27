@@ -1126,30 +1126,37 @@ public class KBArticleServiceImpl extends KBArticleServiceBaseImpl {
 	}
 
 	private void _getAllDescendantKBArticles(
-		List<KBArticle> kbArticles, long groupId, long resourcePrimKey,
-		int status, OrderByComparator<KBArticle> orderByComparator) {
+			List<KBArticle> kbArticles, long groupId, long resourcePrimKey,
+			int status, OrderByComparator<KBArticle> orderByComparator)
+		throws PortalException {
 
 		List<KBArticle> curKBArticles = null;
 
 		if (status == WorkflowConstants.STATUS_ANY) {
-			curKBArticles = kbArticlePersistence.filterFindByG_P_L_NotS(
+			curKBArticles = kbArticlePersistence.findByG_P_L_NotS(
 				groupId, resourcePrimKey, true,
 				WorkflowConstants.STATUS_IN_TRASH, QueryUtil.ALL_POS,
 				QueryUtil.ALL_POS, orderByComparator);
 		}
 		else if (status == WorkflowConstants.STATUS_APPROVED) {
-			curKBArticles = kbArticlePersistence.filterFindByG_P_M_NotS(
+			curKBArticles = kbArticlePersistence.findByG_P_M_NotS(
 				groupId, resourcePrimKey, true,
 				WorkflowConstants.STATUS_IN_TRASH, QueryUtil.ALL_POS,
 				QueryUtil.ALL_POS, orderByComparator);
 		}
 		else {
-			curKBArticles = kbArticlePersistence.filterFindByG_P_S(
+			curKBArticles = kbArticlePersistence.findByG_P_S(
 				groupId, resourcePrimKey, status, QueryUtil.ALL_POS,
 				QueryUtil.ALL_POS, orderByComparator);
 		}
 
 		for (KBArticle curKBArticle : curKBArticles) {
+			if (!_kbArticleModelResourcePermission.contains(
+					getPermissionChecker(), curKBArticle, KBActionKeys.VIEW)) {
+
+				continue;
+			}
+
 			kbArticles.add(curKBArticle);
 
 			_getAllDescendantKBArticles(
