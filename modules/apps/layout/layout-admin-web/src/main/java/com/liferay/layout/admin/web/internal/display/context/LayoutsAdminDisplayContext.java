@@ -1897,18 +1897,18 @@ public class LayoutsAdminDisplayContext {
 			return _privateLayout;
 		}
 
-		Group selGroup = getSelGroup();
-
-		if (selGroup.isLayoutSetPrototype()) {
-			_privateLayout = true;
-
-			return _privateLayout;
-		}
-
 		if (getSelLayout() != null) {
 			Layout selLayout = getSelLayout();
 
 			_privateLayout = selLayout.isPrivateLayout();
+
+			return _privateLayout;
+		}
+
+		Group selGroup = getSelGroup();
+
+		if (selGroup.isLayoutSetPrototype()) {
+			_privateLayout = true;
 
 			return _privateLayout;
 		}
