@@ -36,9 +36,11 @@ public class LiferayOAuthDataProviderTest {
 
 	@Test
 	public void testCreateJwtAccessToken() {
+		LiferayOAuthDataProvider liferayOAuthDataProvider =
+			new LiferayOAuthDataProvider();
+
 		OAuth2ApplicationLocalService oAuth2ApplicationLocalService =
 			Mockito.mock(OAuth2ApplicationLocalService.class);
-
 		OAuth2Application oAuth2Application = Mockito.mock(
 			OAuth2Application.class);
 
@@ -59,9 +61,6 @@ public class LiferayOAuthDataProviderTest {
 		).thenReturn(
 			oAuth2Application
 		);
-
-		LiferayOAuthDataProvider liferayOAuthDataProvider =
-			new LiferayOAuthDataProvider();
 
 		ReflectionTestUtil.setFieldValue(
 			liferayOAuthDataProvider, "_oAuth2ApplicationLocalService",
