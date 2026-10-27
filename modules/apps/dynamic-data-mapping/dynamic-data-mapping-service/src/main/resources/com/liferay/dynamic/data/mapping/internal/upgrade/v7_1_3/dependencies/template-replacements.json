@@ -1,0 +1,31 @@
+[
+	{
+		"from": "regex:(?<![\\w.])dlUtil\\s*\\.\\s*(?:getDownloadURL|getImagePreviewURL|getThumbnailSrc|getWebDavURL)\\s*\\(",
+		"hasMessage": true,
+		"id": "FTL-007"
+	},
+	{
+		"from": "regex:(\\.\\s*)getPortletSetup(\\s*\\(\\s*\\))",
+		"id": "FTL-021",
+		"issueKey": "LPS-196539",
+		"to": "$1getPortletPreferences$2"
+	},
+	{
+		"from": "regex:[<\\[]#assign\\s+themeDisplay\\s*=\\s*request\\s*(?:\\[\\s*(['\"])theme-display\\1\\s*\\]|\\.\\s*getAttribute\\s*\\(\\s*(['\"])(?:theme-display|LIFERAY_SHARED_THEME_DISPLAY)\\2\\s*\\))\\s*/?[>\\]][ \\t]*\\r?\\n?",
+		"id": "FTL-022",
+		"issueKey": "LPS-170470",
+		"to": ""
+	},
+	{
+		"from": "regex:(?m)^[ \\t]*themeDisplay\\s*=\\s*request\\s*(?:\\[\\s*(['\"])theme-display\\1\\s*\\]|\\.\\s*getAttribute\\s*\\(\\s*(['\"])(?:theme-display|LIFERAY_SHARED_THEME_DISPLAY)\\2\\s*\\))[ \\t]*\\r?\\n",
+		"id": "FTL-022",
+		"issueKey": "LPS-170470",
+		"to": ""
+	},
+	{
+		"from": "regex:[<\\[]#assign\\s*/?[>\\]][ \\t]*\\r?\\n?",
+		"id": "FTL-022",
+		"issueKey": "LPS-170470",
+		"to": ""
+	}
+]

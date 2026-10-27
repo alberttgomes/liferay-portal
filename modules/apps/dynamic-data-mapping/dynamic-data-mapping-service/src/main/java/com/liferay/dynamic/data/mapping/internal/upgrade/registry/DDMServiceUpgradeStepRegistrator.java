@@ -53,7 +53,6 @@ import com.liferay.dynamic.data.mapping.internal.upgrade.v5_4_5.DDMTemplateLinkU
 import com.liferay.dynamic.data.mapping.internal.upgrade.v5_5_1.DDMFieldAttributeUpgradeProcess;
 import com.liferay.dynamic.data.mapping.internal.upgrade.v7_0_4.PollsToDDMUpgradeProcess;
 import com.liferay.dynamic.data.mapping.internal.upgrade.v7_1_0.DDMFacetTemplateVersionUpgradeProcess;
-import com.liferay.dynamic.data.mapping.internal.upgrade.v7_1_2.DDMTemplateScriptUpgradeProcess;
 import com.liferay.dynamic.data.mapping.io.DDMFormDeserializer;
 import com.liferay.dynamic.data.mapping.io.DDMFormLayoutDeserializer;
 import com.liferay.dynamic.data.mapping.io.DDMFormLayoutSerializer;
@@ -709,7 +708,14 @@ public class DDMServiceUpgradeStepRegistrator
 		registry.register("7.1.0", "7.1.1", new DummyUpgradeStep());
 
 		registry.register(
-			"7.1.1", "7.1.2", new DDMTemplateScriptUpgradeProcess());
+			"7.1.1", "7.1.2",
+			new com.liferay.dynamic.data.mapping.internal.upgrade.v7_1_2.
+				DDMTemplateScriptUpgradeProcess());
+
+		registry.register(
+			"7.1.2", "7.1.3",
+			new com.liferay.dynamic.data.mapping.internal.upgrade.v7_1_3.
+				DDMTemplateScriptUpgradeProcess());
 	}
 
 	@Activate
