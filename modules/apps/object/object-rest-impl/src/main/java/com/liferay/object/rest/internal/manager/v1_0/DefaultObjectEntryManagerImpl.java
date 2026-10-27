@@ -3244,6 +3244,29 @@ public class DefaultObjectEntryManagerImpl
 			return serviceBuilderFileEntry.getFileEntryId();
 		}
 
+		boolean documentLibraryFileSource = false;
+
+		if (StringUtil.equals(
+				fileSource,
+				ObjectFieldSettingConstants.VALUE_CMS_BASIC_DOCUMENT) ||
+			StringUtil.equals(
+				fileSource, ObjectFieldSettingConstants.VALUE_DOCS_AND_MEDIA)) {
+
+			documentLibraryFileSource = true;
+		}
+
+		String groupExternalReferenceCode = _getGroupExternalReferenceCode(
+			fileEntry);
+		long groupId = 0;
+
+		if (!documentLibraryFileSource) {
+			groupId = _getFileEntryGroupId(
+				groupExternalReferenceCode, objectDefinition, scopeKey);
+
+			_checkAddDocumentPermission(
+				groupId, objectDefinition, scopeKey, serviceContext);
+		}
+
 		byte[] fileContent = {};
 
 		if (fileEntry.getFileBase64() != null) {
@@ -3295,15 +3318,7 @@ public class DefaultObjectEntryManagerImpl
 			throw new IllegalArgumentException("File content is empty");
 		}
 
-		String groupExternalReferenceCode = _getGroupExternalReferenceCode(
-			fileEntry);
-
-		if (StringUtil.equals(
-				fileSource,
-				ObjectFieldSettingConstants.VALUE_CMS_BASIC_DOCUMENT) ||
-			StringUtil.equals(
-				fileSource, ObjectFieldSettingConstants.VALUE_DOCS_AND_MEDIA)) {
-
+		if (documentLibraryFileSource) {
 			Folder folder = fileEntry.getFolder();
 
 			String folderExternalReferenceCode = null;
@@ -3332,12 +3347,6 @@ public class DefaultObjectEntryManagerImpl
 				objectField.getObjectFieldId(), serviceContext);
 		}
 		else {
-			long groupId = _getFileEntryGroupId(
-				groupExternalReferenceCode, objectDefinition, scopeKey);
-
-			_checkAddDocumentPermission(
-				groupId, objectDefinition, scopeKey, serviceContext);
-
 			serviceBuilderFileEntry = _attachmentManager.getOrAddFileEntry(
 				objectField.getCompanyId(),
 				fileEntry.getExternalReferenceCode(), fileContent,
