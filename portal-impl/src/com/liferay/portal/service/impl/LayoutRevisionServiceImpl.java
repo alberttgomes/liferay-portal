@@ -9,7 +9,6 @@ import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.bean.BeanReference;
 import com.liferay.portal.kernel.exception.NoSuchLayoutRevisionException;
 import com.liferay.portal.kernel.exception.PortalException;
-import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.model.Layout;
 import com.liferay.portal.kernel.model.LayoutConstants;
 import com.liferay.portal.kernel.model.LayoutRevision;
@@ -39,9 +38,6 @@ public class LayoutRevisionServiceImpl extends LayoutRevisionServiceBaseImpl {
 			String themeId, String colorSchemeId, String css,
 			ServiceContext serviceContext)
 		throws PortalException {
-
-		FeatureFlagManagerUtil.checkEnabled(
-			serviceContext.getCompanyId(), "LPD-105778");
 
 		_checkPermissions(layoutSetBranchId, plid);
 

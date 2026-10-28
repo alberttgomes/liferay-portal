@@ -7,7 +7,6 @@ package com.liferay.layout.service.test;
 
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
 import com.liferay.petra.function.UnsafeRunnable;
-import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.LayoutSetBranch;
@@ -18,12 +17,10 @@ import com.liferay.portal.kernel.service.LayoutSetBranchService;
 import com.liferay.portal.kernel.test.AssertUtils;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
-import com.liferay.portal.kernel.test.util.FeatureFlagTestUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
-import com.liferay.portal.test.rule.FeatureFlag;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
@@ -40,7 +37,6 @@ import org.junit.runner.RunWith;
 /**
  * @author Adolfo Pérez
  */
-@FeatureFlag("LPD-105778")
 @RunWith(Arquillian.class)
 public class LayoutSetBranchServiceTest {
 
@@ -58,7 +54,6 @@ public class LayoutSetBranchServiceTest {
 
 	@Test
 	public void testAddLayoutSetBranch() throws Exception {
-		_testAddLayoutSetBranchWhenFeatureFlagDisabled();
 		_testAddLayoutSetBranchWithCopyLayoutSetBranchFromAnotherGroup();
 	}
 
@@ -101,26 +96,6 @@ public class LayoutSetBranchServiceTest {
 				LayoutSetBranch.class.getName(), " ",
 				layoutSetBranch.getLayoutSetBranchId()),
 			unsafeRunnable);
-	}
-
-	private void _testAddLayoutSetBranchWhenFeatureFlagDisabled()
-		throws Exception {
-
-		try (SafeCloseable safeCloseable =
-				FeatureFlagTestUtil.setFeatureFlagsWithSafeCloseable(
-					false, "LPD-105778")) {
-
-			AssertUtils.assertFailure(
-				UnsupportedOperationException.class,
-				"Feature flag LPD-105778 is disabled for company " +
-					TestPropsValues.getCompanyId(),
-				() -> _layoutSetBranchService.addLayoutSetBranch(
-					_group.getGroupId(), false, RandomTestUtil.randomString(),
-					RandomTestUtil.randomString(), false,
-					LayoutSetBranchConstants.ALL_BRANCHES,
-					ServiceContextTestUtil.getServiceContext(
-						_group.getGroupId())));
-		}
 	}
 
 	private void _testAddLayoutSetBranchWithCopyLayoutSetBranchFromAnotherGroup()

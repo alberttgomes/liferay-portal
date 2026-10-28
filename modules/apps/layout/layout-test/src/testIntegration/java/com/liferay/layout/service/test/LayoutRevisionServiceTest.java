@@ -7,7 +7,6 @@ package com.liferay.layout.service.test;
 
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
 import com.liferay.layout.test.util.LayoutTestUtil;
-import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.exception.NoSuchLayoutRevisionException;
 import com.liferay.portal.kernel.model.Group;
@@ -28,13 +27,11 @@ import com.liferay.portal.kernel.service.PortletPreferencesLocalService;
 import com.liferay.portal.kernel.test.AssertUtils;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
-import com.liferay.portal.kernel.test.util.FeatureFlagTestUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.util.PortletKeys;
-import com.liferay.portal.test.rule.FeatureFlag;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
@@ -52,7 +49,6 @@ import org.junit.runner.RunWith;
 /**
  * @author Adolfo Pérez
  */
-@FeatureFlag("LPD-105778")
 @RunWith(Arquillian.class)
 public class LayoutRevisionServiceTest {
 
@@ -74,7 +70,6 @@ public class LayoutRevisionServiceTest {
 	@Test
 	public void testAddLayoutRevision() throws Exception {
 		_testAddLayoutRevision();
-		_testAddLayoutRevisionWhenFeatureFlagDisabled();
 		_testAddLayoutRevisionWithAnotherLayoutPortletPreferencesPlid();
 		_testAddLayoutRevisionWithInvalidParentLayoutRevisionId();
 		_testAddLayoutRevisionWithLayoutFromAnotherGroup();
@@ -157,24 +152,6 @@ public class LayoutRevisionServiceTest {
 			_addLayoutRevision(
 				_layout, layoutRevision.getLayoutRevisionId(),
 				LayoutConstants.DEFAULT_PLID));
-	}
-
-	private void _testAddLayoutRevisionWhenFeatureFlagDisabled()
-		throws Exception {
-
-		try (SafeCloseable safeCloseable =
-				FeatureFlagTestUtil.setFeatureFlagsWithSafeCloseable(
-					false, "LPD-105778")) {
-
-			AssertUtils.assertFailure(
-				UnsupportedOperationException.class,
-				"Feature flag LPD-105778 is disabled for company " +
-					TestPropsValues.getCompanyId(),
-				() -> _addLayoutRevision(
-					_layout,
-					LayoutRevisionConstants.DEFAULT_PARENT_LAYOUT_REVISION_ID,
-					LayoutConstants.DEFAULT_PLID));
-		}
 	}
 
 	private void _testAddLayoutRevisionWithAnotherLayoutPortletPreferencesPlid()
