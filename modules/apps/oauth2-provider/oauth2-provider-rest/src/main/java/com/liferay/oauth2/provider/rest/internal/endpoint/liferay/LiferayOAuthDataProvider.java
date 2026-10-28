@@ -954,17 +954,7 @@ public class LiferayOAuthDataProvider
 	protected JwtClaims createJwtAccessToken(
 		ServerAccessToken serverAccessToken) {
 
-		// Fix a bug in CXF. Scopes in JWT claim should be a string.
-
 		JwtClaims jwtClaims = super.createJwtAccessToken(serverAccessToken);
-
-		List<OAuthPermission> oAuthPermissions = serverAccessToken.getScopes();
-
-		if (!oAuthPermissions.isEmpty()) {
-			jwtClaims.setClaim(
-				OAuthConstants.SCOPE,
-				OAuthUtils.convertPermissionsToScope(oAuthPermissions));
-		}
 
 		OAuth2Application oAuth2Application = resolveOAuth2Application(
 			serverAccessToken.getClient());
@@ -973,6 +963,16 @@ public class LiferayOAuthDataProvider
 			jwtClaims.setClaim(
 				"external_reference_code",
 				oAuth2Application.getExternalReferenceCode());
+		}
+
+		// Fix a bug in CXF. Scopes in JWT claim should be a string.
+
+		List<OAuthPermission> oAuthPermissions = serverAccessToken.getScopes();
+
+		if (!oAuthPermissions.isEmpty()) {
+			jwtClaims.setClaim(
+				OAuthConstants.SCOPE,
+				OAuthUtils.convertPermissionsToScope(oAuthPermissions));
 		}
 
 		return jwtClaims;
