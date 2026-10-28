@@ -16,6 +16,8 @@ import com.nimbusds.jose.proc.JWSAlgorithmFamilyJWSKeySelector;
 
 import java.net.URL;
 
+import java.util.UUID;
+
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -124,6 +126,8 @@ public class LiferayOAuth2ResourceServerEnableWebSecurityTest {
 
 	@Test
 	public void testGetJWTWithClientIdFromERC() throws Exception {
+		String clientId = String.valueOf(UUID.randomUUID());
+
 		new MockServerClient(
 			"localhost", 63636
 		).when(
@@ -139,7 +143,7 @@ public class LiferayOAuth2ResourceServerEnableWebSecurityTest {
 		).respond(
 			HttpResponse.response(
 			).withBody(
-				"{\"client_id\": \"987654321\"}"
+				"{\"client_id\": \"" + clientId + "\"}"
 			).withHeader(
 				new Header("Content-Type", "application/json")
 			).withStatusCode(
@@ -147,7 +151,7 @@ public class LiferayOAuth2ResourceServerEnableWebSecurityTest {
 			)
 		);
 
-		_jwtDecoder.decode(JWTAssertionUtil.getJWTWithClientId("987654321"));
+		_jwtDecoder.decode(JWTAssertionUtil.getJWTWithClientId(clientId));
 	}
 
 	@Test
