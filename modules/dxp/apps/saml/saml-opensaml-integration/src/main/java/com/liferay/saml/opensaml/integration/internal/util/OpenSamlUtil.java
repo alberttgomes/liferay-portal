@@ -5,7 +5,6 @@
 
 package com.liferay.saml.opensaml.integration.internal.util;
 
-import com.liferay.petra.concurrent.DCLSingleton;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.Validator;
@@ -85,6 +84,7 @@ import org.opensaml.security.SecurityException;
 import org.opensaml.security.credential.Credential;
 import org.opensaml.security.credential.UsageType;
 import org.opensaml.xmlsec.EncryptionConfiguration;
+import org.opensaml.xmlsec.SecurityConfigurationSupport;
 import org.opensaml.xmlsec.SignatureSigningConfiguration;
 import org.opensaml.xmlsec.SignatureSigningParameters;
 import org.opensaml.xmlsec.context.SecurityParametersContext;
@@ -611,12 +611,11 @@ public class OpenSamlUtil {
 	public static KeyInfo buildKeyInfo(Credential credential)
 		throws SecurityException {
 
-		EncryptionConfiguration encryptionConfiguration =
-			ConfigurationServiceBootstrapUtil.get(
-				EncryptionConfiguration.class);
+		EncryptionConfiguration globalEncryptionConfiguration =
+			SecurityConfigurationSupport.getGlobalEncryptionConfiguration();
 
 		NamedKeyInfoGeneratorManager namedKeyInfoGeneratorManager =
-			encryptionConfiguration.getDataKeyInfoGeneratorManager();
+			globalEncryptionConfiguration.getDataKeyInfoGeneratorManager();
 
 		KeyInfoGeneratorManager keyInfoGeneratorManager =
 			namedKeyInfoGeneratorManager.getDefaultManager();
@@ -885,39 +884,39 @@ public class OpenSamlUtil {
 			new ByteArrayInputStream(xml.getBytes()));
 	}
 
-	private static XMLObjectBuilderFactory _createXMLObjectBuilderFactory() {
-		XMLObjectProviderRegistry xmlObjectProviderRegistry =
-			ConfigurationServiceBootstrapUtil.get(
-				XMLObjectProviderRegistry.class);
-
-		return xmlObjectProviderRegistry.getBuilderFactory();
-	}
-
 	@SuppressWarnings("rawtypes")
 	private static XMLObjectBuilder _getBuilder(QName qName) {
-		XMLObjectBuilderFactory xmlObjectBuilderFactory =
-			_xmlObjectBuilderFactoryDCLSingleton.getSingleton(
-				OpenSamlUtil::_createXMLObjectBuilderFactory);
-
-		return xmlObjectBuilderFactory.getBuilder(qName);
+		return _xmlObjectBuilderFactory.getBuilder(qName);
 	}
 
 	private static SignatureSigningParameters _getSignatureSigningParameters(
 			Credential credential, RoleDescriptor peerRoleDescriptor)
 		throws ResolverException {
 
-		BasicSignatureSigningConfiguration basicSignatureSigningConfiguration =
-			new BasicSignatureSigningConfiguration();
+		SAMLMetadataSignatureSigningParametersResolver
+			samlMetadataSignatureSigningParametersResolver =
+				new SAMLMetadataSignatureSigningParametersResolver();
 
-		basicSignatureSigningConfiguration.setSigningCredentials(
-			Collections.singletonList(credential));
+		SignatureSigningConfiguration globalSignatureSigningConfiguration =
+			SecurityConfigurationSupport.
+				getGlobalSignatureSigningConfiguration();
+
+		if (globalSignatureSigningConfiguration instanceof
+				BasicSignatureSigningConfiguration) {
+
+			BasicSignatureSigningConfiguration
+				basicSignatureSigningConfiguration =
+					(BasicSignatureSigningConfiguration)
+						globalSignatureSigningConfiguration;
+
+			basicSignatureSigningConfiguration.setSigningCredentials(
+				Collections.singletonList(credential));
+		}
 
 		SignatureSigningConfigurationCriterion
 			signatureSigningConfigurationCriterion =
 				new SignatureSigningConfigurationCriterion(
-					ConfigurationServiceBootstrapUtil.get(
-						SignatureSigningConfiguration.class),
-					basicSignatureSigningConfiguration);
+					globalSignatureSigningConfiguration);
 
 		CriteriaSet criteriaSet = new CriteriaSet(
 			signatureSigningConfigurationCriterion);
@@ -926,15 +925,19 @@ public class OpenSamlUtil {
 			criteriaSet.add(new RoleDescriptorCriterion(peerRoleDescriptor));
 		}
 
-		SAMLMetadataSignatureSigningParametersResolver
-			samlMetadataSignatureSigningParametersResolver =
-				new SAMLMetadataSignatureSigningParametersResolver();
-
 		return samlMetadataSignatureSigningParametersResolver.resolveSingle(
 			criteriaSet);
 	}
 
-	private static final DCLSingleton<XMLObjectBuilderFactory>
-		_xmlObjectBuilderFactoryDCLSingleton = new DCLSingleton<>();
+	private static final XMLObjectBuilderFactory _xmlObjectBuilderFactory;
+
+	static {
+		XMLObjectProviderRegistry xmlObjectProviderRegistry =
+			ConfigurationServiceBootstrapUtil.get(
+				XMLObjectProviderRegistry.class);
+
+		_xmlObjectBuilderFactory =
+			xmlObjectProviderRegistry.getBuilderFactory();
+	}
 
 }
