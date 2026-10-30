@@ -14,9 +14,6 @@ import com.liferay.portal.kernel.test.ReflectionTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.util.Http;
 import com.liferay.portal.kernel.util.HttpUtil;
-import com.liferay.portal.kernel.util.Portal;
-import com.liferay.portal.kernel.util.PortalUtil;
-import com.liferay.portal.security.key.secret.SecretResolver;
 import com.liferay.portal.test.rule.LiferayUnitTestRule;
 
 import org.junit.Assert;
@@ -53,9 +50,6 @@ public class ReCaptchaImplTest {
 
 		ReflectionTestUtil.setFieldValue(
 			reCaptchaImpl, "_jsonFactory", new JSONFactoryImpl());
-		ReflectionTestUtil.setFieldValue(
-			reCaptchaImpl, "_secretResolver",
-			Mockito.mock(SecretResolver.class));
 
 		CaptchaProvider captchaProvider = Mockito.mock(CaptchaProvider.class);
 
@@ -67,10 +61,6 @@ public class ReCaptchaImplTest {
 
 		ReflectionTestUtil.setFieldValue(
 			reCaptchaImpl, "captchaProvider", captchaProvider);
-
-		PortalUtil portalUtil = new PortalUtil();
-
-		portalUtil.setPortal(Mockito.mock(Portal.class));
 
 		try (MockedStatic<HttpUtil> httpUtilMockedStatic = Mockito.mockStatic(
 				HttpUtil.class)) {
