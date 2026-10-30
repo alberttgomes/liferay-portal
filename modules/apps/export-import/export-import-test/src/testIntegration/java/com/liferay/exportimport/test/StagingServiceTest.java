@@ -10,12 +10,13 @@ import com.liferay.document.library.constants.DLPortletKeys;
 import com.liferay.document.library.kernel.exception.NoSuchFolderException;
 import com.liferay.document.library.kernel.service.DLFileEntryLocalServiceUtil;
 import com.liferay.document.library.test.util.DLAppTestUtil;
+import com.liferay.exportimport.kernel.configuration.ExportImportConfigurationParameterMapFactoryUtil;
 import com.liferay.exportimport.kernel.configuration.ExportImportConfigurationSettingsMapFactoryUtil;
 import com.liferay.exportimport.kernel.configuration.constants.ExportImportConfigurationConstants;
 import com.liferay.exportimport.kernel.model.ExportImportConfiguration;
 import com.liferay.exportimport.kernel.service.ExportImportConfigurationLocalServiceUtil;
+import com.liferay.exportimport.kernel.service.ExportImportLocalServiceUtil;
 import com.liferay.exportimport.kernel.service.StagingServiceUtil;
-import com.liferay.exportimport.test.util.ExportImportTestUtil;
 import com.liferay.layout.test.util.LayoutTestUtil;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.Layout;
@@ -31,9 +32,13 @@ import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
+import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.FileUtil;
+import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.TimeZoneUtil;
+import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 
@@ -150,8 +155,51 @@ public class StagingServiceTest {
 		return stagingRequestId;
 	}
 
+	private File _exportLayoutsAsFile() throws Exception {
+		Map<String, Serializable> settingsMap =
+			ExportImportConfigurationSettingsMapFactoryUtil.
+				buildExportLayoutSettingsMap(
+					TestPropsValues.getUserId(), _group.getGroupId(), false,
+					new long[] {_layout.getLayoutId()},
+					ExportImportConfigurationParameterMapFactoryUtil.
+						buildParameterMap(),
+					LocaleUtil.US, TimeZoneUtil.GMT);
+
+		return ExportImportLocalServiceUtil.exportLayoutsAsFile(
+			ExportImportConfigurationLocalServiceUtil.
+				addExportImportConfiguration(
+					TestPropsValues.getUserId(), _group.getGroupId(),
+					RandomTestUtil.randomString(),
+					RandomTestUtil.randomString(),
+					ExportImportConfigurationConstants.TYPE_EXPORT_LAYOUT,
+					settingsMap, WorkflowConstants.STATUS_DRAFT,
+					ServiceContextTestUtil.getServiceContext()));
+	}
+
+	private File _exportPortletInfoAsFile() throws Exception {
+		Map<String, Serializable> settingsMap =
+			ExportImportConfigurationSettingsMapFactoryUtil.
+				buildExportPortletSettingsMap(
+					TestPropsValues.getUserId(), _layout.getPlid(),
+					_group.getGroupId(), DLPortletKeys.DOCUMENT_LIBRARY,
+					ExportImportConfigurationParameterMapFactoryUtil.
+						buildParameterMap(),
+					LocaleUtil.US, TimeZoneUtil.GMT,
+					RandomTestUtil.randomString() + ".lar");
+
+		return ExportImportLocalServiceUtil.exportPortletInfoAsFile(
+			ExportImportConfigurationLocalServiceUtil.
+				addExportImportConfiguration(
+					TestPropsValues.getUserId(), _group.getGroupId(),
+					RandomTestUtil.randomString(),
+					RandomTestUtil.randomString(),
+					ExportImportConfigurationConstants.TYPE_EXPORT_PORTLET,
+					settingsMap, WorkflowConstants.STATUS_DRAFT,
+					ServiceContextTestUtil.getServiceContext()));
+	}
+
 	private void _testCleanUpStagingRequest() throws Exception {
-		File file = ExportImportTestUtil.exportLayoutsAsFile(_group, _layout);
+		File file = _exportLayoutsAsFile();
 
 		try (ContextUserReplace contextUserReplace = new ContextUserReplace(
 				_user)) {
@@ -191,7 +239,7 @@ public class StagingServiceTest {
 	}
 
 	private void _testPublishStagingRequest() throws Exception {
-		File file = ExportImportTestUtil.exportLayoutsAsFile(_group, _layout);
+		File file = _exportLayoutsAsFile();
 
 		try (ContextUserReplace contextUserReplace = new ContextUserReplace(
 				_user)) {
@@ -207,7 +255,7 @@ public class StagingServiceTest {
 	}
 
 	private void _testPublishStagingRequestToAnotherGroup() throws Exception {
-		File file = ExportImportTestUtil.exportLayoutsAsFile(_group, _layout);
+		File file = _exportLayoutsAsFile();
 
 		try (ContextUserReplace contextUserReplace = new ContextUserReplace(
 				_user)) {
@@ -246,8 +294,7 @@ public class StagingServiceTest {
 	}
 
 	private void _testPublishStagingRequestWithPortlet() throws Exception {
-		File file = ExportImportTestUtil.exportPortletInfoAsFile(
-			_group, _layout, DLPortletKeys.DOCUMENT_LIBRARY);
+		File file = _exportPortletInfoAsFile();
 
 		try (ContextUserReplace contextUserReplace = new ContextUserReplace(
 				_user)) {
@@ -265,8 +312,7 @@ public class StagingServiceTest {
 	private void _testPublishStagingRequestWithPortletToControlPanelLayout()
 		throws Exception {
 
-		File file = ExportImportTestUtil.exportPortletInfoAsFile(
-			_group, _layout, DLPortletKeys.DOCUMENT_LIBRARY);
+		File file = _exportPortletInfoAsFile();
 
 		try (ContextUserReplace contextUserReplace = new ContextUserReplace(
 				_user)) {
@@ -286,8 +332,7 @@ public class StagingServiceTest {
 	private void _testPublishStagingRequestWithPortletToLayoutInAnotherGroup()
 		throws Exception {
 
-		File file = ExportImportTestUtil.exportPortletInfoAsFile(
-			_group, _layout, DLPortletKeys.DOCUMENT_LIBRARY);
+		File file = _exportPortletInfoAsFile();
 
 		try (ContextUserReplace contextUserReplace = new ContextUserReplace(
 				_user)) {
