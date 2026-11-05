@@ -1492,6 +1492,40 @@ public class CMSMigrationBackgroundTaskExecutorTest {
 	}
 
 	@Test
+	public void testExecuteWithUntranslatedDDMTemplateNameInDefaultLanguage()
+		throws Exception {
+
+		DDMStructure ddmStructure = DDMStructureTestUtil.addStructure(
+			_group.getGroupId(), JournalArticle.class.getName());
+
+		DDMTemplate ddmTemplate = DDMTemplateTestUtil.addTemplate(
+			_group.getGroupId(), ddmStructure.getStructureId(),
+			_portal.getClassNameId(JournalArticle.class),
+			TemplateConstants.LANG_TYPE_FTL, RandomTestUtil.randomString(),
+			LocaleUtil.US);
+
+		ddmTemplate.setNameMap(ddmTemplate.getNameMap(), LocaleUtil.SPAIN);
+
+		ddmTemplate = _ddmTemplateLocalService.updateDDMTemplate(ddmTemplate);
+
+		_journalArticle = JournalTestUtil.addArticleWithXMLContent(
+			_group.getGroupId(),
+			DDMStructureTestUtil.getSampleStructuredContent(),
+			ddmStructure.getStructureKey(), ddmTemplate.getTemplateKey());
+
+		_executeWithSiteDefaultLocale(LocaleUtil.SPAIN);
+
+		DDMTemplate migratedDDMTemplate =
+			_ddmTemplateLocalService.getDDMTemplateByExternalReferenceCode(
+				"CMS_MIGRATION_DDM_TEMPLATE_" + ddmTemplate.getTemplateId(),
+				_group.getGroupId());
+
+		Assert.assertEquals(
+			ddmTemplate.getName(LocaleUtil.US),
+			migratedDDMTemplate.getName(LocaleUtil.SPAIN, false));
+	}
+
+	@Test
 	public void testExecuteWithUntranslatedDLFileEntryTypeName()
 		throws Exception {
 
