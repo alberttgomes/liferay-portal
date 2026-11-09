@@ -1477,20 +1477,7 @@ public class CMSMigrationBackgroundTaskExecutorTest {
 			DDMStructureTestUtil.getSampleStructuredContent(),
 			ddmStructure.getStructureKey(), null);
 
-		Locale originalDefaultLocale = LocaleThreadLocal.getDefaultLocale();
-		Locale originalSiteDefaultLocale =
-			LocaleThreadLocal.getSiteDefaultLocale();
-
-		try {
-			LocaleThreadLocal.setDefaultLocale(LocaleUtil.SPAIN);
-			LocaleThreadLocal.setSiteDefaultLocale(LocaleUtil.SPAIN);
-
-			_assertSuccessful(_execute(_group.getGroupId(), false));
-		}
-		finally {
-			LocaleThreadLocal.setDefaultLocale(originalDefaultLocale);
-			LocaleThreadLocal.setSiteDefaultLocale(originalSiteDefaultLocale);
-		}
+		_executeWithSiteDefaultLocale(LocaleUtil.SPAIN);
 
 		ObjectDefinition objectDefinition =
 			_objectDefinitionLocalService.
@@ -1525,20 +1512,10 @@ public class CMSMigrationBackgroundTaskExecutorTest {
 		dlFileEntryType = _dlFileEntryTypeLocalService.updateDLFileEntryType(
 			dlFileEntryType);
 
-		Locale originalDefaultLocale = LocaleThreadLocal.getDefaultLocale();
-		Locale originalSiteDefaultLocale =
-			LocaleThreadLocal.getSiteDefaultLocale();
-
 		try {
-			LocaleThreadLocal.setDefaultLocale(LocaleUtil.SPAIN);
-			LocaleThreadLocal.setSiteDefaultLocale(LocaleUtil.SPAIN);
-
-			_assertSuccessful(_execute(_group.getGroupId(), false));
+			_executeWithSiteDefaultLocale(LocaleUtil.SPAIN);
 		}
 		finally {
-			LocaleThreadLocal.setDefaultLocale(originalDefaultLocale);
-			LocaleThreadLocal.setSiteDefaultLocale(originalSiteDefaultLocale);
-
 			dlFileEntryType.setName(originalName);
 
 			_dlFileEntryTypeLocalService.updateDLFileEntryType(dlFileEntryType);
@@ -1691,6 +1668,23 @@ public class CMSMigrationBackgroundTaskExecutorTest {
 				});
 
 		return _backgroundTaskExecutor.execute(backgroundTask);
+	}
+
+	private void _executeWithSiteDefaultLocale(Locale locale) throws Exception {
+		Locale originalDefaultLocale = LocaleThreadLocal.getDefaultLocale();
+		Locale originalSiteDefaultLocale =
+			LocaleThreadLocal.getSiteDefaultLocale();
+
+		try {
+			LocaleThreadLocal.setDefaultLocale(locale);
+			LocaleThreadLocal.setSiteDefaultLocale(locale);
+
+			_assertSuccessful(_execute(_group.getGroupId(), false));
+		}
+		finally {
+			LocaleThreadLocal.setDefaultLocale(originalDefaultLocale);
+			LocaleThreadLocal.setSiteDefaultLocale(originalSiteDefaultLocale);
+		}
 	}
 
 	private PortletPreferences _getAssetPublisherPortletPreferences(
