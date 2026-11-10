@@ -68,6 +68,7 @@ export default [
 	'@liferay/captcha-taglib',
 	'@liferay/change-tracking-rest-client-js',
 	'@liferay/client-extension-web',
+	'@liferay/cms-migration-web',
 	'@liferay/comment-taglib',
 	'@liferay/commerce-account-web',
 	'@liferay/commerce-address-web',
