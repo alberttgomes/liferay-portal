@@ -1,0 +1,32 @@
+{
+	"@generated": "9d503edba865e72dd77e653450f064f7146a4430",
+	"@readonly": "** AUTO-GENERATED: DO NOT EDIT **",
+	"compilerOptions": {
+		"allowSyntheticDefaultImports": true,
+		"checkJs": false,
+		"composite": true,
+		"declarationDir": "../../../../../../../../.tsc/types",
+		"emitDeclarationOnly": true,
+		"jsx": "react",
+		"module": "es2022",
+		"moduleResolution": "node",
+		"paths": {
+		},
+		"rootDir": "../../../../../../../..",
+		"skipLibCheck": true,
+		"sourceMap": false,
+		"strict": true,
+		"target": "esnext",
+		"tsBuildInfoFile": "../../../../../../../../.tsc/buildinfo/@liferay/cms-migration-web.tsbuildinfo",
+		"typeRoots": [
+			"../../../../../../../../node_modules/@types"
+		]
+	},
+	"include": [
+		"**/*.ts",
+		"**/*.tsx",
+		"../../../../../../../../global.d.ts"
+	],
+	"references": [
+	]
+}
