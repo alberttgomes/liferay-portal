@@ -7,22 +7,20 @@
 
 <%@ include file="/init.jsp" %>
 
+<%
+CMSMigrationDisplayContext cmsMigrationDisplayContext = (CMSMigrationDisplayContext)request.getAttribute(WebKeys.PORTLET_DISPLAY_CONTEXT);
+%>
+
 <c:choose>
 	<c:when test='<%= FeatureFlagManagerUtil.isEnabled("ECU-21107") %>'>
 		<react:component
 			module="{CMSMigration} from cms-migration-web"
-			props='<%=
-				HashMapBuilder.<String, Object>put(
-					"title", portletDisplay.getTitle()
-				).build()
-			%>'
+			props="<%= cmsMigrationDisplayContext.getProps() %>"
 		/>
 	</c:when>
 	<c:otherwise>
 
 		<%
-		CMSMigrationDisplayContext cmsMigrationDisplayContext = (CMSMigrationDisplayContext)request.getAttribute(WebKeys.PORTLET_DISPLAY_CONTEXT);
-
 		Format dateTimeFormat = FastDateFormatFactoryUtil.getDateTime(locale, timeZone);
 		boolean inProgress = false;
 		%>

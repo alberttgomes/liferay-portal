@@ -17,13 +17,18 @@ import com.liferay.portal.kernel.backgroundtask.BackgroundTaskStatusRegistryUtil
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.json.JSONObject;
+import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.Group;
+import com.liferay.portal.kernel.portlet.url.builder.PortletURLBuilder;
 import com.liferay.portal.kernel.service.GroupLocalService;
+import com.liferay.portal.kernel.theme.PortletDisplay;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.GetterUtil;
+import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.ListUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 
@@ -34,6 +39,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Lino Alves
@@ -131,6 +137,50 @@ public class CMSMigrationDisplayContext {
 			backgroundTaskStatus.getAttribute("counter"));
 
 		return (int)Math.min(100, Math.round((double)counter / total * 100));
+	}
+
+	public Map<String, Object> getProps() throws Exception {
+		return HashMapBuilder.<String, Object>put(
+			"groups",
+			JSONUtil.toJSONArray(
+				getGroups(),
+				group -> JSONUtil.put(
+					"label", group.getDescriptiveName(_themeDisplay.getLocale())
+				).put(
+					"value", String.valueOf(group.getGroupId())
+				))
+		).put(
+			"portletNamespace", _renderResponse.getNamespace()
+		).put(
+			"spaces",
+			JSONUtil.toJSONArray(
+				getSpaces(),
+				depotEntry -> {
+					Group group = depotEntry.getGroup();
+
+					return JSONUtil.put(
+						"label",
+						group.getDescriptiveName(_themeDisplay.getLocale())
+					).put(
+						"value", String.valueOf(depotEntry.getDepotEntryId())
+					);
+				})
+		).put(
+			"startCMSMigrationURL",
+			PortletURLBuilder.createActionURL(
+				PortalUtil.getLiferayPortletResponse(_renderResponse)
+			).setActionName(
+				"/cms_migration/start_cms_migration"
+			).buildString()
+		).put(
+			"title",
+			() -> {
+				PortletDisplay portletDisplay =
+					_themeDisplay.getPortletDisplay();
+
+				return portletDisplay.getTitle();
+			}
+		).build();
 	}
 
 	public RenderRequest getRenderRequest() {
