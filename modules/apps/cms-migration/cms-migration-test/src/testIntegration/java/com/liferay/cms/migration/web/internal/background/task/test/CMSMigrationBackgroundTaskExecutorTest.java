@@ -26,6 +26,7 @@ import com.liferay.dynamic.data.mapping.constants.DDMTemplateConstants;
 import com.liferay.dynamic.data.mapping.form.field.type.constants.DDMFormFieldTypeConstants;
 import com.liferay.dynamic.data.mapping.model.DDMForm;
 import com.liferay.dynamic.data.mapping.model.DDMFormField;
+import com.liferay.dynamic.data.mapping.model.DDMFormFieldOptions;
 import com.liferay.dynamic.data.mapping.model.DDMStructure;
 import com.liferay.dynamic.data.mapping.model.DDMTemplate;
 import com.liferay.dynamic.data.mapping.service.DDMStructureLocalService;
@@ -46,6 +47,7 @@ import com.liferay.layout.page.template.model.LayoutPageTemplateEntry;
 import com.liferay.layout.page.template.service.LayoutPageTemplateEntryLocalService;
 import com.liferay.layout.test.util.ContentLayoutTestUtil;
 import com.liferay.layout.test.util.LayoutTestUtil;
+import com.liferay.list.type.model.ListTypeEntry;
 import com.liferay.object.constants.ObjectFieldConstants;
 import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.model.ObjectEntry;
@@ -654,6 +656,52 @@ public class CMSMigrationBackgroundTaskExecutorTest {
 			Assert.assertEquals(
 				name.substring(0, maxLength - suffix.length()) + suffix,
 				objectEntryFolder.getName());
+		}
+	}
+
+	@Test
+	public void testExecuteWithLongSelectDDMFormFieldOptions()
+		throws Exception {
+
+		int maxLength = ModelHintsUtil.getMaxLength(
+			ListTypeEntry.class.getName(), "key");
+
+		String optionValue = RandomTestUtil.randomString(maxLength);
+
+		String[] optionValues = {optionValue + "1", optionValue + "2"};
+
+		DDMStructure ddmStructure = _addSelectDDMStructure(optionValues);
+
+		Map<String, JournalArticle> journalArticlesByOptionValue =
+			new HashMap<>();
+
+		for (String curOptionValue : optionValues) {
+			journalArticlesByOptionValue.put(
+				curOptionValue,
+				JournalTestUtil.addArticleWithXMLContent(
+					_group.getGroupId(),
+					DDMStructureTestUtil.getSampleStructuredContent(
+						"choice", "[\"" + curOptionValue + "\"]"),
+					ddmStructure.getStructureKey(), null));
+		}
+
+		_assertSuccessful(_execute(_group.getGroupId(), false));
+
+		for (Map.Entry<String, JournalArticle> entry :
+				journalArticlesByOptionValue.entrySet()) {
+
+			String curOptionValue = entry.getKey();
+
+			ObjectEntry objectEntry = _getObjectEntry(entry.getValue());
+
+			Map<String, Serializable> values = objectEntry.getValues();
+
+			String suffix = Integer.toHexString(curOptionValue.hashCode());
+
+			Assert.assertEquals(
+				curOptionValue.substring(0, maxLength - suffix.length()) +
+					suffix,
+				values.get("choice"));
 		}
 	}
 
@@ -1702,6 +1750,29 @@ public class CMSMigrationBackgroundTaskExecutorTest {
 				"groupId",
 				new String[] {String.valueOf(journalArticle.getGroupId())}
 			).build());
+	}
+
+	private DDMStructure _addSelectDDMStructure(String... optionValues)
+		throws Exception {
+
+		DDMForm ddmForm = DDMFormTestUtil.createDDMForm("name");
+
+		DDMFormField ddmFormField = DDMFormTestUtil.createDDMFormField(
+			"choice", "choice", DDMFormFieldTypeConstants.SELECT, "string",
+			false, false, false);
+
+		DDMFormFieldOptions ddmFormFieldOptions =
+			ddmFormField.getDDMFormFieldOptions();
+
+		for (String optionValue : optionValues) {
+			ddmFormFieldOptions.addOptionLabel(
+				optionValue, LocaleUtil.US, optionValue);
+		}
+
+		ddmForm.addDDMFormField(ddmFormField);
+
+		return DDMStructureTestUtil.addStructure(
+			_group.getGroupId(), JournalArticle.class.getName(), ddmForm);
 	}
 
 	private void _assertSuccessful(BackgroundTaskResult backgroundTaskResult) {
