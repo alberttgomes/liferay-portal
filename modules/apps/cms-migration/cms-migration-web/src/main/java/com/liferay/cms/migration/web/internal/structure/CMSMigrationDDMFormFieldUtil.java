@@ -8,8 +8,10 @@ package com.liferay.cms.migration.web.internal.structure;
 import com.liferay.cms.migration.web.internal.constants.CMSMigrationConstants;
 import com.liferay.dynamic.data.mapping.form.field.type.constants.DDMFormFieldTypeConstants;
 import com.liferay.dynamic.data.mapping.model.DDMFormField;
+import com.liferay.list.type.model.ListTypeEntry;
 import com.liferay.object.constants.ObjectFieldConstants;
 import com.liferay.petra.string.StringPool;
+import com.liferay.portal.kernel.model.ModelHintsUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.ListUtil;
@@ -168,7 +170,16 @@ public class CMSMigrationDDMFormFieldUtil {
 			return "option";
 		}
 
-		return key;
+		int maxLength = ModelHintsUtil.getMaxLength(
+			ListTypeEntry.class.getName(), "key");
+
+		if (key.length() <= maxLength) {
+			return key;
+		}
+
+		String suffix = Integer.toHexString(key.hashCode());
+
+		return key.substring(0, maxLength - suffix.length()) + suffix;
 	}
 
 	public static String getObjectFieldName(DDMFormField ddmFormField) {
