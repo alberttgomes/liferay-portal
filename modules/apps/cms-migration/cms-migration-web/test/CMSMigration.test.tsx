@@ -12,7 +12,15 @@ import CMSMigration from '../src/main/resources/META-INF/resources/js/CMSMigrati
 
 describe('CMSMigration', () => {
 	it('shows the title and the description of the migration', () => {
-		render(<CMSMigration title="CMS Migration" />);
+		render(
+			<CMSMigration
+				groups={[]}
+				portletNamespace="_portletNamespace_"
+				spaces={[]}
+				startCMSMigrationURL="http://localhost/start"
+				title="CMS Migration"
+			/>
+		);
 
 		expect(
 			screen.getByRole('heading', {name: 'CMS Migration'})
