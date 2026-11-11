@@ -29,6 +29,7 @@ function renderCMSMigration({spaces = SPACES} = {}) {
 	return render(
 		<CMSMigration
 			groups={GROUPS}
+			migrations={[]}
 			portletNamespace={PORTLET_NAMESPACE}
 			spaces={spaces}
 			startCMSMigrationURL="http://localhost/start"

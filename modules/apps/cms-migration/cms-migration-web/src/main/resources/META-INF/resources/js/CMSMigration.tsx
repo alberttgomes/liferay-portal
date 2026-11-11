@@ -10,6 +10,8 @@ import ClayLayout from '@clayui/layout';
 import {ClayTooltipProvider} from '@clayui/tooltip';
 import React, {useState} from 'react';
 
+import Migrations, {IMigration} from './Migrations';
+
 interface IOption {
 	label: string;
 	value: string;
@@ -17,6 +19,7 @@ interface IOption {
 
 interface IProps {
 	groups: IOption[];
+	migrations: IMigration[];
 	portletNamespace: string;
 	spaces: IOption[];
 	startCMSMigrationURL: string;
@@ -48,6 +51,7 @@ const UncontrolledClayCheckbox = ClayCheckbox as unknown as React.ComponentType<
 
 export default function CMSMigration({
 	groups,
+	migrations,
 	portletNamespace,
 	spaces,
 	startCMSMigrationURL,
@@ -215,6 +219,8 @@ export default function CMSMigration({
 					</ClayLayout.SheetFooter>
 				</ClayForm>
 			</ClayLayout.Sheet>
+
+			<Migrations migrations={migrations} />
 		</ClayLayout.ContainerFluid>
 	);
 }

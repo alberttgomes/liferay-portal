@@ -18,6 +18,7 @@ import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
+import com.liferay.portal.kernel.language.LanguageUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.Group;
@@ -25,6 +26,7 @@ import com.liferay.portal.kernel.portlet.url.builder.PortletURLBuilder;
 import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.theme.PortletDisplay;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
+import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.ListUtil;
@@ -36,6 +38,8 @@ import jakarta.portlet.RenderRequest;
 import jakarta.portlet.RenderResponse;
 
 import jakarta.servlet.http.HttpServletRequest;
+
+import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -150,6 +154,9 @@ public class CMSMigrationDisplayContext {
 					"value", String.valueOf(group.getGroupId())
 				))
 		).put(
+			"migrations",
+			JSONUtil.toJSONArray(getBackgroundTasks(), this::_toJSONObject)
+		).put(
 			"portletNamespace", _renderResponse.getNamespace()
 		).put(
 			"spaces",
@@ -209,6 +216,86 @@ public class CMSMigrationDisplayContext {
 
 		return JSONFactoryUtil.createJSONObject(
 			backgroundTaskStatus.getAttributesJSON());
+	}
+
+	private JSONObject _toJSONObject(BackgroundTask backgroundTask)
+		throws Exception {
+
+		CMSMigrationReport cmsMigrationReport = getCMSMigrationReport(
+			backgroundTask);
+
+		Map<String, Long> counts = cmsMigrationReport.getCounts();
+
+		Format dateTimeFormat = FastDateFormatFactoryUtil.getDateTime(
+			_themeDisplay.getLocale(), _themeDisplay.getTimeZone());
+
+		JSONObject jsonObject = JSONUtil.put(
+			"backgroundTaskId", backgroundTask.getBackgroundTaskId()
+		).put(
+			"completed", backgroundTask.isCompleted()
+		).put(
+			"counts",
+			JSONUtil.toJSONArray(
+				counts.entrySet(),
+				entry -> JSONUtil.put(
+					"label",
+					LanguageUtil.get(
+						_themeDisplay.getLocale(),
+						"cms-migration-" + entry.getKey())
+				).put(
+					"value", entry.getValue()
+				))
+		).put(
+			"createDate", dateTimeFormat.format(backgroundTask.getCreateDate())
+		).put(
+			"errors",
+			JSONFactoryUtil.createJSONArray(cmsMigrationReport.getErrors())
+		).put(
+			"inProgress", backgroundTask.isInProgress()
+		).put(
+			"name", backgroundTask.getName()
+		).put(
+			"progress", getProgress(backgroundTask)
+		).put(
+			"statusLabel",
+			LanguageUtil.get(
+				_themeDisplay.getLocale(), backgroundTask.getStatusLabel())
+		).put(
+			"warnings",
+			JSONFactoryUtil.createJSONArray(cmsMigrationReport.getWarnings())
+		);
+
+		if (backgroundTask.isCompleted()) {
+			jsonObject.put(
+				"deleteURL",
+				PortletURLBuilder.createActionURL(
+					PortalUtil.getLiferayPortletResponse(_renderResponse)
+				).setActionName(
+					"/cms_migration/delete_cms_migration"
+				).setRedirect(
+					_themeDisplay.getURLCurrent()
+				).setParameter(
+					"backgroundTaskId", backgroundTask.getBackgroundTaskId()
+				).buildString());
+		}
+
+		if (backgroundTask.isInProgress()) {
+			JSONObject statusJSONObject = getStatusJSONObject(backgroundTask);
+
+			jsonObject.put(
+				"itemTitle", statusJSONObject.getString("itemTitle"));
+
+			String phase = statusJSONObject.getString("phase");
+
+			if (Validator.isNotNull(phase)) {
+				jsonObject.put(
+					"phaseLabel",
+					LanguageUtil.get(
+						_themeDisplay.getLocale(), "cms-migration-" + phase));
+			}
+		}
+
+		return jsonObject;
 	}
 
 	private static final Log _log = LogFactoryUtil.getLog(
