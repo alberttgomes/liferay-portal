@@ -19,6 +19,7 @@ import com.liferay.cms.migration.web.internal.content.FileEntryMigrator;
 import com.liferay.cms.migration.web.internal.content.FolderMigrator;
 import com.liferay.cms.migration.web.internal.content.JournalArticleMigrator;
 import com.liferay.cms.migration.web.internal.content.ObjectEntryWriter;
+import com.liferay.cms.migration.web.internal.content.ResourcePermissionMigrator;
 import com.liferay.cms.migration.web.internal.migration.CMSMigrationContext;
 import com.liferay.cms.migration.web.internal.migration.CMSMigrationManager;
 import com.liferay.cms.migration.web.internal.migration.CMSMigrationReport;
@@ -85,6 +86,8 @@ import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.service.ImageLocalService;
 import com.liferay.portal.kernel.service.LayoutLocalService;
 import com.liferay.portal.kernel.service.PortletPreferencesLocalService;
+import com.liferay.portal.kernel.service.ResourcePermissionLocalService;
+import com.liferay.portal.kernel.service.RoleLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.UserLocalService;
@@ -259,9 +262,13 @@ public class CMSMigrationBackgroundTaskExecutor
 				_objectDefinitionSettingLocalService, _objectFieldLocalService,
 				_objectFieldSettingLocalService, _objectFolderLocalService);
 
+		ResourcePermissionMigrator resourcePermissionMigrator =
+			new ResourcePermissionMigrator(
+				_resourcePermissionLocalService, _roleLocalService);
+
 		ObjectEntryWriter objectEntryWriter = new ObjectEntryWriter(
 			_assetEntryLocalService, _language, _objectEntryLocalService,
-			_portal, _userLocalService);
+			_portal, resourcePermissionMigrator, _userLocalService);
 
 		BlogsEntryMigrator blogsEntryMigrator = new BlogsEntryMigrator(
 			attachmentCopier, _blogsEntryLocalService, htmlReferenceRewriter,
@@ -504,6 +511,12 @@ public class CMSMigrationBackgroundTaskExecutor
 
 	@Reference
 	private ReadingTimeEntryLocalService _readingTimeEntryLocalService;
+
+	@Reference
+	private ResourcePermissionLocalService _resourcePermissionLocalService;
+
+	@Reference
+	private RoleLocalService _roleLocalService;
 
 	@Reference
 	private SAXReader _saxReader;
