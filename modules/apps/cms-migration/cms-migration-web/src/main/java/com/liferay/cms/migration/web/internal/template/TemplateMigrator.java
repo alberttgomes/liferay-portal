@@ -6,9 +6,9 @@
 package com.liferay.cms.migration.web.internal.template;
 
 import com.liferay.cms.migration.web.internal.constants.CMSMigrationConstants;
-import com.liferay.cms.migration.web.internal.content.LocalizedValuesUtil;
 import com.liferay.cms.migration.web.internal.migration.CMSMigrationContext;
-import com.liferay.cms.migration.web.internal.reference.InfoItemReferenceMapper;
+import com.liferay.cms.migration.web.internal.migration.content.LocalizedValuesUtil;
+import com.liferay.cms.migration.web.internal.migration.reference.InfoItemReferenceMapper;
 import com.liferay.dynamic.data.mapping.constants.DDMTemplateConstants;
 import com.liferay.dynamic.data.mapping.model.DDMForm;
 import com.liferay.dynamic.data.mapping.model.DDMFormField;

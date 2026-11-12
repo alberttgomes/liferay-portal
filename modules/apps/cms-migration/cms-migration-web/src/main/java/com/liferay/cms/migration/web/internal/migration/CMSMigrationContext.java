@@ -5,7 +5,7 @@
 
 package com.liferay.cms.migration.web.internal.migration;
 
-import com.liferay.cms.migration.web.internal.reference.ReferenceScope;
+import com.liferay.cms.migration.web.internal.migration.reference.ReferenceScope;
 import com.liferay.depot.model.DepotEntry;
 import com.liferay.dynamic.data.mapping.model.DDMStructure;
 import com.liferay.object.model.ObjectDefinition;
