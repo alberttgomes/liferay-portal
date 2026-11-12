@@ -7,7 +7,10 @@ package com.liferay.cms.migration.web.internal.migration.content;
 
 import com.liferay.cms.migration.web.internal.constants.CMSMigrationConstants;
 import com.liferay.cms.migration.web.internal.migration.CMSMigrationContext;
-import com.liferay.cms.migration.web.internal.migration.structure.DDMFormValuesConverter;
+import com.liferay.cms.migration.web.internal.migration.entry.AttachmentCopier;
+import com.liferay.cms.migration.web.internal.migration.entry.DDMFormValuesConverter;
+import com.liferay.cms.migration.web.internal.migration.entry.LocalizedValuesUtil;
+import com.liferay.cms.migration.web.internal.migration.entry.ObjectEntryWriter;
 import com.liferay.cms.migration.web.internal.migration.structure.ObjectDefinitionMigrator;
 import com.liferay.dynamic.data.mapping.model.DDMFieldAttributeTable;
 import com.liferay.dynamic.data.mapping.model.DDMFieldTable;
