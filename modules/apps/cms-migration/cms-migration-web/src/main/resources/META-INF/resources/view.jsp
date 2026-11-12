@@ -11,27 +11,29 @@
 CMSMigrationDisplayContext cmsMigrationDisplayContext = (CMSMigrationDisplayContext)request.getAttribute(WebKeys.PORTLET_DISPLAY_CONTEXT);
 %>
 
-<c:choose>
-	<c:when test='<%= FeatureFlagManagerUtil.isEnabled("ECU-21107") %>'>
-		<react:component
-			module="{CMSMigration} from cms-migration-web"
-			props="<%= cmsMigrationDisplayContext.getProps() %>"
-		/>
-	</c:when>
-	<c:otherwise>
+<clay:container-fluid
+	cssClass="container-form-lg"
+>
+	<liferay-ui:success key="migrationStarted" message="cms-migration-started" />
 
-		<%
-		Format dateTimeFormat = FastDateFormatFactoryUtil.getDateTime(locale, timeZone);
-		boolean inProgress = false;
-		%>
+	<liferay-ui:error exception="<%= DepotEntryNameException.class %>" message="please-enter-a-valid-name" />
+	<liferay-ui:error exception="<%= Exception.class %>" message="an-unexpected-error-occurred" />
 
-		<clay:container-fluid
-			cssClass="container-form-lg"
-		>
-			<liferay-ui:success key="migrationStarted" message="cms-migration-started" />
+	<c:choose>
+		<c:when test='<%= FeatureFlagManagerUtil.isEnabled("ECU-21107") %>'>
+			<div>
+				<react:component
+					module="{CMSMigration} from cms-migration-web"
+					props="<%= cmsMigrationDisplayContext.getProps() %>"
+				/>
+			</div>
+		</c:when>
+		<c:otherwise>
 
-			<liferay-ui:error exception="<%= DepotEntryNameException.class %>" message="please-enter-a-valid-name" />
-			<liferay-ui:error exception="<%= Exception.class %>" message="an-unexpected-error-occurred" />
+			<%
+			Format dateTimeFormat = FastDateFormatFactoryUtil.getDateTime(locale, timeZone);
+			boolean inProgress = false;
+			%>
 
 			<clay:sheet>
 				<portlet:actionURL name="/cms_migration/start_cms_migration" var="startCMSMigrationURL" />
@@ -262,30 +264,30 @@ CMSMigrationDisplayContext cmsMigrationDisplayContext = (CMSMigrationDisplayCont
 
 				</clay:sheet-section>
 			</clay:sheet>
-		</clay:container-fluid>
 
-		<aui:script>
-			const depotEntryIdSelect = document.getElementById(
-				'<portlet:namespace />depotEntryId'
-			);
-			const spaceNameContainer = document.getElementById(
-				'<portlet:namespace />spaceNameContainer'
-			);
-
-			depotEntryIdSelect.addEventListener('change', () => {
-				spaceNameContainer.classList.toggle(
-					'd-none',
-					depotEntryIdSelect.value !== '0'
-				);
-			});
-		</aui:script>
-
-		<c:if test="<%= inProgress %>">
 			<aui:script>
-				setTimeout(() => {
-					window.location.reload();
-				}, 5000);
+				const depotEntryIdSelect = document.getElementById(
+					'<portlet:namespace />depotEntryId'
+				);
+				const spaceNameContainer = document.getElementById(
+					'<portlet:namespace />spaceNameContainer'
+				);
+
+				depotEntryIdSelect.addEventListener('change', () => {
+					spaceNameContainer.classList.toggle(
+						'd-none',
+						depotEntryIdSelect.value !== '0'
+					);
+				});
 			</aui:script>
-		</c:if>
-	</c:otherwise>
-</c:choose>
+
+			<c:if test="<%= inProgress %>">
+				<aui:script>
+					setTimeout(() => {
+						window.location.reload();
+					}, 5000);
+				</aui:script>
+			</c:if>
+		</c:otherwise>
+	</c:choose>
+</clay:container-fluid>

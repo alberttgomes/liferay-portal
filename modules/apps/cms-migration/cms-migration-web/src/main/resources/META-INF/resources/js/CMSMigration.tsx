@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import ClayLayout from '@clayui/layout';
 import React from 'react';
 
 import Configuration from './Configuration';
@@ -18,10 +17,10 @@ export default function CMSMigration({
 	...configurationProps
 }: IProps) {
 	return (
-		<ClayLayout.ContainerFluid formSize="lg">
+		<>
 			<Configuration {...configurationProps} />
 
 			<Migrations migrations={migrations} />
-		</ClayLayout.ContainerFluid>
+		</>
 	);
 }
