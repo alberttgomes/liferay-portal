@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-package com.liferay.cms.migration.web.internal.content;
+package com.liferay.cms.migration.web.internal.migration.content;
 
 import com.liferay.cms.migration.web.internal.constants.CMSMigrationConstants;
 import com.liferay.cms.migration.web.internal.migration.CMSMigrationContext;
-import com.liferay.cms.migration.web.internal.structure.DDMFormValuesConverter;
-import com.liferay.cms.migration.web.internal.structure.ObjectDefinitionMigrator;
+import com.liferay.cms.migration.web.internal.migration.structure.DDMFormValuesConverter;
+import com.liferay.cms.migration.web.internal.migration.structure.ObjectDefinitionMigrator;
 import com.liferay.dynamic.data.mapping.model.DDMFieldAttributeTable;
 import com.liferay.dynamic.data.mapping.model.DDMFieldTable;
 import com.liferay.dynamic.data.mapping.model.Value;

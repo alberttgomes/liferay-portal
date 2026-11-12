@@ -6,7 +6,7 @@
 package com.liferay.cms.migration.web.internal.display.context;
 
 import com.liferay.cms.migration.web.internal.info.item.renderer.CMSMigrationInfoItemRenderer;
-import com.liferay.cms.migration.web.internal.reference.InfoItemReferenceMapper;
+import com.liferay.cms.migration.web.internal.migration.reference.InfoItemReferenceMapper;
 import com.liferay.info.item.renderer.InfoItemRenderer;
 import com.liferay.info.item.renderer.InfoItemRendererRegistry;
 import com.liferay.info.item.renderer.InfoItemTemplatedRenderer;

@@ -9,7 +9,7 @@ import com.liferay.asset.display.page.portlet.AssetDisplayPageFriendlyURLProvide
 import com.liferay.asset.kernel.model.AssetEntry;
 import com.liferay.asset.kernel.service.AssetTagLocalService;
 import com.liferay.cms.migration.web.internal.constants.CMSMigrationConstants;
-import com.liferay.cms.migration.web.internal.structure.CMSMigrationDDMFormFieldUtil;
+import com.liferay.cms.migration.web.internal.migration.structure.CMSMigrationDDMFormFieldUtil;
 import com.liferay.document.library.helper.DLURLHelper;
 import com.liferay.document.library.kernel.service.DLAppLocalService;
 import com.liferay.dynamic.data.mapping.form.field.type.constants.DDMFormFieldTypeConstants;
