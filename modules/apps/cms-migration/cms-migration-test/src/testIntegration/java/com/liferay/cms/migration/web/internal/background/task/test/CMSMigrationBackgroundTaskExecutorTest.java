@@ -13,10 +13,12 @@ import com.liferay.blogs.constants.BlogsPortletKeys;
 import com.liferay.blogs.model.BlogsEntry;
 import com.liferay.blogs.service.BlogsEntryLocalService;
 import com.liferay.depot.constants.DepotConstants;
+import com.liferay.depot.constants.DepotRolesConstants;
 import com.liferay.depot.model.DepotEntry;
 import com.liferay.depot.model.DepotEntryGroupRel;
 import com.liferay.depot.service.DepotEntryGroupRelLocalService;
 import com.liferay.depot.service.DepotEntryLocalService;
+import com.liferay.document.library.kernel.model.DLFileEntry;
 import com.liferay.document.library.kernel.model.DLFileEntryType;
 import com.liferay.document.library.kernel.model.DLFileEntryTypeConstants;
 import com.liferay.document.library.kernel.model.DLFolderConstants;
@@ -78,14 +80,21 @@ import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.Layout;
 import com.liferay.portal.kernel.model.LayoutTypePortlet;
 import com.liferay.portal.kernel.model.ModelHintsUtil;
+import com.liferay.portal.kernel.model.ResourceConstants;
+import com.liferay.portal.kernel.model.Role;
+import com.liferay.portal.kernel.model.role.RoleConstants;
 import com.liferay.portal.kernel.portlet.PortletIdCodec;
 import com.liferay.portal.kernel.portletdisplaytemplate.PortletDisplayTemplateManager;
 import com.liferay.portal.kernel.repository.model.FileEntry;
 import com.liferay.portal.kernel.repository.model.Folder;
+import com.liferay.portal.kernel.security.permission.ActionKeys;
+import com.liferay.portal.kernel.security.permission.ResourceActionsUtil;
 import com.liferay.portal.kernel.service.CompanyLocalService;
 import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.service.LayoutLocalService;
 import com.liferay.portal.kernel.service.PortletPreferencesLocalService;
+import com.liferay.portal.kernel.service.ResourcePermissionLocalService;
+import com.liferay.portal.kernel.service.RoleLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.template.StringTemplateResource;
 import com.liferay.portal.kernel.template.Template;
@@ -97,6 +106,7 @@ import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
 import com.liferay.portal.kernel.test.util.CompanyTestUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
+import com.liferay.portal.kernel.test.util.RoleTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
@@ -360,6 +370,27 @@ public class CMSMigrationBackgroundTaskExecutorTest {
 		String content = unsyncStringWriter.toString();
 
 		Assert.assertTrue(content, content.contains(">true</div>"));
+	}
+
+	@Test
+	public void testExecuteWithDefaultResourcePermissions() throws Exception {
+		JournalArticle journalArticle = JournalTestUtil.addArticle(
+			_group.getGroupId(),
+			JournalFolderConstants.DEFAULT_PARENT_FOLDER_ID);
+
+		_assertSuccessful(_execute(_group.getGroupId(), false));
+
+		ObjectEntry objectEntry = _getObjectEntry(journalArticle);
+
+		_role = RoleTestUtil.addRole(RoleConstants.TYPE_REGULAR);
+
+		_setResourcePermissions(
+			objectEntry.getModelClassName(), objectEntry.getObjectEntryId(),
+			_role, ActionKeys.VIEW);
+
+		_assertSuccessful(_execute(_group.getGroupId(), false));
+
+		Assert.assertTrue(_hasViewResourcePermission(objectEntry, _role));
 	}
 
 	@Test
@@ -820,6 +851,119 @@ public class CMSMigrationBackgroundTaskExecutorTest {
 
 		Assert.assertTrue(
 			script.contains("cmsMigrationContext[\"fieldsetFieldSet\"]"));
+	}
+
+	@Test
+	public void testExecuteWithResourcePermissions() throws Exception {
+		FileEntry fileEntry = _addFileEntry(StringPool.BLANK);
+
+		Role guestRole = _roleLocalService.getRole(
+			_group.getCompanyId(), RoleConstants.GUEST);
+
+		_deleteResourcePermissions(
+			DLFileEntry.class.getName(), fileEntry.getFileEntryId(), guestRole);
+
+		JournalArticle journalArticle = JournalTestUtil.addArticle(
+			_group.getGroupId(),
+			JournalFolderConstants.DEFAULT_PARENT_FOLDER_ID);
+
+		_deleteResourcePermissions(
+			JournalArticle.class.getName(), journalArticle.getResourcePrimKey(),
+			guestRole);
+		_deleteResourcePermissions(
+			JournalArticle.class.getName(), journalArticle.getResourcePrimKey(),
+			_roleLocalService.getRole(
+				_group.getCompanyId(), RoleConstants.SITE_MEMBER));
+
+		_role = RoleTestUtil.addRole(RoleConstants.TYPE_REGULAR);
+
+		_setResourcePermissions(
+			JournalArticle.class.getName(), journalArticle.getResourcePrimKey(),
+			_role, ActionKeys.ADD_DISCUSSION, ActionKeys.EXPIRE,
+			ActionKeys.VIEW);
+
+		_assertSuccessful(_execute(_group.getGroupId(), false));
+
+		ObjectEntry objectEntry = _getObjectEntry(fileEntry);
+
+		Role depotMemberRole = _roleLocalService.getRole(
+			_group.getCompanyId(), DepotRolesConstants.ASSET_LIBRARY_MEMBER);
+
+		Assert.assertTrue(
+			_hasViewResourcePermission(objectEntry, depotMemberRole));
+
+		Assert.assertFalse(_hasViewResourcePermission(objectEntry, guestRole));
+
+		objectEntry = _getObjectEntry(journalArticle);
+
+		Assert.assertFalse(
+			_hasViewResourcePermission(objectEntry, depotMemberRole));
+
+		Assert.assertFalse(_hasViewResourcePermission(objectEntry, guestRole));
+		Assert.assertEquals(
+			Collections.singletonList(ActionKeys.VIEW),
+			_resourcePermissionLocalService.
+				getAvailableResourcePermissionActionIds(
+					objectEntry.getCompanyId(), objectEntry.getModelClassName(),
+					ResourceConstants.SCOPE_INDIVIDUAL,
+					String.valueOf(objectEntry.getObjectEntryId()),
+					_role.getRoleId(),
+					ResourceActionsUtil.getModelResourceActions(
+						objectEntry.getModelClassName())));
+
+		_setResourcePermissions(
+			objectEntry.getModelClassName(), objectEntry.getObjectEntryId(),
+			guestRole, ActionKeys.VIEW);
+
+		_assertSuccessful(_execute(_group.getGroupId(), false));
+
+		Assert.assertFalse(_hasViewResourcePermission(objectEntry, guestRole));
+		Assert.assertTrue(_hasViewResourcePermission(objectEntry, _role));
+	}
+
+	@Test
+	public void testExecuteWithResourcePermissionsAndSiteRole()
+		throws Exception {
+
+		JournalArticle journalArticle = JournalTestUtil.addArticle(
+			_group.getGroupId(),
+			JournalFolderConstants.DEFAULT_PARENT_FOLDER_ID);
+
+		Role guestRole = _roleLocalService.getRole(
+			_group.getCompanyId(), RoleConstants.GUEST);
+
+		_deleteResourcePermissions(
+			JournalArticle.class.getName(), journalArticle.getResourcePrimKey(),
+			guestRole);
+
+		_role = RoleTestUtil.addRole(RoleConstants.TYPE_SITE);
+
+		_setResourcePermissions(
+			JournalArticle.class.getName(), journalArticle.getResourcePrimKey(),
+			_role, ActionKeys.VIEW);
+
+		BackgroundTaskResult backgroundTaskResult = _execute(
+			_group.getGroupId(), false);
+
+		_assertSuccessful(backgroundTaskResult);
+
+		String statusMessage = backgroundTaskResult.getStatusMessage();
+
+		Assert.assertTrue(
+			statusMessage,
+			statusMessage.contains(
+				"Skipped the permissions of the role " + _role.getName()));
+
+		ObjectEntry objectEntry = _getObjectEntry(journalArticle);
+
+		Role depotMemberRole = _roleLocalService.getRole(
+			_group.getCompanyId(), DepotRolesConstants.ASSET_LIBRARY_MEMBER);
+
+		Assert.assertTrue(
+			_hasViewResourcePermission(objectEntry, depotMemberRole));
+
+		Assert.assertFalse(_hasViewResourcePermission(objectEntry, guestRole));
+		Assert.assertFalse(_hasViewResourcePermission(objectEntry, _role));
 	}
 
 	@Test
@@ -1782,6 +1926,16 @@ public class CMSMigrationBackgroundTaskExecutorTest {
 			backgroundTaskResult.getStatus());
 	}
 
+	private void _deleteResourcePermissions(
+			String className, long classPK, Role role)
+		throws Exception {
+
+		_resourcePermissionLocalService.setResourcePermissions(
+			_group.getCompanyId(), className,
+			ResourceConstants.SCOPE_INDIVIDUAL, String.valueOf(classPK),
+			role.getRoleId(), new String[0]);
+	}
+
 	private BackgroundTaskResult _execute(
 			long sourceGroupId, boolean rewritePages)
 		throws Exception {
@@ -1979,6 +2133,17 @@ public class CMSMigrationBackgroundTaskExecutorTest {
 			objectDefinition.getObjectDefinitionId());
 	}
 
+	private boolean _hasViewResourcePermission(
+			ObjectEntry objectEntry, Role role)
+		throws Exception {
+
+		return _resourcePermissionLocalService.hasResourcePermission(
+			objectEntry.getCompanyId(), objectEntry.getModelClassName(),
+			ResourceConstants.SCOPE_INDIVIDUAL,
+			String.valueOf(objectEntry.getObjectEntryId()), role.getRoleId(),
+			ActionKeys.VIEW);
+	}
+
 	private ObjectEntry _migrateWithUnavailableDefaultLanguage(
 			Map<Locale, String> contentMap, Map<Locale, String> descriptionMap,
 			Map<Locale, String> titleMap)
@@ -2072,6 +2237,16 @@ public class CMSMigrationBackgroundTaskExecutorTest {
 			new MockHttpServletResponse(), false);
 	}
 
+	private void _setResourcePermissions(
+			String className, long classPK, Role role, String... actionIds)
+		throws Exception {
+
+		_resourcePermissionLocalService.setResourcePermissions(
+			_group.getCompanyId(), className,
+			ResourceConstants.SCOPE_INDIVIDUAL, String.valueOf(classPK),
+			role.getRoleId(), actionIds);
+	}
+
 	private static final String _CMS_CONTENT_DISPLAY_PORTLET_NAME =
 		"com_liferay_cms_migration_web_internal_portlet_" +
 			"CMSContentDisplayPortlet";
@@ -2158,6 +2333,15 @@ public class CMSMigrationBackgroundTaskExecutorTest {
 
 	@Inject
 	private ReadingTimeEntryLocalService _readingTimeEntryLocalService;
+
+	@Inject
+	private ResourcePermissionLocalService _resourcePermissionLocalService;
+
+	@DeleteAfterTestRun
+	private Role _role;
+
+	@Inject
+	private RoleLocalService _roleLocalService;
 
 	@Inject
 	private SegmentsExperienceLocalService _segmentsExperienceLocalService;
