@@ -43,12 +43,14 @@ public class ObjectEntryWriter {
 	public ObjectEntryWriter(
 		AssetEntryLocalService assetEntryLocalService, Language language,
 		ObjectEntryLocalService objectEntryLocalService, Portal portal,
+		ResourcePermissionMigrator resourcePermissionMigrator,
 		UserLocalService userLocalService) {
 
 		_assetEntryLocalService = assetEntryLocalService;
 		_language = language;
 		_objectEntryLocalService = objectEntryLocalService;
 		_portal = portal;
+		_resourcePermissionMigrator = resourcePermissionMigrator;
 		_userLocalService = userLocalService;
 	}
 
@@ -157,6 +159,16 @@ public class ObjectEntryWriter {
 
 		objectEntry = _objectEntryLocalService.updateObjectEntry(objectEntry);
 
+		long groupId = cmsMigrationContext.getSourceGroupId();
+
+		if (assetEntry != null) {
+			groupId = assetEntry.getGroupId();
+		}
+
+		_resourcePermissionMigrator.migrate(
+			cmsMigrationContext, className, classPK, groupId, objectDefinition,
+			objectEntry);
+
 		cmsMigrationContext.addObjectEntry(className, classPK, objectEntry);
 
 		return objectEntry;
@@ -227,6 +239,7 @@ public class ObjectEntryWriter {
 	private final Language _language;
 	private final ObjectEntryLocalService _objectEntryLocalService;
 	private final Portal _portal;
+	private final ResourcePermissionMigrator _resourcePermissionMigrator;
 	private final UserLocalService _userLocalService;
 
 }
