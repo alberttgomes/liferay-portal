@@ -215,7 +215,7 @@ public class CMSMigrationDisplayContext {
 		}
 
 		return JSONFactoryUtil.createJSONObject(
-			backgroundTaskStatus.getAttributesJSON());
+			backgroundTaskStatus.getAttributes());
 	}
 
 	private JSONObject _toJSONObject(BackgroundTask backgroundTask)
