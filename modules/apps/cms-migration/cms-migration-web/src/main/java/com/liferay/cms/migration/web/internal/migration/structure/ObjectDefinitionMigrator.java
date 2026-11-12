@@ -8,7 +8,7 @@ package com.liferay.cms.migration.web.internal.migration.structure;
 import com.liferay.blogs.model.BlogsEntry;
 import com.liferay.cms.migration.web.internal.constants.CMSMigrationConstants;
 import com.liferay.cms.migration.web.internal.migration.CMSMigrationContext;
-import com.liferay.cms.migration.web.internal.migration.content.LocalizedValuesUtil;
+import com.liferay.cms.migration.web.internal.migration.entry.LocalizedValuesUtil;
 import com.liferay.document.library.kernel.model.DLFileEntry;
 import com.liferay.document.library.kernel.model.DLFileEntryType;
 import com.liferay.dynamic.data.mapping.model.DDMForm;

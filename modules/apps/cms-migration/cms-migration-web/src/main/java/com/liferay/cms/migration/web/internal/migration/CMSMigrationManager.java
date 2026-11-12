@@ -14,12 +14,12 @@ import com.liferay.cms.migration.web.internal.migration.content.FileEntryMigrato
 import com.liferay.cms.migration.web.internal.migration.content.FolderMigrator;
 import com.liferay.cms.migration.web.internal.migration.content.JournalArticleMigrator;
 import com.liferay.cms.migration.web.internal.migration.reference.AssetListEntryReferenceRewriter;
-import com.liferay.cms.migration.web.internal.migration.reference.DisplayPageTemplateMigrator;
 import com.liferay.cms.migration.web.internal.migration.reference.HTMLReferenceRewriter;
 import com.liferay.cms.migration.web.internal.migration.reference.LayoutReferenceRewriter;
 import com.liferay.cms.migration.web.internal.migration.reference.PortletReferenceRewriter;
 import com.liferay.cms.migration.web.internal.migration.reference.SiteNavigationMenuItemReferenceRewriter;
-import com.liferay.cms.migration.web.internal.template.TemplateMigrator;
+import com.liferay.cms.migration.web.internal.migration.template.DisplayPageTemplateMigrator;
+import com.liferay.cms.migration.web.internal.migration.template.TemplateMigrator;
 import com.liferay.depot.service.DepotEntryGroupRelLocalService;
 import com.liferay.document.library.kernel.model.DLFileEntry;
 import com.liferay.object.constants.ObjectFieldConstants;
