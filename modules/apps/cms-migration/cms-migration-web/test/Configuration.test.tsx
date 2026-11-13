@@ -75,8 +75,10 @@ describe('Configuration', () => {
 			[`${PORTLET_NAMESPACE}migrateBlogsEntries`]: true,
 			[`${PORTLET_NAMESPACE}migrateFileEntries`]: true,
 			[`${PORTLET_NAMESPACE}migrateJournalArticles`]: true,
+			[`${PORTLET_NAMESPACE}migrateObjectEntries`]: false,
 			[`${PORTLET_NAMESPACE}rewritePages`]: true,
 			[`${PORTLET_NAMESPACE}sourceGroupId`]: '1',
+			[`${PORTLET_NAMESPACE}titleObjectFieldNames`]: '',
 		});
 	});
 
