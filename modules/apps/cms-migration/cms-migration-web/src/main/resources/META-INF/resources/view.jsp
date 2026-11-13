@@ -102,7 +102,11 @@ CMSMigrationDisplayContext cmsMigrationDisplayContext = (CMSMigrationDisplayCont
 
 						<aui:input checked="<%= true %>" label="documents-and-media" name="migrateFileEntries" type="checkbox" />
 
+						<aui:input helpMessage="cms-migration-object-entries-help" label="objects" name="migrateObjectEntries" type="checkbox" />
+
 						<aui:input checked="<%= true %>" helpMessage="cms-migration-rewrite-pages-help" label="cms-migration-rewrite-pages" name="rewritePages" type="checkbox" />
+
+						<aui:input helpMessage="cms-migration-title-object-field-names-help" label="cms-migration-title-object-field-names" name="titleObjectFieldNames" type="text" />
 					</clay:sheet-section>
 
 					<clay:sheet-footer>

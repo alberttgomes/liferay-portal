@@ -23,17 +23,37 @@ interface IProps {
 	title: string;
 }
 
-const CONTENT_TYPES = [
+interface IContentType {
+	defaultChecked: boolean;
+	help?: string;
+	label: string;
+	name: string;
+}
+
+const CONTENT_TYPES: IContentType[] = [
 	{
+		defaultChecked: true,
 		label: Liferay.Language.get('web-content'),
 		name: 'migrateJournalArticles',
 	},
-	{label: Liferay.Language.get('blogs'), name: 'migrateBlogsEntries'},
 	{
+		defaultChecked: true,
+		label: Liferay.Language.get('blogs'),
+		name: 'migrateBlogsEntries',
+	},
+	{
+		defaultChecked: true,
 		label: Liferay.Language.get('documents-and-media'),
 		name: 'migrateFileEntries',
 	},
 	{
+		defaultChecked: false,
+		help: Liferay.Language.get('cms-migration-object-entries-help'),
+		label: Liferay.Language.get('objects'),
+		name: 'migrateObjectEntries',
+	},
+	{
+		defaultChecked: true,
 		help: Liferay.Language.get('cms-migration-rewrite-pages-help'),
 		label: Liferay.Language.get('cms-migration-rewrite-pages'),
 		name: 'rewritePages',
@@ -165,41 +185,67 @@ export default function Configuration({
 							)}
 						</h3>
 
-						{CONTENT_TYPES.map(({help, label, name}) => (
-							<ClayForm.Group
-								className="align-items-start d-flex"
-								key={name}
-							>
-								<UncontrolledClayCheckbox
-									containerProps={{
-										className:
-											'custom-control-primary mb-0',
-									}}
-									defaultChecked
-									label={label}
-									name={`${portletNamespace}${name}`}
-									value="true"
-								/>
-
-								{help && (
-									<ClayButtonWithIcon
-										aria-label={help}
-										className="component-action mt-n2"
-										data-tooltip-align="top"
-										displayType="unstyled"
-										size="sm"
-										style={
-											{
-												'--component-action-hover-background-color':
-													'transparent',
-											} as React.CSSProperties
-										}
-										symbol="question-circle-full"
-										title={help}
+						{CONTENT_TYPES.map(
+							({defaultChecked, help, label, name}) => (
+								<ClayForm.Group
+									className="align-items-start d-flex"
+									key={name}
+								>
+									<UncontrolledClayCheckbox
+										containerProps={{
+											className:
+												'custom-control-primary mb-0',
+										}}
+										defaultChecked={defaultChecked}
+										label={label}
+										name={`${portletNamespace}${name}`}
+										value="true"
 									/>
+
+									{help && (
+										<ClayButtonWithIcon
+											aria-label={help}
+											className="component-action mt-n2"
+											data-tooltip-align="top"
+											displayType="unstyled"
+											size="sm"
+											style={
+												{
+													'--component-action-hover-background-color':
+														'transparent',
+												} as React.CSSProperties
+											}
+											symbol="question-circle-full"
+											title={help}
+										/>
+									)}
+								</ClayForm.Group>
+							)
+						)}
+
+						<ClayForm.Group>
+							<label
+								htmlFor={`${portletNamespace}titleObjectFieldNames`}
+							>
+								{Liferay.Language.get(
+									'cms-migration-title-object-field-names'
 								)}
-							</ClayForm.Group>
-						))}
+							</label>
+
+							<ClayInput
+								id={`${portletNamespace}titleObjectFieldNames`}
+								name={`${portletNamespace}titleObjectFieldNames`}
+								type="text"
+							/>
+
+							<ClayForm.FeedbackGroup>
+								<ClayForm.Text>
+									{Liferay.Language.get(
+										'cms-migration-title-object-field-names-help'
+									)}
+								</ClayForm.Text>
+							</ClayForm.FeedbackGroup>
+						</ClayForm.Group>
 					</ClayLayout.SheetSection>
 				</ClayTooltipProvider>
 
