@@ -50,15 +50,25 @@ import com.liferay.layout.page.template.service.LayoutPageTemplateEntryLocalServ
 import com.liferay.layout.test.util.ContentLayoutTestUtil;
 import com.liferay.layout.test.util.LayoutTestUtil;
 import com.liferay.list.type.model.ListTypeEntry;
+import com.liferay.object.constants.ObjectDefinitionConstants;
+import com.liferay.object.constants.ObjectEntryFolderConstants;
 import com.liferay.object.constants.ObjectFieldConstants;
+import com.liferay.object.constants.ObjectFieldSettingConstants;
+import com.liferay.object.field.builder.AttachmentObjectFieldBuilder;
+import com.liferay.object.field.builder.TextObjectFieldBuilder;
+import com.liferay.object.field.setting.builder.ObjectFieldSettingBuilder;
 import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.model.ObjectEntry;
 import com.liferay.object.model.ObjectEntryFolder;
 import com.liferay.object.model.ObjectField;
+import com.liferay.object.model.ObjectRelationship;
 import com.liferay.object.service.ObjectDefinitionLocalService;
 import com.liferay.object.service.ObjectEntryFolderLocalService;
 import com.liferay.object.service.ObjectEntryLocalService;
 import com.liferay.object.service.ObjectFieldLocalService;
+import com.liferay.object.service.ObjectRelationshipLocalService;
+import com.liferay.object.test.util.ObjectDefinitionTestUtil;
+import com.liferay.object.test.util.ObjectRelationshipTestUtil;
 import com.liferay.petra.io.unsync.UnsyncStringWriter;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
@@ -140,6 +150,7 @@ import jakarta.portlet.PortletPreferences;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -192,6 +203,16 @@ public class CMSMigrationBackgroundTaskExecutorTest {
 
 	@After
 	public void tearDown() throws Exception {
+		if (_objectDefinition != null) {
+			_objectDefinitionLocalService.deleteObjectDefinition(
+				_objectDefinition.getObjectDefinitionId());
+		}
+
+		if (_relatedObjectDefinition != null) {
+			_objectDefinitionLocalService.deleteObjectDefinition(
+				_relatedObjectDefinition.getObjectDefinitionId());
+		}
+
 		for (DepotEntryGroupRel depotEntryGroupRel :
 				_depotEntryGroupRelLocalService.getDepotEntryGroupRels(
 					_depotEntry)) {
@@ -1571,6 +1592,229 @@ public class CMSMigrationBackgroundTaskExecutorTest {
 	}
 
 	@Test
+	public void testExecuteWithSiteScopedObjectDefinition() throws Exception {
+		String objectFieldName = "a" + RandomTestUtil.randomString();
+
+		_objectDefinition = _publishSiteScopedObjectDefinition(
+			_getTextObjectField(objectFieldName));
+
+		String title = RandomTestUtil.randomString();
+
+		ObjectEntry objectEntry = _addObjectEntry(
+			_group.getGroupId(), objectFieldName, title);
+
+		_assertSuccessful(_executeWithObjectEntries(false, objectFieldName));
+		_assertSuccessful(_executeWithObjectEntries(false, objectFieldName));
+
+		ObjectDefinition objectDefinition =
+			_objectDefinitionLocalService.getObjectDefinition(
+				_objectDefinition.getObjectDefinitionId());
+
+		Assert.assertEquals(
+			ObjectDefinitionConstants.SCOPE_DEPOT, objectDefinition.getScope());
+
+		objectEntry = _objectEntryLocalService.getObjectEntry(
+			objectEntry.getObjectEntryId());
+
+		Assert.assertEquals(_depotEntry.getGroupId(), objectEntry.getGroupId());
+		Assert.assertNotEquals(
+			ObjectEntryFolderConstants.PARENT_OBJECT_ENTRY_FOLDER_ID_DEFAULT,
+			objectEntry.getObjectEntryFolderId());
+
+		_assertTitle(title, objectEntry);
+
+		AssetEntry assetEntry = _assetEntryLocalService.getEntry(
+			objectDefinition.getClassName(), objectEntry.getObjectEntryId());
+
+		Assert.assertEquals(_depotEntry.getGroupId(), assetEntry.getGroupId());
+	}
+
+	@Test
+	public void testExecuteWithSiteScopedObjectDefinitionAndAttachmentObjectField()
+		throws Exception {
+
+		_objectDefinition = _publishSiteScopedObjectDefinition(
+			new AttachmentObjectFieldBuilder(
+			).labelMap(
+				RandomTestUtil.randomLocaleStringMap()
+			).name(
+				"attachment"
+			).objectFieldSettings(
+				Arrays.asList(
+					new ObjectFieldSettingBuilder(
+					).name(
+						ObjectFieldSettingConstants.
+							NAME_ACCEPTED_FILE_EXTENSIONS
+					).value(
+						"txt"
+					).build(),
+					new ObjectFieldSettingBuilder(
+					).name(
+						ObjectFieldSettingConstants.NAME_FILE_SOURCE
+					).value(
+						ObjectFieldSettingConstants.VALUE_DOCS_AND_MEDIA
+					).build(),
+					new ObjectFieldSettingBuilder(
+					).name(
+						ObjectFieldSettingConstants.NAME_MAX_FILE_SIZE
+					).value(
+						"100"
+					).build())
+			).build());
+
+		FileEntry fileEntry = _addFileEntry(StringPool.BLANK);
+
+		ObjectEntry objectEntry = _addObjectEntry(
+			_group.getGroupId(), "attachment", fileEntry.getFileEntryId());
+
+		_assertSuccessful(_executeWithObjectEntries(true, StringPool.BLANK));
+
+		objectEntry = _objectEntryLocalService.getObjectEntry(
+			objectEntry.getObjectEntryId());
+
+		Map<String, Serializable> values = objectEntry.getValues();
+
+		ObjectEntry fileEntryObjectEntry = _getObjectEntry(fileEntry);
+
+		Map<String, Serializable> fileEntryValues =
+			fileEntryObjectEntry.getValues();
+
+		Assert.assertEquals(
+			fileEntryValues.get("file"), values.get("attachment"));
+
+		FileEntry attachmentFileEntry = _dlAppLocalService.getFileEntry(
+			GetterUtil.getLong(values.get("attachment")));
+
+		Assert.assertEquals(
+			_depotEntry.getGroupId(), attachmentFileEntry.getGroupId());
+	}
+
+	@Test
+	public void testExecuteWithSiteScopedObjectDefinitionAndObjectRelationship()
+		throws Exception {
+
+		String objectFieldName = "a" + RandomTestUtil.randomString();
+
+		_objectDefinition = _publishSiteScopedObjectDefinition(
+			_getTextObjectField(objectFieldName));
+
+		_addObjectEntry(
+			_group.getGroupId(), objectFieldName,
+			RandomTestUtil.randomString());
+
+		_relatedObjectDefinition =
+			ObjectDefinitionTestUtil.publishObjectDefinition();
+
+		ObjectRelationship objectRelationship =
+			ObjectRelationshipTestUtil.addObjectRelationship(
+				_objectRelationshipLocalService, _objectDefinition,
+				_relatedObjectDefinition);
+
+		BackgroundTaskResult backgroundTaskResult = _executeWithObjectEntries(
+			false, StringPool.BLANK);
+
+		_assertSuccessful(backgroundTaskResult);
+
+		String statusMessage = backgroundTaskResult.getStatusMessage();
+
+		Assert.assertTrue(
+			statusMessage,
+			statusMessage.contains(objectRelationship.getName()));
+
+		ObjectDefinition objectDefinition =
+			_objectDefinitionLocalService.getObjectDefinition(
+				_objectDefinition.getObjectDefinitionId());
+
+		Assert.assertEquals(
+			ObjectDefinitionConstants.SCOPE_SITE, objectDefinition.getScope());
+	}
+
+	@Test
+	public void testExecuteWithSiteScopedObjectDefinitionAndTitleObjectField()
+		throws Exception {
+
+		_objectDefinition = _publishSiteScopedObjectDefinition(
+			_getTextObjectField("title"));
+
+		String title = RandomTestUtil.randomString();
+
+		ObjectEntry objectEntry = _addObjectEntry(
+			_group.getGroupId(), "title", title);
+
+		_assertSuccessful(_executeWithObjectEntries(false, StringPool.BLANK));
+
+		ObjectField legacyTitleObjectField =
+			_objectFieldLocalService.getObjectField(
+				_objectDefinition.getObjectDefinitionId(), "legacyTitle");
+
+		Assert.assertFalse(legacyTitleObjectField.isLocalized());
+
+		ObjectField titleObjectField = _objectFieldLocalService.getObjectField(
+			_objectDefinition.getObjectDefinitionId(), "title");
+
+		Assert.assertTrue(titleObjectField.isLocalized());
+
+		ObjectDefinition objectDefinition =
+			_objectDefinitionLocalService.getObjectDefinition(
+				_objectDefinition.getObjectDefinitionId());
+
+		Assert.assertEquals(
+			titleObjectField.getObjectFieldId(),
+			objectDefinition.getTitleObjectFieldId());
+
+		objectEntry = _objectEntryLocalService.getObjectEntry(
+			objectEntry.getObjectEntryId());
+
+		Map<String, Serializable> values = objectEntry.getValues();
+
+		Assert.assertEquals(title, values.get("legacyTitle"));
+
+		_assertTitle(title, objectEntry);
+	}
+
+	@Test
+	public void testExecuteWithSiteScopedObjectDefinitionUsedByAnotherSite()
+		throws Exception {
+
+		String objectFieldName = "a" + RandomTestUtil.randomString();
+
+		_objectDefinition = _publishSiteScopedObjectDefinition(
+			_getTextObjectField(objectFieldName));
+
+		ObjectEntry objectEntry = _addObjectEntry(
+			_group.getGroupId(), objectFieldName,
+			RandomTestUtil.randomString());
+
+		_anotherGroup = GroupTestUtil.addGroup();
+
+		_addObjectEntry(
+			_anotherGroup.getGroupId(), objectFieldName,
+			RandomTestUtil.randomString());
+
+		BackgroundTaskResult backgroundTaskResult = _executeWithObjectEntries(
+			false, StringPool.BLANK);
+
+		_assertSuccessful(backgroundTaskResult);
+
+		String statusMessage = backgroundTaskResult.getStatusMessage();
+
+		Assert.assertTrue(
+			statusMessage, statusMessage.contains(_objectDefinition.getName()));
+
+		ObjectDefinition objectDefinition =
+			_objectDefinitionLocalService.getObjectDefinition(
+				_objectDefinition.getObjectDefinitionId());
+
+		Assert.assertEquals(
+			ObjectDefinitionConstants.SCOPE_SITE, objectDefinition.getScope());
+
+		objectEntry = _objectEntryLocalService.getObjectEntry(
+			objectEntry.getObjectEntryId());
+
+		Assert.assertEquals(_group.getGroupId(), objectEntry.getGroupId());
+	}
+
+	@Test
 	public void testExecuteWithUnavailableDefaultLanguage() throws Exception {
 		Map<Locale, String> contentMap = HashMapBuilder.put(
 			LocaleUtil.US, RandomTestUtil.randomString()
@@ -1656,7 +1900,7 @@ public class CMSMigrationBackgroundTaskExecutorTest {
 			DDMStructureTestUtil.getSampleStructuredContent(),
 			ddmStructure.getStructureKey(), null);
 
-		_executeWithSiteDefaultLocale(LocaleUtil.SPAIN);
+		_executeWithSiteDefaultLocale();
 
 		ObjectDefinition objectDefinition =
 			_objectDefinitionLocalService.
@@ -1687,7 +1931,7 @@ public class CMSMigrationBackgroundTaskExecutorTest {
 			DDMStructureTestUtil.getSampleStructuredContent(),
 			ddmStructure.getStructureKey(), null);
 
-		_executeWithSiteDefaultLocale(LocaleUtil.SPAIN);
+		_executeWithSiteDefaultLocale();
 
 		ObjectDefinition objectDefinition =
 			_objectDefinitionLocalService.
@@ -1719,7 +1963,7 @@ public class CMSMigrationBackgroundTaskExecutorTest {
 			DDMStructureTestUtil.getSampleStructuredContent(),
 			ddmStructure.getStructureKey(), ddmTemplate.getTemplateKey());
 
-		_executeWithSiteDefaultLocale(LocaleUtil.SPAIN);
+		_executeWithSiteDefaultLocale();
 
 		DDMTemplate migratedDDMTemplate =
 			_ddmTemplateLocalService.getDDMTemplateByExternalReferenceCode(
@@ -1753,7 +1997,7 @@ public class CMSMigrationBackgroundTaskExecutorTest {
 			DDMStructureTestUtil.getSampleStructuredContent(),
 			ddmStructure.getStructureKey(), ddmTemplate.getTemplateKey());
 
-		_executeWithSiteDefaultLocale(LocaleUtil.SPAIN);
+		_executeWithSiteDefaultLocale();
 
 		DDMTemplate migratedDDMTemplate =
 			_ddmTemplateLocalService.getDDMTemplateByExternalReferenceCode(
@@ -1787,7 +2031,7 @@ public class CMSMigrationBackgroundTaskExecutorTest {
 			dlFileEntryType);
 
 		try {
-			_executeWithSiteDefaultLocale(LocaleUtil.SPAIN);
+			_executeWithSiteDefaultLocale();
 		}
 		finally {
 			dlFileEntryType.setName(originalName);
@@ -1896,6 +2140,21 @@ public class CMSMigrationBackgroundTaskExecutorTest {
 			).build());
 	}
 
+	private ObjectEntry _addObjectEntry(
+			long groupId, String objectFieldName, Serializable value)
+		throws Exception {
+
+		return _objectEntryLocalService.addObjectEntry(
+			groupId, TestPropsValues.getUserId(),
+			_objectDefinition.getObjectDefinitionId(),
+			ObjectEntryFolderConstants.PARENT_OBJECT_ENTRY_FOLDER_ID_DEFAULT,
+			null,
+			HashMapBuilder.<String, Serializable>put(
+				objectFieldName, value
+			).build(),
+			ServiceContextTestUtil.getServiceContext(groupId));
+	}
+
 	private DDMStructure _addSelectDDMStructure(String... optionValues)
 		throws Exception {
 
@@ -1926,6 +2185,16 @@ public class CMSMigrationBackgroundTaskExecutorTest {
 			backgroundTaskResult.getStatus());
 	}
 
+	private void _assertTitle(String title, ObjectEntry objectEntry) {
+		Map<String, Serializable> values = objectEntry.getValues();
+
+		Map<String, String> localizedValues = (Map<String, String>)values.get(
+			"title_i18n");
+
+		Assert.assertTrue(
+			localizedValues.toString(), localizedValues.containsValue(title));
+	}
+
 	private void _deleteResourcePermissions(
 			String className, long classPK, Role role)
 		throws Exception {
@@ -1940,7 +2209,7 @@ public class CMSMigrationBackgroundTaskExecutorTest {
 			long sourceGroupId, boolean rewritePages)
 		throws Exception {
 
-		Map<String, Serializable> taskContextMap =
+		return _execute(
 			HashMapBuilder.<String, Serializable>put(
 				"depotEntryId", _depotEntry.getDepotEntryId()
 			).put(
@@ -1953,7 +2222,12 @@ public class CMSMigrationBackgroundTaskExecutorTest {
 				"rewritePages", rewritePages
 			).put(
 				"sourceGroupId", sourceGroupId
-			).build();
+			).build());
+	}
+
+	private BackgroundTaskResult _execute(
+			Map<String, Serializable> taskContextMap)
+		throws Exception {
 
 		long userId = TestPropsValues.getUserId();
 
@@ -1977,14 +2251,32 @@ public class CMSMigrationBackgroundTaskExecutorTest {
 		return _backgroundTaskExecutor.execute(backgroundTask);
 	}
 
-	private void _executeWithSiteDefaultLocale(Locale locale) throws Exception {
+	private BackgroundTaskResult _executeWithObjectEntries(
+			boolean migrateFileEntries, String titleObjectFieldNames)
+		throws Exception {
+
+		return _execute(
+			HashMapBuilder.<String, Serializable>put(
+				"depotEntryId", _depotEntry.getDepotEntryId()
+			).put(
+				"migrateFileEntries", migrateFileEntries
+			).put(
+				"migrateObjectEntries", true
+			).put(
+				"sourceGroupId", _group.getGroupId()
+			).put(
+				"titleObjectFieldNames", titleObjectFieldNames
+			).build());
+	}
+
+	private void _executeWithSiteDefaultLocale() throws Exception {
 		Locale originalDefaultLocale = LocaleThreadLocal.getDefaultLocale();
 		Locale originalSiteDefaultLocale =
 			LocaleThreadLocal.getSiteDefaultLocale();
 
 		try {
-			LocaleThreadLocal.setDefaultLocale(locale);
-			LocaleThreadLocal.setSiteDefaultLocale(locale);
+			LocaleThreadLocal.setDefaultLocale(LocaleUtil.SPAIN);
+			LocaleThreadLocal.setSiteDefaultLocale(LocaleUtil.SPAIN);
 
 			_assertSuccessful(_execute(_group.getGroupId(), false));
 		}
@@ -2133,6 +2425,15 @@ public class CMSMigrationBackgroundTaskExecutorTest {
 			objectDefinition.getObjectDefinitionId());
 	}
 
+	private ObjectField _getTextObjectField(String name) {
+		return new TextObjectFieldBuilder(
+		).labelMap(
+			RandomTestUtil.randomLocaleStringMap()
+		).name(
+			name
+		).build();
+	}
+
 	private boolean _hasViewResourcePermission(
 			ObjectEntry objectEntry, Role role)
 		throws Exception {
@@ -2201,6 +2502,15 @@ public class CMSMigrationBackgroundTaskExecutorTest {
 		return _getObjectEntry(journalArticle);
 	}
 
+	private ObjectDefinition _publishSiteScopedObjectDefinition(
+			ObjectField objectField)
+		throws Exception {
+
+		return ObjectDefinitionTestUtil.publishObjectDefinition(
+			Collections.singletonList(objectField),
+			ObjectDefinitionConstants.SCOPE_SITE);
+	}
+
 	private String _renderAssetPublisherWidgetTemplate(
 			BlogsEntry blogsEntry, Layout layout)
 		throws Exception {
@@ -2255,6 +2565,9 @@ public class CMSMigrationBackgroundTaskExecutorTest {
 		"com.liferay.blogs.web.internal.configuration." +
 			"BlogsPortletInstanceConfiguration";
 
+	@DeleteAfterTestRun
+	private Group _anotherGroup;
+
 	@Inject
 	private AssetEntryLocalService _assetEntryLocalService;
 
@@ -2308,6 +2621,8 @@ public class CMSMigrationBackgroundTaskExecutorTest {
 	private LayoutPageTemplateEntryLocalService
 		_layoutPageTemplateEntryLocalService;
 
+	private ObjectDefinition _objectDefinition;
+
 	@Inject
 	private ObjectDefinitionLocalService _objectDefinitionLocalService;
 
@@ -2319,6 +2634,9 @@ public class CMSMigrationBackgroundTaskExecutorTest {
 
 	@Inject
 	private ObjectFieldLocalService _objectFieldLocalService;
+
+	@Inject
+	private ObjectRelationshipLocalService _objectRelationshipLocalService;
 
 	private Set<Long> _originalObjectDefinitionIds;
 
@@ -2333,6 +2651,8 @@ public class CMSMigrationBackgroundTaskExecutorTest {
 
 	@Inject
 	private ReadingTimeEntryLocalService _readingTimeEntryLocalService;
+
+	private ObjectDefinition _relatedObjectDefinition;
 
 	@Inject
 	private ResourcePermissionLocalService _resourcePermissionLocalService;
