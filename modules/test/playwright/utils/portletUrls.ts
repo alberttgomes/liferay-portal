@@ -28,6 +28,8 @@ export const PORTLET_URLS = {
 	cmsEditCategory: 'web/cms/categorization/edit-category',
 	cmsFiles: 'web/cms/files',
 	cmsHome: 'web/cms/home',
+	cmsMigration:
+		'/group/control_panel/manage?p_p_id=com_liferay_cms_migration_web_internal_portlet_CMSMigrationPortlet',
 	cmsNewCategory: 'web/cms/categorization/new-category',
 	cmsNewVocabulary: 'web/cms/categorization/new-vocabulary',
 	cmsPicklistBuilder: 'web/cms/picklist-builder',
