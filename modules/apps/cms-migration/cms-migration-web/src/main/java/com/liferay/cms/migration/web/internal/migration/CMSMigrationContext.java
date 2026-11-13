@@ -38,20 +38,23 @@ public class CMSMigrationContext {
 	public CMSMigrationContext(
 		DepotEntry depotEntry, Group depotGroup, boolean migrateBlogsEntries,
 		boolean migrateFileEntries, boolean migrateJournalArticles,
-		CMSMigrationReport cmsMigrationReport, boolean rewritePages,
-		ServiceContext serviceContext, Group sourceGroup,
-		Consumer<String> statusConsumer, long userId) {
+		boolean migrateObjectEntries, CMSMigrationReport cmsMigrationReport,
+		boolean rewritePages, ServiceContext serviceContext, Group sourceGroup,
+		Consumer<String> statusConsumer, String[] titleObjectFieldNames,
+		long userId) {
 
 		_depotEntry = depotEntry;
 		_depotGroup = depotGroup;
 		_migrateBlogsEntries = migrateBlogsEntries;
 		_migrateFileEntries = migrateFileEntries;
 		_migrateJournalArticles = migrateJournalArticles;
+		_migrateObjectEntries = migrateObjectEntries;
 		_cmsMigrationReport = cmsMigrationReport;
 		_rewritePages = rewritePages;
 		_serviceContext = serviceContext;
 		_sourceGroup = sourceGroup;
 		_statusConsumer = statusConsumer;
+		_titleObjectFieldNames = titleObjectFieldNames;
 		_userId = userId;
 
 		_rewriteGroup = sourceGroup;
@@ -217,6 +220,10 @@ public class CMSMigrationContext {
 			_getKey(ddmTemplateKey, ddmStructureId), 0L);
 	}
 
+	public String[] getTitleObjectFieldNames() {
+		return _titleObjectFieldNames;
+	}
+
 	public long getUserId() {
 		return _userId;
 	}
@@ -231,6 +238,10 @@ public class CMSMigrationContext {
 
 	public boolean isMigrateJournalArticles() {
 		return _migrateJournalArticles;
+	}
+
+	public boolean isMigrateObjectEntries() {
+		return _migrateObjectEntries;
 	}
 
 	public boolean isRewritePages() {
@@ -279,6 +290,7 @@ public class CMSMigrationContext {
 	private final boolean _migrateBlogsEntries;
 	private final boolean _migrateFileEntries;
 	private final boolean _migrateJournalArticles;
+	private final boolean _migrateObjectEntries;
 	private final Map<String, ObjectDefinition> _objectDefinitions =
 		new HashMap<>();
 	private final Map<String, ObjectEntry> _objectEntries = new HashMap<>();
@@ -290,6 +302,7 @@ public class CMSMigrationContext {
 	private final Consumer<String> _statusConsumer;
 	private final Set<Long> _templateDDMStructureIds = new HashSet<>();
 	private final Map<String, Long> _templateEntryIds = new HashMap<>();
+	private final String[] _titleObjectFieldNames;
 	private final long _userId;
 
 }

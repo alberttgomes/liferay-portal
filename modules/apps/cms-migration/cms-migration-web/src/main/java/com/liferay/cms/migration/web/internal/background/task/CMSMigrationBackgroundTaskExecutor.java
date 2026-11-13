@@ -19,6 +19,7 @@ import com.liferay.cms.migration.web.internal.migration.content.BlogsEntryMigrat
 import com.liferay.cms.migration.web.internal.migration.content.FileEntryMigrator;
 import com.liferay.cms.migration.web.internal.migration.content.FolderMigrator;
 import com.liferay.cms.migration.web.internal.migration.content.JournalArticleMigrator;
+import com.liferay.cms.migration.web.internal.migration.content.ObjectEntryScopeMigrator;
 import com.liferay.cms.migration.web.internal.migration.entry.AttachmentAlternativeTextWriter;
 import com.liferay.cms.migration.web.internal.migration.entry.AttachmentCopier;
 import com.liferay.cms.migration.web.internal.migration.entry.DDMFormValuesConverter;
@@ -33,6 +34,7 @@ import com.liferay.cms.migration.web.internal.migration.reference.LayoutReferenc
 import com.liferay.cms.migration.web.internal.migration.reference.PortletReferenceRewriter;
 import com.liferay.cms.migration.web.internal.migration.reference.SiteNavigationMenuItemReferenceRewriter;
 import com.liferay.cms.migration.web.internal.migration.structure.ObjectDefinitionMigrator;
+import com.liferay.cms.migration.web.internal.migration.structure.ObjectDefinitionScopeConverter;
 import com.liferay.cms.migration.web.internal.migration.template.DisplayPageTemplateMigrator;
 import com.liferay.cms.migration.web.internal.migration.template.TemplateMigrator;
 import com.liferay.depot.model.DepotEntry;
@@ -63,9 +65,11 @@ import com.liferay.object.service.ObjectDefinitionLocalService;
 import com.liferay.object.service.ObjectDefinitionSettingLocalService;
 import com.liferay.object.service.ObjectEntryFolderLocalService;
 import com.liferay.object.service.ObjectEntryLocalService;
+import com.liferay.object.service.ObjectEntryVersionLocalService;
 import com.liferay.object.service.ObjectFieldLocalService;
 import com.liferay.object.service.ObjectFieldSettingLocalService;
 import com.liferay.object.service.ObjectFolderLocalService;
+import com.liferay.object.service.ObjectRelationshipLocalService;
 import com.liferay.portal.kernel.backgroundtask.BackgroundTask;
 import com.liferay.portal.kernel.backgroundtask.BackgroundTaskExecutor;
 import com.liferay.portal.kernel.backgroundtask.BackgroundTaskResult;
@@ -93,6 +97,7 @@ import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.UserLocalService;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.Portal;
+import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.xml.SAXReader;
 import com.liferay.reading.time.calculator.ReadingTimeCalculator;
 import com.liferay.reading.time.service.ReadingTimeEntryLocalService;
@@ -179,11 +184,16 @@ public class CMSMigrationBackgroundTaskExecutor
 						taskContextMap.get("migrateFileEntries")),
 					GetterUtil.getBoolean(
 						taskContextMap.get("migrateJournalArticles")),
+					GetterUtil.getBoolean(
+						taskContextMap.get("migrateObjectEntries")),
 					cmsMigrationReport,
 					GetterUtil.getBoolean(taskContextMap.get("rewritePages")),
 					serviceContext, sourceGroup,
 					cmsMigrationBackgroundTaskStatusMessageSender::
 						sendItemStatusMessage,
+					StringUtil.split(
+						GetterUtil.getString(
+							taskContextMap.get("titleObjectFieldNames"))),
 					user.getUserId()));
 		}
 		catch (Exception exception) {
@@ -327,6 +337,19 @@ public class CMSMigrationBackgroundTaskExecutor
 				_journalArticleResourceLocalService, _jsonFactory, _language,
 				objectDefinitionMigrator, objectEntryWriter);
 
+		ObjectEntryScopeMigrator objectEntryScopeMigrator =
+			new ObjectEntryScopeMigrator(
+				_assetEntryLocalService, attachmentCopier, _dlAppLocalService,
+				_objectDefinitionLocalService,
+				new ObjectDefinitionScopeConverter(
+					_objectDefinitionLocalService, objectDefinitionMigrator,
+					_objectDefinitionSettingLocalService,
+					_objectEntryLocalService, _objectFieldLocalService,
+					_objectFieldSettingLocalService, _objectFolderLocalService),
+				_objectEntryFolderLocalService, _objectEntryLocalService,
+				_objectEntryVersionLocalService, _objectFieldLocalService,
+				_objectRelationshipLocalService);
+
 		PortletReferenceRewriter portletReferenceRewriter =
 			new PortletReferenceRewriter(
 				_assetEntryLocalService, _assetPublisherHelper,
@@ -350,9 +373,9 @@ public class CMSMigrationBackgroundTaskExecutor
 			fileEntryMigrator, folderMigrator, _groupLocalService,
 			htmlReferenceRewriter, journalArticleMigrator, _layoutLocalService,
 			layoutReferenceRewriter, _objectDefinitionLocalService,
-			_objectEntryLocalService, _objectFieldLocalService,
-			portletReferenceRewriter, siteNavigationMenuItemReferenceRewriter,
-			templateMigrator);
+			_objectEntryLocalService, objectEntryScopeMigrator,
+			_objectFieldLocalService, portletReferenceRewriter,
+			siteNavigationMenuItemReferenceRewriter, templateMigrator);
 	}
 
 	@Reference
@@ -489,6 +512,9 @@ public class CMSMigrationBackgroundTaskExecutor
 	private ObjectEntryLocalService _objectEntryLocalService;
 
 	@Reference
+	private ObjectEntryVersionLocalService _objectEntryVersionLocalService;
+
+	@Reference
 	private ObjectFieldLocalService _objectFieldLocalService;
 
 	@Reference
@@ -496,6 +522,9 @@ public class CMSMigrationBackgroundTaskExecutor
 
 	@Reference
 	private ObjectFolderLocalService _objectFolderLocalService;
+
+	@Reference
+	private ObjectRelationshipLocalService _objectRelationshipLocalService;
 
 	@Reference
 	private PermissionCheckerFactory _permissionCheckerFactory;
