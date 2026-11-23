@@ -38,6 +38,7 @@ import com.liferay.portal.kernel.dao.orm.ProjectionFactoryUtil;
 import com.liferay.portal.kernel.dao.orm.RestrictionsFactoryUtil;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.Layout;
+import com.liferay.portal.kernel.search.IndexStatusManagerThreadLocal;
 import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.service.LayoutLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
@@ -115,14 +116,23 @@ public class CMSMigrationManager {
 	public void migrate(CMSMigrationContext cmsMigrationContext)
 		throws Exception {
 
-		_migrate(cmsMigrationContext);
+		boolean indexReadOnly = IndexStatusManagerThreadLocal.isIndexReadOnly();
 
-		_objectDefinitionMigrator.deleteUnusedLeftoverJSONObjectFields(
-			cmsMigrationContext);
-		_objectDefinitionMigrator.deleteUnusedLeftoverRepeatableGroups(
-			cmsMigrationContext);
+		IndexStatusManagerThreadLocal.setIndexReadOnly(true);
 
-		_structureEditPageResetter.reset(cmsMigrationContext);
+		try {
+			_migrate(cmsMigrationContext);
+
+			_objectDefinitionMigrator.deleteUnusedLeftoverJSONObjectFields(
+				cmsMigrationContext);
+			_objectDefinitionMigrator.deleteUnusedLeftoverRepeatableGroups(
+				cmsMigrationContext);
+
+			_structureEditPageResetter.reset(cmsMigrationContext);
+		}
+		finally {
+			IndexStatusManagerThreadLocal.setIndexReadOnly(indexReadOnly);
+		}
 	}
 
 	private List<Layout> _getLayouts(long groupId) {

@@ -113,6 +113,11 @@ import com.liferay.portal.kernel.portlet.PortletIdCodec;
 import com.liferay.portal.kernel.portletdisplaytemplate.PortletDisplayTemplateManager;
 import com.liferay.portal.kernel.repository.model.FileEntry;
 import com.liferay.portal.kernel.repository.model.Folder;
+import com.liferay.portal.kernel.search.Field;
+import com.liferay.portal.kernel.search.Hits;
+import com.liferay.portal.kernel.search.Indexer;
+import com.liferay.portal.kernel.search.IndexerRegistryUtil;
+import com.liferay.portal.kernel.search.SearchContext;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
 import com.liferay.portal.kernel.security.permission.PermissionChecker;
 import com.liferay.portal.kernel.security.permission.PermissionCheckerFactoryUtil;
@@ -757,6 +762,35 @@ public class CMSMigrationBackgroundTaskExecutorTest {
 			GetterUtil.getLong(values.get("image")));
 
 		Assert.assertEquals(description, attachmentFileEntry.getDescription());
+	}
+
+	@Test
+	public void testExecuteWithIndexReadOnly() throws Exception {
+		BlogsEntry blogsEntry = _blogsEntryLocalService.addEntry(
+			TestPropsValues.getUserId(), RandomTestUtil.randomString(),
+			"<p>" + RandomTestUtil.randomString() + "</p>",
+			ServiceContextTestUtil.getServiceContext(_group.getGroupId()));
+
+		FileEntry fileEntry = _addFileEntry(StringPool.BLANK);
+
+		JournalArticle journalArticle = JournalTestUtil.addArticle(
+			_group.getGroupId(),
+			JournalFolderConstants.DEFAULT_PARENT_FOLDER_ID);
+
+		_assertSuccessful(_execute(_group.getGroupId(), false));
+
+		_assertNotSearchable(
+			_getObjectEntry(
+				"CMS_MIGRATION_BLOGS_ENTRY",
+				"CMS_MIGRATION_BLOGS_ENTRY_" + blogsEntry.getEntryId()));
+		_assertNotSearchable(_getObjectEntry(fileEntry));
+		_assertNotSearchable(_getObjectEntry(journalArticle));
+
+		FileEntry attachmentFileEntry = _getAttachmentFileEntry(fileEntry);
+
+		_assertNotSearchable(
+			DLFileEntry.class.getName(), attachmentFileEntry.getFileEntryId(),
+			attachmentFileEntry.getGroupId());
 	}
 
 	@Test
@@ -4511,6 +4545,47 @@ public class CMSMigrationBackgroundTaskExecutorTest {
 
 	private DDMTemplate _addWidgetTemplate(String script) throws Exception {
 		return _addWidgetTemplate(_group.getGroupId(), script);
+	}
+
+	private void _assertNotSearchable(ObjectEntry objectEntry)
+		throws Exception {
+
+		ObjectDefinition objectDefinition =
+			_objectDefinitionLocalService.getObjectDefinition(
+				objectEntry.getObjectDefinitionId());
+
+		_assertNotSearchable(
+			objectDefinition.getClassName(), objectEntry.getObjectEntryId(),
+			objectEntry.getGroupId());
+	}
+
+	private void _assertNotSearchable(
+			String className, long classPK, long groupId)
+		throws Exception {
+
+		SearchContext searchContext = new SearchContext();
+
+		searchContext.setCompanyId(_group.getCompanyId());
+		searchContext.setEnd(QueryUtil.ALL_POS);
+		searchContext.setEntryClassNames(new String[] {className});
+		searchContext.setGroupIds(new long[] {groupId});
+		searchContext.setStart(QueryUtil.ALL_POS);
+		searchContext.setUserId(TestPropsValues.getUserId());
+
+		Indexer<?> indexer = IndexerRegistryUtil.nullSafeGetIndexer(className);
+
+		Hits hits = indexer.search(searchContext);
+
+		List<Long> classPKs = new ArrayList<>();
+
+		for (com.liferay.portal.kernel.search.Document document :
+				hits.getDocs()) {
+
+			classPKs.add(
+				GetterUtil.getLong(document.get(Field.ENTRY_CLASS_PK)));
+		}
+
+		Assert.assertFalse(classPKs.toString(), classPKs.contains(classPK));
 	}
 
 	private void _assertPortletPermissions(

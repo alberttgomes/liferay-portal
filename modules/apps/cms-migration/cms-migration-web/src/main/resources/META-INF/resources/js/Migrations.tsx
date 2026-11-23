@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
+import ClayAlert from '@clayui/alert';
 import ClayLabel, {LabelDisplayType} from '@clayui/label';
 import ClayLayout from '@clayui/layout';
 import ClayPanel from '@clayui/panel';
@@ -177,6 +178,15 @@ function MigrationRow({migration, numberFormat}: IMigrationProps) {
 							</li>
 						))}
 					</ul>
+
+					<ClayAlert
+						displayType="info"
+						title={Liferay.Language.get('info')}
+					>
+						{Liferay.Language.get(
+							'cms-migration-reindex-required-alert'
+						)}
+					</ClayAlert>
 
 					<Messages
 						className="text-danger"
