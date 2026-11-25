@@ -112,8 +112,8 @@ describe('Migrations', () => {
 		expect(within(warnings).getAllByRole('listitem')).toHaveLength(2);
 	});
 
-	it('asks for a full reindex only when the migration is completed', () => {
-		const {rerender} = render(
+	it('asks for a full reindex only when the migration is successful', () => {
+		const {unmount} = render(
 			<Migrations
 				migrationIncomplete={false}
 				migrations={[COMPLETED_MIGRATION]}
@@ -124,10 +124,12 @@ describe('Migrations', () => {
 			'cms-migration-reindex-required-alert'
 		);
 
-		rerender(
+		unmount();
+
+		render(
 			<Migrations
 				migrationIncomplete={false}
-				migrations={[IN_PROGRESS_MIGRATION]}
+				migrations={[{...COMPLETED_MIGRATION, successful: false}]}
 			/>
 		);
 

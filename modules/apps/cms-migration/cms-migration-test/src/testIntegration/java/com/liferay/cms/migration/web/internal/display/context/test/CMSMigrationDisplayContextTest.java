@@ -167,6 +167,7 @@ public class CMSMigrationDisplayContextTest {
 					LocaleUtil.US,
 					BackgroundTaskConstants.LABEL_COMPLETED_WITH_ERRORS),
 				jsonObject.getString("statusLabel"));
+			Assert.assertFalse(jsonObject.getBoolean("successful"));
 			Assert.assertEquals(
 				JSONUtil.put(
 					warning
@@ -226,12 +227,14 @@ public class CMSMigrationDisplayContextTest {
 				String.valueOf(jsonObject.getJSONArray("errors")));
 			Assert.assertEquals(
 				"danger", jsonObject.getString("statusDisplayType"));
+			Assert.assertFalse(jsonObject.getBoolean("successful"));
 
 			jsonObject = _getMigrationJSONObject(
 				_successfulBackgroundTask, migrationsJSONArray);
 
 			Assert.assertEquals(
 				"success", jsonObject.getString("statusDisplayType"));
+			Assert.assertTrue(jsonObject.getBoolean("successful"));
 		}
 		finally {
 			BackgroundTaskStatusRegistryUtil.unregisterBackgroundTaskStatus(

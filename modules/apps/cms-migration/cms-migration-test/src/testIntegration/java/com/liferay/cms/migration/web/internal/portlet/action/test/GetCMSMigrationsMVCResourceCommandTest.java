@@ -110,6 +110,7 @@ public class GetCMSMigrationsMVCResourceCommandTest {
 
 			Assert.assertTrue(jsonObject.getBoolean("completed"));
 			Assert.assertFalse(jsonObject.getBoolean("inProgress"));
+			Assert.assertTrue(jsonObject.getBoolean("successful"));
 
 			jsonObject = _getMigrationJSONObject(
 				_inProgressBackgroundTask, migrationsJSONArray);
@@ -117,6 +118,7 @@ public class GetCMSMigrationsMVCResourceCommandTest {
 			Assert.assertFalse(jsonObject.getBoolean("completed"));
 			Assert.assertTrue(jsonObject.getBoolean("inProgress"));
 			Assert.assertEquals(itemTitle, jsonObject.getString("itemTitle"));
+			Assert.assertFalse(jsonObject.getBoolean("successful"));
 
 			Assert.assertNull(
 				_fetchMigrationJSONObject(

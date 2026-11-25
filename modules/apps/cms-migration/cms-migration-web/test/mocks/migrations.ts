@@ -19,6 +19,7 @@ export const COMPLETED_MIGRATION: IMigration = {
 	progress: 0,
 	statusDisplayType: 'success',
 	statusLabel: 'Successful',
+	successful: true,
 	warnings: [],
 };
 
@@ -35,6 +36,7 @@ export const IN_PROGRESS_MIGRATION: IMigration = {
 	progress: 40,
 	statusDisplayType: 'info',
 	statusLabel: 'In Progress',
+	successful: false,
 	warnings: [],
 };
 
@@ -49,5 +51,6 @@ export const QUEUED_MIGRATION: IMigration = {
 	progress: 0,
 	statusDisplayType: 'info',
 	statusLabel: 'Queued',
+	successful: false,
 	warnings: [],
 };

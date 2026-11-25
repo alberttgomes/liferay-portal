@@ -193,6 +193,10 @@ public class CMSMigrationUtil {
 			LanguageUtil.get(
 				themeDisplay.getLocale(), backgroundTask.getStatusLabel())
 		).put(
+			"successful",
+			backgroundTask.getStatus() ==
+				BackgroundTaskConstants.STATUS_SUCCESSFUL
+		).put(
 			"warnings",
 			JSONFactoryUtil.createJSONArray(cmsMigrationReport.getWarnings())
 		);

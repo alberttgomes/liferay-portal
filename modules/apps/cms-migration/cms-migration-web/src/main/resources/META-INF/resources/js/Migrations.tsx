@@ -25,6 +25,7 @@ export interface IMigration {
 	progress: number;
 	statusDisplayType: LabelDisplayType;
 	statusLabel: string;
+	successful: boolean;
 	warnings: string[];
 }
 
@@ -131,6 +132,7 @@ function MigrationRow({migration, numberFormat}: IMigrationProps) {
 		progress,
 		statusDisplayType,
 		statusLabel,
+		successful,
 		warnings,
 	} = migration;
 
@@ -179,14 +181,16 @@ function MigrationRow({migration, numberFormat}: IMigrationProps) {
 						))}
 					</ul>
 
-					<ClayAlert
-						displayType="info"
-						title={Liferay.Language.get('info')}
-					>
-						{Liferay.Language.get(
-							'cms-migration-reindex-required-alert'
-						)}
-					</ClayAlert>
+					{successful && (
+						<ClayAlert
+							displayType="info"
+							title={Liferay.Language.get('info')}
+						>
+							{Liferay.Language.get(
+								'cms-migration-reindex-required-alert'
+							)}
+						</ClayAlert>
+					)}
 
 					<Messages
 						className="text-danger"
