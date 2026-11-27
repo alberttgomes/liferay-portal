@@ -373,7 +373,7 @@ public class WidgetTemplateMigrator {
 		}
 	}
 
-	private void _migrate(
+	private void _migrateTemplate(
 			String className, CMSMigrationContext cmsMigrationContext,
 			String contentName, DDMTemplate ddmTemplate, String messagePrefix)
 		throws Exception {
@@ -471,7 +471,7 @@ public class WidgetTemplateMigrator {
 			String messagePrefix)
 		throws Exception {
 
-		_migrate(
+		_migrateTemplate(
 			BlogsEntry.class.getName(), cmsMigrationContext, "blog entries",
 			ddmTemplate, messagePrefix);
 	}
@@ -481,7 +481,7 @@ public class WidgetTemplateMigrator {
 			String messagePrefix)
 		throws Exception {
 
-		_migrate(
+		_migrateTemplate(
 			JournalArticle.class.getName(), cmsMigrationContext,
 			"web content articles", ddmTemplate, messagePrefix);
 	}
