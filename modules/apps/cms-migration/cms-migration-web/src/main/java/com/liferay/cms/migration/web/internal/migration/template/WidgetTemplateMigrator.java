@@ -17,12 +17,12 @@ import com.liferay.dynamic.data.mapping.model.DDMTemplate;
 import com.liferay.dynamic.data.mapping.service.DDMTemplateLocalService;
 import com.liferay.journal.model.JournalArticle;
 import com.liferay.object.model.ObjectDefinition;
+import com.liferay.petra.sql.dsl.DSLQueryFactoryUtil;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
-import com.liferay.portal.kernel.dao.orm.DynamicQuery;
-import com.liferay.portal.kernel.dao.orm.RestrictionsFactoryUtil;
 import com.liferay.portal.kernel.model.Group;
-import com.liferay.portal.kernel.model.PortletPreferenceValue;
+import com.liferay.portal.kernel.model.PortletPreferenceValueTable;
+import com.liferay.portal.kernel.model.PortletPreferencesTable;
 import com.liferay.portal.kernel.portlet.PortletIdCodec;
 import com.liferay.portal.kernel.service.PortletPreferenceValueLocalService;
 import com.liferay.portal.kernel.service.PortletPreferencesLocalService;
@@ -224,34 +224,36 @@ public class WidgetTemplateMigrator {
 			Map<String, String> sourceClassNames)
 		throws Exception {
 
-		DynamicQuery dynamicQuery =
-			_portletPreferenceValueLocalService.dynamicQuery();
-
-		dynamicQuery.add(
-			RestrictionsFactoryUtil.eq(
-				"companyId", cmsMigrationContext.getCompanyId()));
-		dynamicQuery.add(RestrictionsFactoryUtil.eq("name", "displayStyle"));
-		dynamicQuery.add(
-			RestrictionsFactoryUtil.eq(
-				"smallValue",
-				PortletDisplayTemplate.DISPLAY_STYLE_PREFIX +
-					ddmTemplate.getTemplateKey()));
-
-		List<PortletPreferenceValue> portletPreferenceValues =
-			_portletPreferenceValueLocalService.dynamicQuery(dynamicQuery);
+		List<com.liferay.portal.kernel.model.PortletPreferences>
+			portletPreferencesList = _portletPreferencesLocalService.dslQuery(
+				DSLQueryFactoryUtil.select(
+					PortletPreferencesTable.INSTANCE
+				).from(
+					PortletPreferencesTable.INSTANCE
+				).innerJoinON(
+					PortletPreferenceValueTable.INSTANCE,
+					PortletPreferencesTable.INSTANCE.portletPreferencesId.eq(
+						PortletPreferenceValueTable.INSTANCE.
+							portletPreferencesId)
+				).where(
+					PortletPreferenceValueTable.INSTANCE.companyId.eq(
+						cmsMigrationContext.getCompanyId()
+					).and(
+						PortletPreferenceValueTable.INSTANCE.name.eq(
+							"displayStyle")
+					).and(
+						PortletPreferenceValueTable.INSTANCE.smallValue.eq(
+							PortletDisplayTemplate.DISPLAY_STYLE_PREFIX +
+								ddmTemplate.getTemplateKey())
+					)
+				));
 
 		Set<String> listedSourceClassNames = new HashSet<>();
 
-		for (PortletPreferenceValue portletPreferenceValue :
-				portletPreferenceValues) {
+		for (com.liferay.portal.kernel.model.PortletPreferences
+				portletPreferences : portletPreferencesList) {
 
-			com.liferay.portal.kernel.model.PortletPreferences
-				portletPreferences =
-					_portletPreferencesLocalService.fetchPortletPreferences(
-						portletPreferenceValue.getPortletPreferencesId());
-
-			if ((portletPreferences == null) ||
-				!Objects.equals(
+			if (!Objects.equals(
 					PortletIdCodec.decodePortletName(
 						portletPreferences.getPortletId()),
 					AssetPublisherPortletKeys.ASSET_PUBLISHER)) {
