@@ -110,6 +110,8 @@ public class WidgetTemplateMigrator {
 	public void migrate(CMSMigrationContext cmsMigrationContext) {
 		CMSMigrationReport cmsMigrationReport =
 			cmsMigrationContext.getCMSMigrationReport();
+		Map<String, String> sourceClassNames = _getSourceClassNames(
+			cmsMigrationContext);
 
 		for (Map.Entry<Long, String> entry : _messagePrefixes.entrySet()) {
 			DDMTemplate ddmTemplate = _ddmTemplateLocalService.fetchDDMTemplate(
@@ -120,7 +122,9 @@ public class WidgetTemplateMigrator {
 			}
 
 			try {
-				_migrate(cmsMigrationContext, ddmTemplate, entry.getValue());
+				_migrate(
+					cmsMigrationContext, ddmTemplate, entry.getValue(),
+					sourceClassNames);
 			}
 			catch (Exception exception) {
 				cmsMigrationReport.addError(
@@ -216,7 +220,8 @@ public class WidgetTemplateMigrator {
 	}
 
 	private String _getSourceClassName(
-			CMSMigrationContext cmsMigrationContext, DDMTemplate ddmTemplate)
+			CMSMigrationContext cmsMigrationContext, DDMTemplate ddmTemplate,
+			Map<String, String> sourceClassNames)
 		throws Exception {
 
 		DynamicQuery dynamicQuery =
@@ -234,21 +239,6 @@ public class WidgetTemplateMigrator {
 
 		List<PortletPreferenceValue> portletPreferenceValues =
 			_portletPreferenceValueLocalService.dynamicQuery(dynamicQuery);
-
-		Map<String, String> sourceClassNames = new HashMap<>();
-
-		Map<String, ObjectDefinition> objectDefinitions =
-			cmsMigrationContext.getObjectDefinitions();
-
-		for (Map.Entry<String, ObjectDefinition> entry :
-				objectDefinitions.entrySet()) {
-
-			ObjectDefinition objectDefinition = entry.getValue();
-
-			sourceClassNames.put(
-				objectDefinition.getClassName(),
-				StringUtil.extractFirst(entry.getKey(), StringPool.POUND));
-		}
 
 		Set<String> listedSourceClassNames = new HashSet<>();
 
@@ -270,12 +260,8 @@ public class WidgetTemplateMigrator {
 			}
 
 			PortletPreferences jxPortletPreferences =
-				_portletPreferencesLocalService.getPreferences(
-					portletPreferences.getCompanyId(),
-					portletPreferences.getOwnerId(),
-					portletPreferences.getOwnerType(),
-					portletPreferences.getPlid(),
-					portletPreferences.getPortletId());
+				_portletPreferenceValueLocalService.getPreferences(
+					portletPreferences);
 
 			if (!_isDisplayStyleGroup(
 					cmsMigrationContext, ddmTemplate, jxPortletPreferences)) {
@@ -301,6 +287,27 @@ public class WidgetTemplateMigrator {
 		Iterator<String> iterator = listedSourceClassNames.iterator();
 
 		return iterator.next();
+	}
+
+	private Map<String, String> _getSourceClassNames(
+		CMSMigrationContext cmsMigrationContext) {
+
+		Map<String, String> sourceClassNames = new HashMap<>();
+
+		Map<String, ObjectDefinition> objectDefinitions =
+			cmsMigrationContext.getObjectDefinitions();
+
+		for (Map.Entry<String, ObjectDefinition> entry :
+				objectDefinitions.entrySet()) {
+
+			ObjectDefinition objectDefinition = entry.getValue();
+
+			sourceClassNames.put(
+				objectDefinition.getClassName(),
+				StringUtil.extractFirst(entry.getKey(), StringPool.POUND));
+		}
+
+		return sourceClassNames;
 	}
 
 	private boolean _isDisplayStyleGroup(
@@ -335,7 +342,7 @@ public class WidgetTemplateMigrator {
 
 	private void _migrate(
 			CMSMigrationContext cmsMigrationContext, DDMTemplate ddmTemplate,
-			String messagePrefix)
+			String messagePrefix, Map<String, String> sourceClassNames)
 		throws Exception {
 
 		String sourceClassName = null;
@@ -345,7 +352,7 @@ public class WidgetTemplateMigrator {
 				cmsMigrationContext.getSourceGroupId())) {
 
 			sourceClassName = _getSourceClassName(
-				cmsMigrationContext, ddmTemplate);
+				cmsMigrationContext, ddmTemplate, sourceClassNames);
 		}
 
 		if (Objects.equals(sourceClassName, BlogsEntry.class.getName())) {
